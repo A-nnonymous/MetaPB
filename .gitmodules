@@ -1,0 +1,6 @@
+[submodule "submodules/SimplePIM"]
+	path = submodules/SimplePIM
+	url = git@github.com:A-nnonymous/SimplePIM.git
+[submodule "submodules/stdexec-pim"]
+	path = submodules/stdexec-pim
+	url = git@github.com:A-nnonymous/stdexec-pim.git
