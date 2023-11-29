@@ -1,4 +1,4 @@
-#include "metaScheduler/test.hpp"
+#include "MetaScheduler/MetaScheduler.hpp"
 
 void printHello(){
   std::cout<<"hello"<<std::endl;

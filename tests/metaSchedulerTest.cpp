@@ -1,4 +1,4 @@
-#include "metaScheduler/test.hpp"
+#include "MetaScheduler/MetaScheduler.hpp"
 
 int main(){
   printHello();
