@@ -1,9 +1,12 @@
+#ifndef DPU_CPL_HPP
+#define DPU_CPL_HPP
 #include <iostream>
 #include <cstdlib>
 #include <string>
 #include <map>
 #include <vector>
 
+namespace utils{
 /// @brief A stateless dpu compile proxy.
 class DPUCompileProxy{
 public:
@@ -31,5 +34,5 @@ private:
   };
   std::string parse(compileArgs &args)const noexcept;
 }; // DPUCompileProxy
-
-
+} // namespace utils
+#endif

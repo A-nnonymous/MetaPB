@@ -34,24 +34,27 @@ public:
 
   OptimizerBase(const pt_t lowerLimits, const pt_t upperLimits,
                 const size_t dimNum, const size_t agentNum,
-                const size_t iterNum);
+                const size_t iterNum,
+                const function<valFrm_t(const ptFrm_t&)> &evalFunc);
 
   void exec() noexcept;
 
+  /// @brief Members getters.
   inline valHist_t getValueHistory() const noexcept { return valHistory; }
   inline ptHist_t getPointsHistory() const noexcept { return ptHistory; }
-  inline valFrm_t getValueFrame(size_t frmIdx) const noexcept {
-    return valHistory[frmIdx];
-  }
-  inline ptFrm_t getPointsFrame(size_t frmIdx) const noexcept {
-    return ptHistory[frmIdx];
-  }
+  inline valFrm_t getValueFrame(size_t frmIdx) const noexcept { return valHistory[frmIdx]; }
+  inline ptFrm_t getPointsFrame(size_t frmIdx) const noexcept { return ptHistory[frmIdx]; }
 
 private:
-  virtual valFrm_t evaluateFunc(const ptFrm_t &) = 0;
+
+  /// @brief This function(virtual) is the core of all metaheuristic algorithms
+  /// @return A new frame of argument vectors that await evaluating.
   virtual ptFrm_t updateFunc(const ptFrm_t &, const valFrm_t &) = 0;
 
+  /// @brief Random initialize the first search frame.
   void randStart() noexcept;
+
+  /// @brief Debug function used in the end of exec(), disabled in NDEBUG mode.
   void debug_check() noexcept;
 
   ptHist_t ptHistory;
@@ -61,7 +64,11 @@ private:
   const size_t dimNum;
   const size_t agentNum;
   const size_t iterNum;
+  /// @brief This function is used to provide evaluation of given argument vector.
+  /// Must be provided explicitly by user.
+  const function<valFrm_t(const ptFrm_t&)> &evaluateFunc;
 }; // class OptimizerBase.
 } // namespace Optimizer
 #endif
-#include "OptimizerBase.cpp"
+// Tail include of template method implementaions
+#include "./implements/OptimizerBase.cpp"

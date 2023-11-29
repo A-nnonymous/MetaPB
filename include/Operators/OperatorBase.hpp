@@ -1,7 +1,7 @@
-#pragma once
+#ifndef OP_BASE_HPP
+#define OP_BASE_HPP
 #include <map>
 #include <vector>
-#include "utils/paramDef.hpp"
 
 namespace scheduler{
 
@@ -21,5 +21,6 @@ public:
 private:
 
 };
-
 } // namespace scheduler
+
+#endif

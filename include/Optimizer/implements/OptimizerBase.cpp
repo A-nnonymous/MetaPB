@@ -1,15 +1,18 @@
 #ifndef OPT_BASE_SRC
 #define OPT_BASE_SRC
-#include "OptimizerBase.hpp"
+#include "../OptimizerBase.hpp"
 namespace Optimizer {
+
+
 template <typename aType, typename vType>
 OptimizerBase<aType, vType>::OptimizerBase(const pt_t lowerLimits,
                                            const pt_t upperLimits,
                                            const size_t dimNum,
                                            const size_t agentNum,
-                                           const size_t iterNum)
+                                           const size_t iterNum,
+                                           const function<valFrm_t(const ptFrm_t&)> &evalFunc)
     : lowerLimits(lowerLimits), upperLimits(upperLimits), dimNum(dimNum),
-      agentNum(agentNum), iterNum(iterNum) {
+      agentNum(agentNum), iterNum(iterNum), evaluateFunc(evalFunc) {
   ptHistory.reserve(iterNum);
   valHistory.reserve(iterNum);
 }
@@ -19,10 +22,10 @@ template <typename aType, typename vType>
 void OptimizerBase<aType, vType>::exec() noexcept {
   randStart();
   for (size_t frmIdx = 0; frmIdx < iterNum; ++frmIdx) {
-    // Exploitation
+    // Exploitation using provided value function.
     valFrm_t frmVal = evaluateFunc(ptHistory[frmIdx]);
     valHistory.emplace_back(std::move(frmVal));
-    // Exploration
+    // Exploration using current frame and points' values.
     if (frmIdx != iterNum - 1) [[likely]] {
       ptFrm_t nextFrm = updateFunc(ptHistory[frmIdx], valHistory[frmIdx]);
       ptHistory.emplace_back(std::move(nextFrm));
@@ -36,8 +39,8 @@ void OptimizerBase<aType, vType>::exec() noexcept {
 /// @brief Random initiate first search frame.
 template <typename aType, typename vType>
 void OptimizerBase<aType, vType>::randStart() noexcept {
-  std::mt19937_64 rng(std::random_device{}());
   vector<pt_t> firstFrm;
+  std::mt19937 rng(std::random_device{}());
   firstFrm.reserve(agentNum);
   for (size_t agtIdx = 0; agtIdx < agentNum; ++agtIdx) {
     pt_t agent(dimNum, (aType)0);

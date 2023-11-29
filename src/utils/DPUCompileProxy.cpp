@@ -1,4 +1,8 @@
-#include "utils/dpuCompile.hpp"
+#ifndef DPU_CPL_SRC
+#define DPU_CPL_SRC
+#include "utils/DPUCompileProxy.hpp"
+
+namespace utils{
 
 /// @brief Compile dpu program with provided arguments
 /// @param args Provided packed arguments.
@@ -27,5 +31,5 @@ std::string DPUCompileProxy::parse(compileArgs &args)const noexcept{
   }
   return cmd;
 }
-
-
+} // namespace utils
+#endif

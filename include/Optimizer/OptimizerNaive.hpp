@@ -22,14 +22,14 @@ public:
   typedef vector<valFrm_t> valHist_t;
   OptimizerNaive(const pt_t lowerLimits, const pt_t upperLimits,
                  const size_t dimNum, const size_t agentNum,
-                 const size_t iterNum)
+                 const size_t iterNum,
+                 const function<valFrm_t(const ptFrm_t&)> &evalFunc)
       : OptimizerBase<aType, vType>(lowerLimits, upperLimits, dimNum, agentNum,
-                                    iterNum) {}
+                                    iterNum, evalFunc) {}
 
 private:
-  virtual valFrm_t evaluateFunc(const ptFrm_t &) override;
   virtual ptFrm_t updateFunc(const ptFrm_t &, const valFrm_t &) override;
 };
 } // namespace Optimizer
 #endif
-#include "OptimizerNaive.cpp"
+#include "./implements/OptimizerNaive.cpp"
