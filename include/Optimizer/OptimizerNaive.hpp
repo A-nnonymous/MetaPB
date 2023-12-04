@@ -33,7 +33,7 @@ private:
   double noiseRatio = 0.0f;
   size_t iterCounter = 0;
   pt_t optima;
-  virtual ptFrm_t updateFunc(const ptFrm_t &, const valFrm_t &) override;
+  virtual ptFrm_t updateFunc() override;
 };
 } // namespace Optimizer
 #endif

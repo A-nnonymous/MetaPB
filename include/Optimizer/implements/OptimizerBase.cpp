@@ -12,18 +12,51 @@ OptimizerBase<aType, vType>::OptimizerBase(
       pointNum(pointNum), iterNum(iterNum), evaluateFunc(evalFunc) {
   ptHistory.reserve(iterNum);
   valHistory.reserve(iterNum);
+  bestPtHist.reserve(iterNum);
+  worstPtHist.reserve(iterNum);
+  bestValHist.reserve(iterNum);
+  worstPtHist.reserve(iterNum);
 }
 
 template <typename aType, typename vType>
 void OptimizerBase<aType, vType>::exec() noexcept {
   randStart();
   for (size_t frmIdx = 0; frmIdx < iterNum; ++frmIdx) {
-    // Exploitation using provided value function.
-    valFrm_t frmVal = evaluateFunc(ptHistory[frmIdx]);
+    // ------------Exploitation using provided value function.---
+    valFrm_t frmVal = evaluateFunc(ptHistory.back());
     valHistory.emplace_back(std::move(frmVal));
-    // Exploration using current frame and points' values.
+
+    // ------------Optima and history maintaining ----------------
+    vType localBestVal = std::numeric_limits<vType>::max();
+    vType localWorstVal = std::numeric_limits<vType>::min();
+    size_t bestIdx = -1;
+    size_t worstIdx = -1;
+    for(size_t valIdx = 0; valIdx < frmVal.size(); valIdx++){
+      if(frmVal[valIdx] < localBestVal){
+        bestIdx = valIdx;
+        localBestVal = frmVal[valIdx];
+      }
+      if(frmVal[valIdx] < localWorstVal){
+        worstIdx = valIdx;
+        localWorstVal = frmVal[valIdx];
+      }
+    }
+    if(localBestVal < gBestVal){
+      gBestVal = localBestVal;
+      gBestPt = ptHistory[frmIdx][bestIdx];
+    }
+    if(localWorstVal < gWorstVal){
+      gWorstVal = localWorstVal;
+      gWorstPt = ptHistory[frmIdx][worstIdx];
+    }
+    bestPtHist.emplace_back(gBestPt);
+    worstPtHist.emplace_back(gWorstPt);
+    bestValHist.emplace_back(gBestVal);
+    worstValHist.emplace_back(gWorstVal);
+
+    // ----------------Exploration using overrided function.-----
     if (frmIdx != iterNum - 1) [[likely]] {
-      ptFrm_t nextFrm = updateFunc(ptHistory[frmIdx], valHistory[frmIdx]);
+      ptFrm_t nextFrm = updateFunc();
       ptHistory.emplace_back(std::move(nextFrm));
     }
   }
@@ -38,20 +71,20 @@ void OptimizerBase<aType, vType>::randStart() noexcept {
   std::mt19937 rng(std::random_device{}());
   firstFrm.reserve(pointNum);
   for (size_t agtIdx = 0; agtIdx < pointNum; ++agtIdx) {
-    pt_t agent(dimNum, (aType)0);
+    pt_t point(dimNum, (aType)0);
     for (size_t dimIdx = 0; dimIdx < dimNum; ++dimIdx) {
       // Compile time type inference and random data initialize.
       if constexpr (std::is_integral<aType>::value) {
         std::uniform_int_distribution<aType> dist(lowerLimits[dimIdx],
                                                   upperLimits[dimIdx]);
-        agent[dimIdx] = dist(rng);
+        point[dimIdx] = dist(rng);
       } else if constexpr (std::is_floating_point<aType>::value) {
         std::uniform_real_distribution<aType> dist(lowerLimits[dimIdx],
                                                    upperLimits[dimIdx]);
-        agent[dimIdx] = dist(rng);
+        point[dimIdx] = dist(rng);
       }
     }
-    firstFrm.emplace_back(std::move(agent));
+    firstFrm.emplace_back(std::move(point));
   }
   ptHistory.emplace_back(std::move(firstFrm));
 }
@@ -82,9 +115,10 @@ void OptimizerBase<aType, vType>::debug_check() noexcept {
     }
     std::cout << "} \n";
   }
+
   nPoint = 0;
-  std::cout << "All point in frame3\n";
-  for (auto &&point : ptHistory[3]) {
+  std::cout << "All point in last frame\n";
+  for (auto &&point : ptHistory.back()) {
     nPoint++;
     std::cout << "Point " << nPoint << " {";
     for (auto &&dim : point) {
@@ -92,6 +126,7 @@ void OptimizerBase<aType, vType>::debug_check() noexcept {
     }
     std::cout << "} \n";
   }
+
   nPoint = 0;
   std::cout << "Squashed point history:\n";
   auto squashed = getCumulatePointsHistory();

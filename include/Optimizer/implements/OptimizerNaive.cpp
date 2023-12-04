@@ -11,9 +11,7 @@ namespace Optimizer {
 /// @return New points frame.
 template <typename aType, typename vType>
 typename OptimizerNaive<aType, vType>::ptFrm_t
-OptimizerNaive<aType, vType>::updateFunc(
-    const typename OptimizerNaive<aType, vType>::ptFrm_t &points,
-    const typename OptimizerNaive<aType, vType>::valFrm_t &pVals) {
+OptimizerNaive<aType, vType>::updateFunc(){
   ptFrm_t result;
   size_t iterRemains = (this->iterNum - iterCounter - 1);
   double progress =((double)iterCounter / (double)this->iterNum);
@@ -23,8 +21,8 @@ OptimizerNaive<aType, vType>::updateFunc(
   double noiseProb = 0.9 *pow(progRemain, 2);
   std::bernoulli_distribution noiseDist(noiseProb);
   std::uniform_real_distribution<double> ratioDist(pow(progRemain, 2), 1.0);
-  result.reserve(points.size());
-  for (const auto &point : points) {
+  result.reserve(this->pointNum);
+  for (const auto &point : this->ptHistory.back()) {
     pt_t newPoint(point.size());
     bool isNoise = noiseDist(rng);
     for (size_t dim = 0; dim != point.size(); ++dim) {

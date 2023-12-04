@@ -1,6 +1,7 @@
 #ifndef OPT_BASE_HPP
 #define OPT_BASE_HPP
 #include <cassert>
+#include <limits>
 #include <functional>
 #include <iostream>
 #include <random>
@@ -40,32 +41,49 @@ public:
   void exec() noexcept;
 
   //Members getters.
-  /// @brief Get point value history shaped in (iterNum, pointNum)
-  /// @return A 2-dimensional vType vector.
-  inline valHist_t getValueHistory() const noexcept { return valHistory;}
-
   /// @brief Get point argument history shaped in (iterNum, pointNum, dimNum)
-  /// @return A 3-dimensional aType vector.
+  /// @return A 3-D aType vector.
   inline ptHist_t getPointsHistory() const noexcept { return ptHistory;}
-
-  /// @brief Get specific frame of point value shaped in (pointNum)
-  /// @param frmIdx Input frame index.
-  /// @return A 1-dimensional vType vector.
-  inline valFrm_t getValueFrame(size_t frmIdx) const noexcept { return valHistory[frmIdx];}
-
-  /// @brief Get specific frame of point arguments shaped in (pointNum)
-  /// @param frmIdx Input frame index.
-  /// @return A 1-dimensional aType vector.
-  inline ptFrm_t getPointsFrame(size_t frmIdx) const noexcept { return ptHistory[frmIdx];}
 
   /// @brief Flatten and cumulate all points arguments history and output
   /// @return A 2-dimensional aType vector shaped in (pointNum * iterNum, dimNum)
   ptFrm_t getCumulatePointsHistory() const;
 
+  /// @brief Get the local best points of all search frame
+  /// @return History of global optima point, a 2-D aType vector shaped in (iterNum, dimNum)
+  inline vector<pt_t> getGlobalOptimaPointsHistory()const noexcept{return bestPtHist;}
+
+  /// @brief Get point value history shaped in (iterNum, pointNum)
+  /// @return A 2-D vType vector.
+  inline valHist_t getValueHistory() const noexcept { return valHistory;}
+
+  /// @brief Get the history of values of all searched optimas
+  /// @return A 1-D vType vector shaped in (iterNum)
+  inline vector<vType> getGlobalOptimaValueHistory()const noexcept{return bestValHist;}
+
+  /// @brief Get specific frame of point value shaped in (pointNum)
+  /// @param frmIdx Input frame index.
+  /// @return A 1-D vType vector.
+  inline valFrm_t getValueFrame(size_t frmIdx) const noexcept { return valHistory[frmIdx];}
+
+  /// @brief Get specific frame of point arguments shaped in (pointNum)
+  /// @param frmIdx Input frame index.
+  /// @return A 1-D aType vector.
+  inline ptFrm_t getPointsFrame(size_t frmIdx) const noexcept { return ptHistory[frmIdx];}
+
+  /// @brief Get the best result point after all optimization
+  /// @return Global optima point, a 1-D aType vector shaped in (dimNum)
+  inline pt_t getGlobalOptimaPoint()const noexcept{ return gBestPt;}
+
+  /// @brief Get the value of global optima
+  /// @return A vType scalar
+  inline vType getGlobalOptimaValue() const noexcept{return gBestVal;}
+
+
 protected:
   /// @brief This function(virtual) is the core of all metaheuristic algorithms
   /// @return A new frame of argument vectors that await evaluating.
-  virtual ptFrm_t updateFunc(const ptFrm_t &, const valFrm_t &) = 0;
+  virtual ptFrm_t updateFunc() = 0;
 
   /// @brief Random initialize the first search frame.
   void randStart() noexcept;
@@ -73,7 +91,15 @@ protected:
   /// @brief Debug function used in the end of exec(), disabled in NDEBUG mode.
   void debug_check() noexcept;
 
-  ptHist_t ptHistory;
+  pt_t gBestPt; // Global optima founded at last.
+  pt_t gWorstPt; // (Experimental reserve)
+  vType gBestVal = std::numeric_limits<vType>::max(); // Value of global optima.
+  vType gWorstVal= std::numeric_limits<vType>::min(); // (Experimental reserve)
+  vector<pt_t> bestPtHist; // History of optimas point in all frame.
+  vector<pt_t> worstPtHist; // History of worst point in all frame.
+  vector<vType> bestValHist; // History of optimas' values in all frame.
+  vector<vType> worstValHist; // History of worst points' values in all frame.
+  ptHist_t ptHistory; // 
   valHist_t valHistory;
   const pt_t lowerLimits;
   const pt_t upperLimits;
