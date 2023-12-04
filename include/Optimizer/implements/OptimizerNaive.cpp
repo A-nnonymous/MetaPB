@@ -14,7 +14,36 @@ typename OptimizerNaive<aType, vType>::ptFrm_t
 OptimizerNaive<aType, vType>::updateFunc(
     const typename OptimizerNaive<aType, vType>::ptFrm_t &points,
     const typename OptimizerNaive<aType, vType>::valFrm_t &pVals) {
-  return points;
+  ptFrm_t result;
+  size_t iterRemains = (this->iterNum - iterCounter - 1);
+  double progress =((double)iterCounter / (double)this->iterNum);
+  double progRemain = 1.0 - progress;
+  std::mt19937 rng(std::random_device{}());
+  //double noiseProb = (progress > 0.9) ? 0.0 : 0.9 - progress;
+  double noiseProb = 0.9 *pow(progRemain, 2);
+  std::bernoulli_distribution noiseDist(noiseProb);
+  std::uniform_real_distribution<double> ratioDist(pow(progRemain, 2), 1.0);
+  result.reserve(points.size());
+  for (const auto &point : points) {
+    pt_t newPoint(point.size());
+    bool isNoise = noiseDist(rng);
+    for (size_t dim = 0; dim != point.size(); ++dim) {
+      aType diff = optima[dim] - point[dim];
+      aType velocity = (isNoise ? ceil(-diff * ratioDist(rng))
+                                            : ceil(diff * ratioDist(rng)));
+      aType ration = (diff/iterRemains) * 20;
+      if(velocity > ration) velocity = isNoise? -ration: ration;
+      // bool isNoise = false;
+      newPoint[dim] = point[dim] + velocity;
+      if (newPoint[dim] > this->upperLimits[dim])
+        newPoint[dim] = this->upperLimits[dim];
+      if (newPoint[dim] < this->lowerLimits[dim])
+        newPoint[dim] = this->lowerLimits[dim];
+    }
+    result.emplace_back(std::move(newPoint));
+  }
+  iterCounter++;
+  return result;
 }
 
 } // namespace Optimizer

@@ -33,20 +33,36 @@ public:
   typedef vector<valFrm_t> valHist_t;
 
   OptimizerBase(const pt_t lowerLimits, const pt_t upperLimits,
-                const size_t dimNum, const size_t agentNum,
+                const size_t dimNum, const size_t pointNum,
                 const size_t iterNum,
-                const function<valFrm_t(const ptFrm_t&)> &evalFunc);
+                const function<valFrm_t(const ptFrm_t &)> &evalFunc);
 
   void exec() noexcept;
 
-  /// @brief Members getters.
-  inline valHist_t getValueHistory() const noexcept { return valHistory; }
-  inline ptHist_t getPointsHistory() const noexcept { return ptHistory; }
-  inline valFrm_t getValueFrame(size_t frmIdx) const noexcept { return valHistory[frmIdx]; }
-  inline ptFrm_t getPointsFrame(size_t frmIdx) const noexcept { return ptHistory[frmIdx]; }
+  //Members getters.
+  /// @brief Get point value history shaped in (iterNum, pointNum)
+  /// @return A 2-dimensional vType vector.
+  inline valHist_t getValueHistory() const noexcept { return valHistory;}
 
-private:
+  /// @brief Get point argument history shaped in (iterNum, pointNum, dimNum)
+  /// @return A 3-dimensional aType vector.
+  inline ptHist_t getPointsHistory() const noexcept { return ptHistory;}
 
+  /// @brief Get specific frame of point value shaped in (pointNum)
+  /// @param frmIdx Input frame index.
+  /// @return A 1-dimensional vType vector.
+  inline valFrm_t getValueFrame(size_t frmIdx) const noexcept { return valHistory[frmIdx];}
+
+  /// @brief Get specific frame of point arguments shaped in (pointNum)
+  /// @param frmIdx Input frame index.
+  /// @return A 1-dimensional aType vector.
+  inline ptFrm_t getPointsFrame(size_t frmIdx) const noexcept { return ptHistory[frmIdx];}
+
+  /// @brief Flatten and cumulate all points arguments history and output
+  /// @return A 2-dimensional aType vector shaped in (pointNum * iterNum, dimNum)
+  ptFrm_t getCumulatePointsHistory() const;
+
+protected:
   /// @brief This function(virtual) is the core of all metaheuristic algorithms
   /// @return A new frame of argument vectors that await evaluating.
   virtual ptFrm_t updateFunc(const ptFrm_t &, const valFrm_t &) = 0;
@@ -62,11 +78,11 @@ private:
   const pt_t lowerLimits;
   const pt_t upperLimits;
   const size_t dimNum;
-  const size_t agentNum;
+  const size_t pointNum;
   const size_t iterNum;
-  /// @brief This function is used to provide evaluation of given argument vector.
-  /// Must be provided explicitly by user.
-  const function<valFrm_t(const ptFrm_t&)> &evaluateFunc;
+  /// @brief This function is used to provide evaluation of given argument
+  /// vector. Must be provided explicitly by user.
+  const function<valFrm_t(const ptFrm_t &)> &evaluateFunc;
 }; // class OptimizerBase.
 } // namespace Optimizer
 #endif

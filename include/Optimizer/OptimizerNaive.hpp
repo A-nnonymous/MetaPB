@@ -20,14 +20,19 @@ public:
   typedef vector<pt_t> ptFrm_t;
   typedef vector<ptFrm_t> ptHist_t;
   typedef vector<valFrm_t> valHist_t;
-  OptimizerNaive(const pt_t lowerLimits, const pt_t upperLimits,
-                 const size_t dimNum, const size_t agentNum,
-                 const size_t iterNum,
-                 const function<valFrm_t(const ptFrm_t&)> &evalFunc)
-      : OptimizerBase<aType, vType>(lowerLimits, upperLimits, dimNum, agentNum,
-                                    iterNum, evalFunc) {}
+  OptimizerNaive(const pt_t optima, const pt_t lowerLimits,
+                 const pt_t upperLimits, const size_t dimNum,
+                 const size_t pointNum, const size_t iterNum,
+                 const function<valFrm_t(const ptFrm_t &)> &evalFunc)
+      : OptimizerBase<aType, vType>(lowerLimits, upperLimits, dimNum, pointNum,
+                                    iterNum, evalFunc),
+        optima(optima) {}
 
 private:
+  double velocityRatio = 0.0f;
+  double noiseRatio = 0.0f;
+  size_t iterCounter = 0;
+  pt_t optima;
   virtual ptFrm_t updateFunc(const ptFrm_t &, const valFrm_t &) override;
 };
 } // namespace Optimizer

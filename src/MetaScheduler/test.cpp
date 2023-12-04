@@ -1,5 +1,3 @@
 #include "MetaScheduler/MetaScheduler.hpp"
 
-void printHello(){
-  std::cout<<"hello"<<std::endl;
-}
+void printHello() { std::cout << "hello" << std::endl; }

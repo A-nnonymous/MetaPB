@@ -1,5 +1,3 @@
 #include "MetaScheduler/MetaScheduler.hpp"
 
-int main(){
-  printHello();
-}
+int main() { printHello(); }
