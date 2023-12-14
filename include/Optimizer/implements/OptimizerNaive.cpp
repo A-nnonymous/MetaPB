@@ -11,14 +11,14 @@ namespace Optimizer {
 /// @return New points frame.
 template <typename aType, typename vType>
 typename OptimizerNaive<aType, vType>::ptFrm_t
-OptimizerNaive<aType, vType>::updateFunc(){
+OptimizerNaive<aType, vType>::updateFunc() {
   ptFrm_t result;
-  size_t iterRemains = (this->iterNum - iterCounter - 1);
-  double progress =((double)iterCounter / (double)this->iterNum);
+  size_t iterRemains = (this->iterNum - this->iterCounter - 1);
+  double progress = ((double)this->iterCounter / (double)this->iterNum);
   double progRemain = 1.0 - progress;
   std::mt19937 rng(std::random_device{}());
-  //double noiseProb = (progress > 0.9) ? 0.0 : 0.9 - progress;
-  double noiseProb = 0.9 *pow(progRemain, 2);
+  // double noiseProb = (progress > 0.9) ? 0.0 : 0.9 - progress;
+  double noiseProb = 0.9 * pow(progRemain, 2);
   std::bernoulli_distribution noiseDist(noiseProb);
   std::uniform_real_distribution<double> ratioDist(pow(progRemain, 2), 1.0);
   result.reserve(this->pointNum);
@@ -28,9 +28,10 @@ OptimizerNaive<aType, vType>::updateFunc(){
     for (size_t dim = 0; dim != point.size(); ++dim) {
       aType diff = optima[dim] - point[dim];
       aType velocity = (isNoise ? ceil(-diff * ratioDist(rng))
-                                            : ceil(diff * ratioDist(rng)));
-      aType ration = (diff/iterRemains) * 20;
-      if(velocity > ration) velocity = isNoise? -ration: ration;
+                                : ceil(diff * ratioDist(rng)));
+      aType ration = (diff / iterRemains) * 20;
+      if (velocity > ration)
+        velocity = isNoise ? -ration : ration;
       // bool isNoise = false;
       newPoint[dim] = point[dim] + velocity;
       if (newPoint[dim] > this->upperLimits[dim])
@@ -40,7 +41,6 @@ OptimizerNaive<aType, vType>::updateFunc(){
     }
     result.emplace_back(std::move(newPoint));
   }
-  iterCounter++;
   return result;
 }
 

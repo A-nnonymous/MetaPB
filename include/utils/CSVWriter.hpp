@@ -1,3 +1,5 @@
+#ifndef UTL_CSVWRITER_HPP
+#define UTL_CSVWRITER_HPP
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -7,10 +9,9 @@
 using std::string;
 using std::vector;
 
-namespace utils{
+namespace utils {
 
-template <typename dType> 
-class CSVWriter {
+template <typename dType> class CSVWriter {
 public:
   void writeCSV(const vector<vector<dType>> &data,
                 const vector<string> &headers, const string &filename) {
@@ -29,7 +30,7 @@ public:
       if (rowIdx != data.size() - 1) [[likely]]
         file << "\n";
     }
-    
+
     file.close();
   }
 
@@ -46,3 +47,5 @@ private:
 };
 
 } // namespace utils.
+
+#endif

@@ -8,8 +8,8 @@ add_subdirectory(Operators)
 add_subdirectory(Task)
 
 
-# Implementation of multistage weighted task scheduler
-add_subdirectory(Scheduler)
+# Implementation of multistage weighted task executor
+add_subdirectory(Executor)
 
 # Implementation of main co-processing scheduler's tuning framwork
 add_subdirectory(MetaScheduler)

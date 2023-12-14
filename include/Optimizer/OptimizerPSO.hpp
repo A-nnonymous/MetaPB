@@ -1,11 +1,11 @@
-#ifndef OPT_NAIVE_HPP
-#define OPT_NAIVE_HPP
+#ifndef OPT_PSO_HPP
+#define OPT_PSO_HPP
 #include "OptimizerBase.hpp"
 
 namespace Optimizer {
 
 template <typename aType, typename vType>
-class OptimizerNaive : public OptimizerBase<aType, vType> {
+class OptimizerPSO : public OptimizerBase<aType, vType> {
 public:
   /*
     pt_t is a point type that stores multi-dimensional generic type args
@@ -20,18 +20,19 @@ public:
   typedef vector<pt_t> ptFrm_t;
   typedef vector<ptFrm_t> ptHist_t;
   typedef vector<valFrm_t> valHist_t;
-  OptimizerNaive(const pt_t optima, const pt_t lowerLimits,
-                 const pt_t upperLimits, const size_t dimNum,
-                 const size_t pointNum, const size_t iterNum,
-                 const function<valFrm_t(const ptFrm_t &)> &evalFunc)
-      : OptimizerBase<aType, vType>(lowerLimits, upperLimits, dimNum, pointNum,
-                                    iterNum, evalFunc),
-        optima(optima) {}
+
+  OptimizerPSO(const pt_t vMax, const double omega,
+               const double dt, const double ego,
+               const pt_t lowerLimits, const pt_t upperLimits,
+               const size_t dimNum, const size_t pointNum, const size_t iterNum,
+               const function<valFrm_t(const ptFrm_t &)> &evalFunc);
 
 private:
-  pt_t optima;
+  size_t iterCounter = 0;
+  vector<vector<double>> velocities; // velocities of all point in curr frame.
   virtual ptFrm_t updateFunc() override;
+  inline virtual void dataLogging(const valFrm_t &frmVal) noexcept override;
 };
 } // namespace Optimizer
 #endif
-#include "./implements/OptimizerNaive.cpp"
+#include "./implements/OptimizerPSO.cpp"

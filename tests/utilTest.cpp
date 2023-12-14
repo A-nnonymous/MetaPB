@@ -1,5 +1,6 @@
-#include "utils/typeParse.hpp"
 #include <iostream>
+
+#include "utils/typeParse.hpp"
 
 void test_typeParse() {
   std::string ret = utils::typeParse<uint32_t>();

@@ -10,63 +10,18 @@ OptimizerBase<aType, vType>::OptimizerBase(
     const function<valFrm_t(const ptFrm_t &)> &evalFunc)
     : lowerLimits(lowerLimits), upperLimits(upperLimits), dimNum(dimNum),
       pointNum(pointNum), iterNum(iterNum), evaluateFunc(evalFunc) {
+  // Reserve place for further emplace_back
+#ifndef NDEBUG
+  assert(pointNum >=1 && "Illegal pointNum");
+  assert(iterNum>=1 && "Illegal iterNum");
+#endif
   ptHistory.reserve(iterNum);
   valHistory.reserve(iterNum);
   bestPtHist.reserve(iterNum);
   worstPtHist.reserve(iterNum);
   bestValHist.reserve(iterNum);
   worstPtHist.reserve(iterNum);
-}
-
-template <typename aType, typename vType>
-void OptimizerBase<aType, vType>::exec() noexcept {
-  randStart();
-  for (size_t frmIdx = 0; frmIdx < iterNum; ++frmIdx) {
-    // ------------Exploitation using provided value function.---
-    valFrm_t frmVal = evaluateFunc(ptHistory.back());
-    valHistory.emplace_back(std::move(frmVal));
-
-    // ------------Optima and history maintaining ----------------
-    vType localBestVal = std::numeric_limits<vType>::max();
-    vType localWorstVal = std::numeric_limits<vType>::min();
-    size_t bestIdx = -1;
-    size_t worstIdx = -1;
-    for(size_t valIdx = 0; valIdx < frmVal.size(); valIdx++){
-      if(frmVal[valIdx] < localBestVal){
-        bestIdx = valIdx;
-        localBestVal = frmVal[valIdx];
-      }
-      if(frmVal[valIdx] < localWorstVal){
-        worstIdx = valIdx;
-        localWorstVal = frmVal[valIdx];
-      }
-    }
-    if(localBestVal < gBestVal){
-      gBestVal = localBestVal;
-      gBestPt = ptHistory[frmIdx][bestIdx];
-    }
-    if(localWorstVal < gWorstVal){
-      gWorstVal = localWorstVal;
-      gWorstPt = ptHistory[frmIdx][worstIdx];
-    }
-    bestPtHist.emplace_back(gBestPt);
-    worstPtHist.emplace_back(gWorstPt);
-    bestValHist.emplace_back(gBestVal);
-    worstValHist.emplace_back(gWorstVal);
-
-    // ----------------Exploration using overrided function.-----
-    if (frmIdx != iterNum - 1) [[likely]] {
-      ptFrm_t nextFrm = updateFunc();
-      ptHistory.emplace_back(std::move(nextFrm));
-    }
-  }
-#ifndef NDEBUG
-  debug_check();
-#endif
-}
-
-template <typename aType, typename vType>
-void OptimizerBase<aType, vType>::randStart() noexcept {
+  // Random initialize point position of first frame
   vector<pt_t> firstFrm;
   std::mt19937 rng(std::random_device{}());
   firstFrm.reserve(pointNum);
@@ -87,6 +42,59 @@ void OptimizerBase<aType, vType>::randStart() noexcept {
     firstFrm.emplace_back(std::move(point));
   }
   ptHistory.emplace_back(std::move(firstFrm));
+}
+
+template <typename aType, typename vType>
+void OptimizerBase<aType, vType>::exec() noexcept {
+  // Invariant: All point frame till here is valid to evaluate.
+  for (size_t frmIdx = 0; frmIdx < iterNum; ++frmIdx) {
+    // Update the iterCounter 
+    iterCounter = frmIdx;
+    // Exploitation using provided value function
+    valFrm_t frmVal = evaluateFunc(ptHistory.back());
+    valHistory.emplace_back(std::move(frmVal));
+    // Optima and history data maintaining 
+    dataLogging(frmVal);
+    // Exploration using overrided function
+    // Skip updating the point frame if executed to the last iteration.
+    if (frmIdx != iterNum - 1) [[likely]] {
+      ptFrm_t nextFrm = updateFunc();
+      ptHistory.emplace_back(std::move(nextFrm));
+    }
+  }
+#ifndef NDEBUG
+  debug_check();
+#endif
+}
+
+template <typename aType, typename vType>
+void OptimizerBase<aType, vType>::dataLogging(const valFrm_t &frmVal) noexcept {
+  fBestVal = std::numeric_limits<vType>::max();
+  fWorstVal = std::numeric_limits<vType>::min();
+  size_t fBestIdx = -1;
+  size_t fWorstIdx = -1;
+  for (size_t valIdx = 0; valIdx < frmVal.size(); valIdx++) {
+    if (frmVal[valIdx] < frmVal[fBestIdx]) fBestIdx = valIdx;
+    if (frmVal[valIdx] > frmVal[fWorstIdx]) fWorstIdx = valIdx;
+  }
+  fBestVal = frmVal[fBestIdx];
+  fWorstVal = frmVal[fWorstIdx];
+  if (fBestVal < gBestVal) {
+    gBestVal = fBestVal;
+    gBestPt = ptHistory[frmIdx][fBestIdx];
+  }
+  if (fWorstVal < gWorstVal) {
+    gWorstVal = fWorstVal;
+    gWorstPt = ptHistory[frmIdx][fWorstIdx];
+  }
+  bestPtHist.emplace_back(gBestPt);
+  worstPtHist.emplace_back(gWorstPt);
+  bestValHist.emplace_back(gBestVal);
+  worstValHist.emplace_back(gWorstVal);
+}
+
+template <typename aType, typename vType>
+void OptimizerBase<aType, vType>::randStart() noexcept {
 }
 
 template <typename aType, typename vType>
