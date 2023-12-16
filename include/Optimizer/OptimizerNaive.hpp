@@ -30,7 +30,9 @@ public:
 
 private:
   pt_t optima;
-  virtual ptFrm_t updateFunc() override;
+  size_t iterCounter = 0;
+  inline virtual void exploration() noexcept override;
+  inline virtual void extraction() noexcept override;
 };
 } // namespace Optimizer
 #endif

@@ -16,6 +16,7 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 #add_subdirectory(${CMAKE_SOURCE_DIR}/ext/stdexec)
 include_directories(${CMAKE_SOURCE_DIR}/submodules/stdexec/include) # Adding external library stdexec
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(/usr/include/dpu)
 
 add_subdirectory(src)
 add_subdirectory(tests)

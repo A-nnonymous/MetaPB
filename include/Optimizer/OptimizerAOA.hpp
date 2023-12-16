@@ -24,13 +24,21 @@ public:
                const size_t dimNum, const size_t pointNum, const size_t iterNum,
                const function<valFrm_t(const ptFrm_t &)> &evalFunc)
       : OptimizerBase<aType, vType>(lowerLimits, upperLimits, dimNum, pointNum,
-                                    iterNum, evalFunc) {}
+                                    iterNum, evalFunc) {
+
+  worstPtHist.reserve(iterNum);
+  worstPtHist.reserve(iterNum);
+                                    }
 
 private:
-  double velocityRatio = 0.0f;
-  double noiseRatio = 0.0f;
-  size_t iterCounter = 0;
-  pt_t optima;
+
+  size_t iterCounter = 0; // Store iteration time related informations
+  vType gWorstVal = std::numeric_limits<vType>::min(); // (Experimental reserve)
+  pt_t gWorstPt;          // (Experimental reserve)
+  pt_t fWorstPt;          // Frame worst point founded at last evaluation.
+  vType fWorstVal = std::numeric_limits<vType>::min(); // (Experimental reserve)
+  vector<pt_t> fWorstPtHist;   // History of worst point in all frame.
+  vector<vType> worstValHist; // History of worst points' values in all frame.
   virtual ptFrm_t updateFunc() override;
 };
 } // namespace Optimizer

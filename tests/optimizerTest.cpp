@@ -37,7 +37,7 @@ int main() {
   opt.exec();
   auto cumuHist = opt.getCumulatePointsHistory();
   auto valHist = opt.getValueHistory();
-  auto optHist = opt.getGlobalOptimaValueHistory();
+  auto optHist = opt.getGlobalConvergeValueVec();
 
   utils::CSVWriter<int> argCSV;
   vector<string> argHeader = {"Voltage_mv", "Timestep_ms"};

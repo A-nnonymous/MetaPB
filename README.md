@@ -7,10 +7,10 @@ This work is build and tested in real world commercial PIM computing system **UP
 ### 2.1. Hardware specifications
 |Category|Model|Count|Performance Metrics|Energy Consumption Metrics|
 |-------|-----|-----|-------------------|--------------------------|
-|CPU|Intel(R) Xeon(R) Silver 4216|2|2.2-3.2Ghz w 22MB LLC|100W * 2|
+|CPU|Intel(R) Xeon(R) Silver 4216 (16 cores, 32 threads each)|2|2.2-3.2GHz w 22MB LLC|100W * 2|
 |DRAM|Samsung M393A8G40AB2-CWE (64GB each)|4|3200 MHz|?|
-|PIM-DPU|UPMEM Core|2530|343-350Mhz|100-150mw * 2530|
-|PIM-DRAM|UPMEM BC021B (8GB each)|20|2400Mhz|5.7-?w * 40 (include DPU)|
+|PIM-DPU|UPMEM RISC-V DPU|2530|343-350Mhz w 64KB WRAM|100-150mW * 2530|
+|PIM-DRAM|UPMEM BC021B (8GB each)|20|2400MHz|5.7-?W * 40 (include DPU)|
 ### 2.2. Software environment specifications
 |Category|Name|Version|
 |--------|----|-------|
@@ -44,9 +44,10 @@ Be ware that the repository stdexec requires compiler that **support C++20 stand
   ./bin/foo
   ```
 ## 5. Work to be done
-  1.Finish the refractoring and testing of Optimizer class.
-  2.Refractor SimplePIM and finish the developing of Operator class.
-  3.Test and verify the Sender&Receiver execution modul in UPMEM.
+  1.Finish the refractoring and testing of Optimizer class.  
+  2.Refractor SimplePIM and finish the developing of Operator class.  
+  3.Test and verify the Sender & Receiver execution model in UPMEM.  
+
   
 ## 6. References
 [1] upmem

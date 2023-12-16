@@ -5,11 +5,12 @@
 #include <iostream>
 #include <limits>
 #include <random>
-#include <unordered_map>
+#include <map>
 #include <vector>
 
 using std::function;
 using std::vector;
+using std::map;
 
 namespace Optimizer {
 /// @brief The base class of Metaheuristic optimizer is constructed on three
@@ -39,6 +40,7 @@ public:
                 const size_t iterNum,
                 const function<valFrm_t(const ptFrm_t &)> &evalFunc);
 
+  /// @brief Main execute logic of all optimizer
   void exec() noexcept;
 
   //----------------- Members getters -------------------
@@ -46,41 +48,25 @@ public:
   /// @return A 3-D aType vector.
   inline ptHist_t getPointsHistory() const noexcept { return ptHistory; }
 
+  /// @brief Get point value history shaped in (iterNum, pointNum)
+  /// @return A 2-D vType vector.
+  inline valHist_t getValueHistory() const noexcept { return valHistory; }
+
+  /// @brief Get the best-at-a-time points of all search frame
+  /// @return History of global optima point till that frame, a 2-D aType vector shaped in
+  /// (iterNum, dimNum)
+  inline vector<pt_t> getGlobalConvergePointtVec() const noexcept{return gBestPtHist;}
+
   /// @brief Flatten and cumulate all points arguments history and output
   /// @return A 2-dimensional aType vector shaped in (pointNum * iterNum,
   /// dimNum)
   ptFrm_t getCumulatePointsHistory() const;
 
-  /// @brief Get the local best points of all search frame
-  /// @return History of global optima point, a 2-D aType vector shaped in
-  /// (iterNum, dimNum)
-  inline vector<pt_t> getGlobalOptimaPointsHistory() const noexcept {
-    return bestPtHist;
-  }
+  /// @brief Get the best-at-a-time points' value of all search frame
+  /// @return History of global optima point till that frame, a 1-D aType vector shaped in
+  /// (iterNum)
+  inline vector<vType> getGlobalConvergeValueVec() const noexcept{return gBestValHist;}
 
-  /// @brief Get point value history shaped in (iterNum, pointNum)
-  /// @return A 2-D vType vector.
-  inline valHist_t getValueHistory() const noexcept { return valHistory; }
-
-  /// @brief Get the history of values of all searched optimas
-  /// @return A 1-D vType vector shaped in (iterNum)
-  inline vector<vType> getGlobalOptimaValueHistory() const noexcept {
-    return bestValHist;
-  }
-
-  /// @brief Get specific frame of point value shaped in (pointNum)
-  /// @param frmIdx Input frame index.
-  /// @return A 1-D vType vector.
-  inline valFrm_t getValueFrame(size_t frmIdx) const noexcept {
-    return valHistory[frmIdx];
-  }
-
-  /// @brief Get specific frame of point arguments shaped in (pointNum)
-  /// @param frmIdx Input frame index.
-  /// @return A 1-D aType vector.
-  inline ptFrm_t getPointsFrame(size_t frmIdx) const noexcept {
-    return ptHistory[frmIdx];
-  }
 
   /// @brief Get the best result point after all optimization
   /// @return Global optima point, a 1-D aType vector shaped in (dimNum)
@@ -90,15 +76,20 @@ public:
   /// @return A vType scalar
   inline vType getGlobalOptimaValue() const noexcept { return gBestVal; }
 
+
 protected:
-  
-  /// @brief Logging evaluated frame's data into histories.
-  inline virtual void dataLogging(const valFrm_t &frmVal) noexcept;
+
+  /// @brief Wrapper of evaluateFunc, maintain the back of valHistory.
+  inline void exploitation() noexcept;
+
+  /// @brief Derived optimizer's specific feature gathering function using all available data.
+  inline virtual void extraction() noexcept = 0;
 
   /// @brief This function(virtual) is the core of all metaheuristic algorithms.
   /// The datatype adapting is ought to be handled inside this funciton
   /// @return A new frame of argument vectors that await evaluating.
-  virtual ptFrm_t updateFunc() = 0;
+  inline virtual void exploration() noexcept = 0;
+
 
   /// @brief Debug function used in the end of exec(), disabled in NDEBUG mode.
   void debug_check() noexcept;
@@ -114,28 +105,27 @@ protected:
   /// @brief This function is used to provide evaluation of given argument
   /// vector. Must be provided explicitly by user.
   const function<valFrm_t(const ptFrm_t &)> &evaluateFunc;
-  size_t iterCounter = 0; // Store iteration related informations
-  // ----- Global scale vars-----
   pt_t gBestPt;           // Global optima founded at last.
-  pt_t gWorstPt;          // (Experimental reserve)
   vType gBestVal = std::numeric_limits<vType>::max(); // Value of global optima.
-  vType gWorstVal = std::numeric_limits<vType>::min(); // (Experimental reserve)
 
-  // ----- Frame scale vars-----
-  pt_t fBestPt;           // Frame optima founded at last evaluation.
-  pt_t fWorstPt;          // Frame worst point founded at last evaluation.
-  vType fBestVal = std::numeric_limits<vType>::max(); // Value of frame optima.
-  vType fWorstVal = std::numeric_limits<vType>::min(); // (Experimental reserve)
+  // Custom comparison function for vectors
+  struct ptCompare {
+      bool operator()(const pt_t& a, const pt_t& b) const {
+          // Assuming both vectors have the same size
+          return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+      }
+  };
+
+  map<pt_t, vType, ptCompare> pt2Val; // Cumulative point to value mapping.
 
   // --- Histories ---
-  vector<pt_t> bestPtHist;    // History of optimas point in all frame.
-  vector<pt_t> worstPtHist;   // History of worst point in all frame.
-  vector<vType> bestValHist;  // History of optimas' values in all frame.
-  vector<vType> worstValHist; // History of worst points' values in all frame.
   ptHist_t ptHistory;         // History of all points' data vector.
   valHist_t valHistory;       // History of all points' value.
-}; // class OptimizerBase.
+  vector<pt_t> gBestPtHist;    // History of optimas till given frame.
+  vector<vType> gBestValHist;  // History of optimas' values till given frame. Can be used to draw converging line.
+}; // namespace OptimizerBase
 } // namespace Optimizer
+
 #endif
 // Tail include of template method implementaions
 #include "./implements/OptimizerBase.cpp"

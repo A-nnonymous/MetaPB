@@ -18,20 +18,22 @@ OptimizerPSO<aType, vType>::updateFunc() {
   ptFrm_t result;
   std::mt19937_64 rng(std::random_device{}());
   std::uniform_real_distribution<double> dist01(0, 1);
-  result.reserve(ptHistory.back().size());
+  result.reserve(this->ptHistory.back().size());
+
   for(size_t ptIdx = 0; ptIdx != this->pointNum; ++ptIdx){
     pt_t newPt;
     for(size_t dimIdx = 0; dimIdx != this->dimNum; ++dimIdx){
       double r1 = dist01(rng);
       double r2 = dist01(rng);
       // Core algorithm of PSO
-      double proposedDim = omega ??
+      /*
       // Handle rounding and limiting of integer arguments.
       if constexpr (std::is_integral<aType>::value) {
         newPt[dimIdx] = std::lround(proposedDim);
       } else if constexpr (std::is_floating_point<aType>::value) {
         newPt[dimIdx] = (aType)(proposedDim);
       }
+      */
     }
     result.emplace_back(std::move(newPt));
   } 
