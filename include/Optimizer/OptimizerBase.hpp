@@ -82,6 +82,9 @@ protected:
   /// @brief Wrapper of evaluateFunc, maintain the back of valHistory.
   inline void exploitation() noexcept;
 
+  /// @brief Logging the converge related information.
+  inline void convergeLogging() noexcept;
+
   /// @brief Derived optimizer's specific feature gathering function using all available data.
   inline virtual void extraction() noexcept = 0;
 
@@ -115,7 +118,6 @@ protected:
           return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
       }
   };
-
   map<pt_t, vType, ptCompare> pt2Val; // Cumulative point to value mapping.
 
   // --- Histories ---

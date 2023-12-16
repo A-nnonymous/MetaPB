@@ -49,6 +49,7 @@ void OptimizerBase<aType, vType>::exec() noexcept {
   // Invariant: All point frame till here is valid to evaluate.
   for (size_t frmIdx = 0; frmIdx < iterNum; ++frmIdx) {
     exploitation();
+    convergeLogging();
     extraction();
     if(frmIdx != iterNum - 1)[[likely]]exploration();
   }
@@ -78,6 +79,22 @@ void OptimizerBase<aType, vType>::exploitation() noexcept {
     pt2Val[newPoints[newIdx]] = newResults[newIdx];
   }
   valHistory.emplace_back(std::move(result));
+}
+template <typename aType, typename vType>
+void OptimizerBase<aType, vType>::convergeLogging() noexcept {
+  vType fBestVal = std::numeric_limits<vType>::max();
+  size_t fBestIdx = -1;
+  auto frmVal = valHistory.back();
+  for (size_t valIdx = 0; valIdx < frmVal.size(); valIdx++) {
+    if (frmVal[valIdx] < frmVal[fBestIdx]) fBestIdx = valIdx;
+  }
+  fBestVal = frmVal[fBestIdx];
+  if (fBestVal < gBestVal) {
+    gBestVal = fBestVal;
+    gBestPt = ptHistory.back()[fBestIdx];
+  }
+  gBestPtHist.emplace_back(gBestPt);
+  gBestValHist.emplace_back(gBestVal);
 }
 
 template <typename aType, typename vType>
