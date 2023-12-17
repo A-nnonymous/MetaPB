@@ -21,25 +21,25 @@ public:
   typedef vector<ptFrm_t> ptHist_t;
   typedef vector<valFrm_t> valHist_t;
 
-  OptimizerPSO(const pt_t vMax, const double omega,
+  OptimizerPSO(const double vMax, const double omega,
                const double dt, const double ego,
                const pt_t lowerLimits, const pt_t upperLimits,
                const size_t dimNum, const size_t pointNum, const size_t iterNum,
-               const function<valFrm_t(const ptFrm_t &)> &evalFunc)
-               : OptimizerBase<aType, vType>(lowerLimits,upperLimits,dimNum, pointNum,
-                                             iterNum, evalFunc),
-                 vMax(vMax), omega(omega), dt(dt), ego(ego) {}
+               const function<valFrm_t(const ptFrm_t &)> &evalFunc);
 
 private:
   // Constants
-  const pt_t vMax;
+  const double vMax;
   const double omega;
   const double dt;
   const double ego;
 
-  vector<vector<double>> velocities; // velocities of all point in curr frame.
-  virtual ptFrm_t updateFunc() override;
-  inline virtual void dataLogging(const valFrm_t &frmVal) noexcept override;
+  vector<pt_t> pBestPts; // Personal best memories of all points.
+  vector<vType> pBestVals; // Personal best values.
+  vector<vector<double>> velocities; // velocities of all points in curr frame.
+  
+  inline virtual void extraction() noexcept override;
+  inline virtual void exploration() noexcept override;
 };
 } // namespace Optimizer
 #endif

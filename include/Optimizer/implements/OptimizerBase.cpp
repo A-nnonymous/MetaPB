@@ -83,12 +83,12 @@ void OptimizerBase<aType, vType>::exploitation() noexcept {
 template <typename aType, typename vType>
 void OptimizerBase<aType, vType>::convergeLogging() noexcept {
   vType fBestVal = std::numeric_limits<vType>::max();
-  size_t fBestIdx = -1;
-  auto frmVal = valHistory.back();
-  for (size_t valIdx = 0; valIdx < frmVal.size(); valIdx++) {
-    if (frmVal[valIdx] < frmVal[fBestIdx]) fBestIdx = valIdx;
+  size_t fBestIdx = 0;
+  auto& lastFrmVal = valHistory.back();
+  for (size_t valIdx = 0; valIdx < lastFrmVal.size(); valIdx++) {
+    if (lastFrmVal[valIdx] < lastFrmVal[fBestIdx]) fBestIdx = valIdx;
   }
-  fBestVal = frmVal[fBestIdx];
+  fBestVal = lastFrmVal[fBestIdx];
   if (fBestVal < gBestVal) {
     gBestVal = fBestVal;
     gBestPt = ptHistory.back()[fBestIdx];
