@@ -21,23 +21,22 @@ public:
   typedef vector<ptFrm_t> ptHist_t;
   typedef vector<valFrm_t> valHist_t;
 
-  OptimizerPSO(const double vMax, const double omega,
-               const double dt, const double ego,
-               const pt_t lowerLimits, const pt_t upperLimits,
+  OptimizerPSO(const double vMax, const double omega, const double dt,
+               const double ego, const pt_t lowerLimits, const pt_t upperLimits,
                const size_t dimNum, const size_t pointNum, const size_t iterNum,
                const function<valFrm_t(const ptFrm_t &)> &evalFunc);
 
 private:
   // Constants
-  const double vMax; // Max velocity ratio ralated to the bound range.
+  const double vMax;  // Max velocity ratio ralated to the bound range.
   const double omega; // Inertia factor.
-  const double dt; // Timestep factor, control the granular of searching.
+  const double dt;    // Timestep factor, control the granular of searching.
   const double ego; // Stubborness factor, regulate self history consideration.
 
-  vector<pt_t> pBestPts; // Personal best memories of all points.
-  vector<vType> pBestVals; // Personal best values.
+  vector<pt_t> pBestPts;             // Personal best memories of all points.
+  vector<vType> pBestVals;           // Personal best values.
   vector<vector<double>> velocities; // velocities of all points in curr frame.
-  
+
   inline virtual void extraction() noexcept override;
   inline virtual void exploration() noexcept override;
 };

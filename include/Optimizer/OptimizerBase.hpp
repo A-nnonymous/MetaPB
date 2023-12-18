@@ -4,13 +4,13 @@
 #include <functional>
 #include <iostream>
 #include <limits>
-#include <random>
 #include <map>
+#include <random>
 #include <vector>
 
 using std::function;
-using std::vector;
 using std::map;
+using std::vector;
 
 namespace Optimizer {
 /// @brief The base class of Metaheuristic optimizer is constructed on three
@@ -53,9 +53,11 @@ public:
   inline valHist_t getValueHistory() const noexcept { return valHistory; }
 
   /// @brief Get the best-at-a-time points of all search frame
-  /// @return History of global optima point till that frame, a 2-D aType vector shaped in
-  /// (iterNum, dimNum)
-  inline vector<pt_t> getGlobalConvergePointtVec() const noexcept{return gBestPtHist;}
+  /// @return History of global optima point till that frame, a 2-D aType vector
+  /// shaped in (iterNum, dimNum)
+  inline vector<pt_t> getGlobalConvergePointtVec() const noexcept {
+    return gBestPtHist;
+  }
 
   /// @brief Flatten and cumulate all points arguments history and output
   /// @return A 2-dimensional aType vector shaped in (pointNum * iterNum,
@@ -63,10 +65,11 @@ public:
   ptFrm_t getCumulatePointsHistory() const;
 
   /// @brief Get the best-at-a-time points' value of all search frame
-  /// @return History of global optima point till that frame, a 1-D aType vector shaped in
-  /// (iterNum)
-  inline vector<vType> getGlobalConvergeValueVec() const noexcept{return gBestValHist;}
-
+  /// @return History of global optima point till that frame, a 1-D aType vector
+  /// shaped in (iterNum)
+  inline vector<vType> getGlobalConvergeValueVec() const noexcept {
+    return gBestValHist;
+  }
 
   /// @brief Get the best result point after all optimization
   /// @return Global optima point, a 1-D aType vector shaped in (dimNum)
@@ -76,23 +79,21 @@ public:
   /// @return A vType scalar
   inline vType getGlobalOptimaValue() const noexcept { return gBestVal; }
 
-
 protected:
-
   /// @brief Wrapper of evaluateFunc, maintain the back of valHistory.
   inline void exploitation() noexcept;
 
   /// @brief Logging the converge related information.
   inline void convergeLogging() noexcept;
 
-  /// @brief Derived optimizer's specific feature gathering function using all available data.
+  /// @brief Derived optimizer's specific feature gathering function using all
+  /// available data.
   inline virtual void extraction() noexcept = 0;
 
   /// @brief This function(virtual) is the core of all metaheuristic algorithms.
   /// The datatype adapting is ought to be handled inside this funciton
   /// @return A new frame of argument vectors that await evaluating.
   inline virtual void exploration() noexcept = 0;
-
 
   /// @brief Debug function used in the end of exec(), disabled in NDEBUG mode.
   void debug_check() noexcept;
@@ -103,29 +104,30 @@ protected:
   const size_t dimNum;
   const size_t pointNum;
   const size_t iterNum;
-
-  // -------------- variables -------------
   /// @brief This function is used to provide evaluation of given argument
   /// vector. Must be provided explicitly by user.
   const function<valFrm_t(const ptFrm_t &)> &evaluateFunc;
-  pt_t gBestPt;           // Global optima founded at last.
-  vType gBestVal = std::numeric_limits<vType>::max(); // Value of global optima.
 
+  // -------------- variables -------------
   // Custom comparison function for vectors
   struct ptCompare {
-      bool operator()(const pt_t& a, const pt_t& b) const {
-          // Assuming both vectors have the same size
-          return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
-      }
+    bool operator()(const pt_t &a, const pt_t &b) const {
+      // Assuming both vectors have the same size
+      return std::lexicographical_compare(a.begin(), a.end(), b.begin(),
+                                          b.end());
+    }
   };
   map<pt_t, vType, ptCompare> pt2Val; // Cumulative point to value mapping.
-
-  // --- Histories ---
+  // ------- Results --------
+  pt_t gBestPt; // Global optima founded at last.
+  vType gBestVal = std::numeric_limits<vType>::max(); // Value of global optima.
+  // ------- Histories -------
   ptHist_t ptHistory;         // History of all points' data vector.
   valHist_t valHistory;       // History of all points' value.
-  vector<pt_t> gBestPtHist;    // History of optimas till given frame.
-  vector<vType> gBestValHist;  // History of optimas' values till given frame. Can be used to draw converging line.
-}; // namespace OptimizerBase
+  vector<pt_t> gBestPtHist;   // History of optimas till given frame.
+  vector<vType> gBestValHist; // History of optimas' values till given frame.
+                              // Can be used to draw converging line.
+};                            // namespace OptimizerBase
 } // namespace Optimizer
 
 #endif

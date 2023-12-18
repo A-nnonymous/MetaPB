@@ -2,7 +2,6 @@
 #define OPT_BASE_SRC
 #include "../OptimizerBase.hpp"
 
-
 namespace Optimizer {
 
 template <typename aType, typename vType>
@@ -14,8 +13,8 @@ OptimizerBase<aType, vType>::OptimizerBase(
       pointNum(pointNum), iterNum(iterNum), evaluateFunc(evalFunc) {
   // Reserve place for further emplace_back
 #ifndef NDEBUG
-  assert(pointNum >=1 && "Illegal pointNum");
-  assert(iterNum>=1 && "Illegal iterNum");
+  assert(pointNum >= 1 && "Illegal pointNum");
+  assert(iterNum >= 1 && "Illegal iterNum");
 #endif
   ptHistory.reserve(iterNum);
   valHistory.reserve(iterNum);
@@ -51,7 +50,8 @@ void OptimizerBase<aType, vType>::exec() noexcept {
     exploitation();
     convergeLogging();
     extraction();
-    if(frmIdx != iterNum - 1)[[likely]]exploration();
+    if (frmIdx != iterNum - 1) [[likely]]
+      exploration();
   }
 #ifndef NDEBUG
   debug_check();
@@ -64,17 +64,17 @@ void OptimizerBase<aType, vType>::exploitation() noexcept {
   ptFrm_t newPoints;
   vector<size_t> newPtIdx;
   newPoints.reserve(pointNum); // pessimistic reservation.
-  for(size_t ptIdx = 0; ptIdx != pointNum; ++ptIdx){
+  for (size_t ptIdx = 0; ptIdx != pointNum; ++ptIdx) {
     auto pt = ptHistory.back()[ptIdx];
-    if(pt2Val.contains(pt)){
+    if (pt2Val.contains(pt)) {
       result[ptIdx] = pt2Val[pt];
-    }else{
+    } else {
       newPoints.emplace_back(pt);
       newPtIdx.emplace_back(ptIdx);
     }
   }
   valFrm_t newResults = evaluateFunc(newPoints);
-  for(size_t newIdx = 0; newIdx != newResults.size(); ++newIdx){
+  for (size_t newIdx = 0; newIdx != newResults.size(); ++newIdx) {
     result[newPtIdx[newIdx]] = newResults[newIdx];
     pt2Val[newPoints[newIdx]] = newResults[newIdx];
   }
@@ -84,9 +84,10 @@ template <typename aType, typename vType>
 void OptimizerBase<aType, vType>::convergeLogging() noexcept {
   vType fBestVal = std::numeric_limits<vType>::max();
   size_t fBestIdx = 0;
-  auto& lastFrmVal = valHistory.back();
+  auto &lastFrmVal = valHistory.back();
   for (size_t valIdx = 0; valIdx < lastFrmVal.size(); valIdx++) {
-    if (lastFrmVal[valIdx] < lastFrmVal[fBestIdx]) fBestIdx = valIdx;
+    if (lastFrmVal[valIdx] < lastFrmVal[fBestIdx])
+      fBestIdx = valIdx;
   }
   fBestVal = lastFrmVal[fBestIdx];
   if (fBestVal < gBestVal) {
@@ -102,7 +103,7 @@ typename OptimizerBase<aType, vType>::ptFrm_t
 OptimizerBase<aType, vType>::getCumulatePointsHistory() const {
   ptFrm_t result;
   result.reserve(pointNum * iterNum);
-  for(const auto &kv: pt2Val){
+  for (const auto &kv : pt2Val) {
     result.emplace_back(kv.first);
   }
   return result;

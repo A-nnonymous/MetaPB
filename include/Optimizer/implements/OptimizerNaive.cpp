@@ -4,9 +4,7 @@
 namespace Optimizer {
 
 template <typename aType, typename vType>
-void
-OptimizerNaive<aType, vType>::extraction() noexcept{
-}
+void OptimizerNaive<aType, vType>::extraction() noexcept {}
 
 /// @brief Simple naive update method, keep all points unchanged.
 /// @tparam aType Points' arguments datatype
@@ -15,8 +13,7 @@ OptimizerNaive<aType, vType>::extraction() noexcept{
 /// @param pVals Evaluated values of target points frame.
 /// @return New points frame.
 template <typename aType, typename vType>
-void
-OptimizerNaive<aType, vType>::exploration() noexcept{
+void OptimizerNaive<aType, vType>::exploration() noexcept {
   ptFrm_t result;
   size_t iterRemains = (this->iterNum - this->iterCounter - 1);
   double progress = ((double)this->iterCounter / (double)this->iterNum);

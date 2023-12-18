@@ -3,17 +3,101 @@
 #include "../OptimizerAOA.hpp"
 namespace Optimizer {
 
-/// @brief Particle swarm update method.
-/// @tparam aType Points' arguments datatype
-/// @tparam vType Points' value datatype
-/// @param points Target points frame.
-/// @param pVals Evaluated values of target points frame.
+/// @brief Extract additional information that needed by PSO
+template<typename aType, typename vType>
+void OptimizerAOA<aType, vType>::extraction() noexcept {
+  // Iteration related argument extraction.
+  currIterIdx++;
+  arg_w = (-2/M_PI) * (atan(currIterIdx)) + 1 + 0.5 * exp(-(double)currIterIdx/5);
+  arg_MOP = 1 - 
+            (pow(currIterIdx,(1 / arg_ALPHA)) / 
+             pow(this->iterNum, (1 / arg_ALPHA)));
+
+  // Additional worst point extraction.
+  valFrm_t &lastValFrm = this->valHistory.back();
+  ptFrm_t &lastPtFrm = this->ptHistory.back();
+  for (size_t ptIdx = 0; ptIdx != lastPtFrm.size(); ++ptIdx) {
+    if (lastValFrm[ptIdx] > gWorstVal) {
+      gWorstVal = lastValFrm[ptIdx];
+      gWorstPt = lastPtFrm[ptIdx];
+    }
+  }
+}
+
+/// @brief AOA update method.
 /// @return New points frame.
-template <typename aType, typename vType>
-typename OptimizerAOA<aType, vType>::ptFrm_t
-OptimizerAOA<aType, vType>::updateFunc() {
-  ptFrm_t result;
-  return result;
+template<typename aType, typename vType>
+void OptimizerAOA<aType, vType>::exploration() noexcept {
+  // Invariant: As the optimizer executed to this point, it maintains a global &
+  // frame-wise optimum point/val(till now) to be used by user-defined update
+  // func and the passed history of all points.
+  ptFrm_t newFrm;
+  newFrm.reserve(this->ptHistory.back().size());
+  std::mt19937_64 rng(std::random_device{}());
+  std::uniform_real_distribution<double> dist01(0, 1);
+
+  for (size_t ptIdx = 0; ptIdx != this->pointNum; ++ptIdx) {
+    const auto &thisPt = this->ptHistory.back()[ptIdx];
+    const auto &thisVal = this->valHistory.back()[ptIdx];
+    pt_t newPt(this->dimNum, (aType)0);
+    double MOA = 1 - pow((gWorstVal - thisVal) /
+                             (this->gBestVal - gWorstVal),arg_k);
+    for (size_t dimIdx = 0; dimIdx != this->dimNum; ++dimIdx) {
+      auto upperBound = this->upperLimits[dimIdx];
+      auto lowerBound = this->lowerLimits[dimIdx];
+      // Core algorithm of PSO
+      double r1 = dist01(rng);
+      double r2 = dist01(rng);
+      double r3 = dist01(rng);
+      double propose;
+      if (r1 < MOA) {
+        if (r2 > 0.5) {
+          propose =
+              this->gBestPt[dimIdx] / (arg_MOP + __DBL_MIN__) *
+              ((upperBound - lowerBound) * arg_Mu + lowerBound);
+        } else {
+          propose =
+              this->gBestPt[dimIdx] * arg_MOP *
+              ((upperBound - lowerBound) * arg_Mu + lowerBound);
+        }
+      } else {
+        if (r3 > 0.5) {
+          propose =
+              this->gBestPt[dimIdx] -
+              arg_MOP * ((upperBound - lowerBound) * arg_Mu + lowerBound);
+          /*
+          newPt[dimIdx] = _w * _myPosition[dimIdx] +
+                          arg_MOP * sin(2 * M_PI * dist(_rng)) *
+                          fabs(2 * dist(_rng) * this->gBestPt[dimIdx] -
+          _myPosition[dimIdx]);
+          */
+        } else {
+          propose =
+              this->gBestPt[dimIdx] +
+              arg_MOP * ((upperBound - lowerBound) * arg_Mu + lowerBound);
+          /*
+          newPt[dimIdx] = _w * _myPosition[dimIdx] +
+                          arg_MOP * cos(2 * M_PI * dist(_rng)) *
+                          fabs(2 * dist(_rng) * this->gBestPt[dimIdx] -
+          _myPosition[dimIdx]);
+          */
+        }
+      }
+      
+      // Handle rounding and limiting of integer arguments.
+      if constexpr (std::is_integral<aType>::value) {
+        newPt[dimIdx] = std::lround(propose);
+      } else if constexpr (std::is_floating_point<aType>::value) {
+        newPt[dimIdx] = (aType)(propose);
+      }
+
+      newPt[dimIdx] = newPt[dimIdx] > upperBound ? upperBound : newPt[dimIdx];
+      newPt[dimIdx] = newPt[dimIdx] < lowerBound ? lowerBound : newPt[dimIdx];
+    }
+    newFrm.emplace_back(std::move(newPt));
+  }
+  // Maintain the ptHistory.
+  this->ptHistory.emplace_back(std::move(newFrm));
 }
 
 } // namespace Optimizer
