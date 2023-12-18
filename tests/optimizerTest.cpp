@@ -33,23 +33,40 @@ vector<double> concave(const vector<vector<double>> &pts){
   }
   return results;
 }
+vector<int> concaveI(const vector<vector<int>> &pts){
+  vector<int> results;
+  for(size_t ptIdx = 0; ptIdx != pts.size(); ptIdx++){
+    int val = 0.0;
+    for(const auto & dim: pts[ptIdx]){
+      val += (dim * dim);
+    }
+    results.emplace_back(val);
+  }
+  return results;
+}
 int main() {
   // function<vector<double>(const vector<vector<double>>&)> ef(evalFunc);
   //function<vector<double>(const vector<vector<int>> &)> ef(evalFunc);
-  function<vector<double>(const vector<vector<double>> &)> co(concave);
+  //function<vector<double>(const vector<vector<double>> &)> co(concave);
+  function<vector<int>(const vector<vector<int>> &)> co(concaveI);
   // Optimizer::OptimizerNaive<double, double> opt({0.0f, 0.0f, 0.0f},{-10.0f,
   // -10.0f, -10.0f}, {10.0f, 10.0f, 10.0f}, 3,4,10,ef);
-  size_t pointNum = 100;
+  size_t pointNum = 20;
   size_t iterNum = 1000;
   size_t dimNum = 10;
-  double dt = 0.001;
+  double dt = 0.1;
   double ego = 0.2;
   double omega = 0.7;
   ;
   double vMax = 2 * (200.0/(iterNum * dt));
+  /*
   auto lowerLimit = vector<double>(pointNum, -100);
   auto upperLimit = vector<double>(pointNum, 100);
-  Optimizer::OptimizerPSO<double, double> opt(vMax,omega,dt,ego, lowerLimit, upperLimit,
+  */
+
+  auto lowerLimit = vector<int>(pointNum, -100);
+  auto upperLimit = vector<int>(pointNum, 100);
+  Optimizer::OptimizerPSO<int, int> opt(vMax,omega,dt,ego, lowerLimit, upperLimit,
                                              dimNum, pointNum, iterNum, co);
   opt.exec();
   std::cout<< "Optima is expected to be 0, ended with: "<< opt.getGlobalOptimaValue()<<std::endl;
@@ -63,9 +80,9 @@ int main() {
   auto valHist = opt.getValueHistory();
   auto optHist = opt.getGlobalConvergeValueVec();
 
-  utils::CSVWriter<double> argCSV;
+  utils::CSVWriter<int> argCSV;
   vector<string> argHeader = {"Voltage_mv", "Timestep_ms"};
-  utils::CSVWriter<double> valCSV;
+  utils::CSVWriter<int> valCSV;
   vector<string> valHeader;
   for (size_t i = 0; i < pointNum; i++) {
     string str = "Point" + std::to_string(i);

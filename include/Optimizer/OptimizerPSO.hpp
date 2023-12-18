@@ -29,10 +29,10 @@ public:
 
 private:
   // Constants
-  const double vMax;
-  const double omega;
-  const double dt;
-  const double ego;
+  const double vMax; // Max velocity ratio ralated to the bound range.
+  const double omega; // Inertia factor.
+  const double dt; // Timestep factor, control the granular of searching.
+  const double ego; // Stubborness factor, regulate self history consideration.
 
   vector<pt_t> pBestPts; // Personal best memories of all points.
   vector<vType> pBestVals; // Personal best values.
