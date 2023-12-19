@@ -72,11 +72,12 @@ void OptimizerPSO<aType, vType>::exploration() noexcept {
       myVelocity[dimIdx] =
           myVelocity[dimIdx] < vLower ? vLower : myVelocity[dimIdx];
       double dx = myVelocity[dimIdx] * dt;
-      // Handle rounding and limiting of integer arguments.
+
+      // Handline datatype adaptation.
       if constexpr (std::is_integral<aType>::value) {
-        newPt[dimIdx] += std::lround(dx);
+        newPt[dimIdx] += static_cast<aType>(std::lround(dx));
       } else if constexpr (std::is_floating_point<aType>::value) {
-        newPt[dimIdx] += (aType)(dx);
+        newPt[dimIdx] += static_cast<aType>(dx);
       }
       newPt[dimIdx] = newPt[dimIdx] > upperBound ? upperBound : newPt[dimIdx];
       newPt[dimIdx] = newPt[dimIdx] < lowerBound ? lowerBound : newPt[dimIdx];

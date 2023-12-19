@@ -20,6 +20,7 @@ public:
   typedef vector<pt_t> ptFrm_t;
   typedef vector<ptFrm_t> ptHist_t;
   typedef vector<valFrm_t> valHist_t;
+
   OptimizerRSA(const pt_t lowerLimits, const pt_t upperLimits,
                const size_t dimNum, const size_t pointNum, const size_t iterNum,
                const function<valFrm_t(const ptFrm_t &)> &evalFunc)
@@ -27,11 +28,13 @@ public:
                                     iterNum, evalFunc) {}
 
 private:
-  double velocityRatio = 0.0f;
-  double noiseRatio = 0.0f;
-  size_t iterCounter = 0;
-  pt_t optima;
-  virtual ptFrm_t updateFunc() override;
+  const double arg_ALPHA = 0.1;
+  const double arg_BETA = 0.005;
+  size_t currIterIdx = 0;
+  double evoSense;
+
+  inline virtual void extraction() noexcept override;
+  inline virtual void exploration() noexcept override;
 };
 } // namespace Optimizer
 #endif

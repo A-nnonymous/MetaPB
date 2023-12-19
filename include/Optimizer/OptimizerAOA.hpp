@@ -32,14 +32,13 @@ private:
   const double arg_Mu = 0.5;
 
   size_t currIterIdx = 0; // Store iteration time related informations
-  vType gWorstVal = std::numeric_limits<vType>::min(); 
-  pt_t gWorstPt;                                       
+  vType gWorstVal = std::numeric_limits<vType>::min();
+  pt_t gWorstPt;
   double arg_w;
   double arg_MOP;
 
   inline virtual void extraction() noexcept override;
   inline virtual void exploration() noexcept override;
-
 };
 } // namespace Optimizer
 #endif

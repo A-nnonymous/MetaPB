@@ -91,7 +91,7 @@ protected:
   inline virtual void extraction() noexcept = 0;
 
   /// @brief This function(virtual) is the core of all metaheuristic algorithms.
-  /// The datatype adapting is ought to be handled inside this funciton
+  /// The datatype adapting is expected to be handled inside this funciton
   /// @return A new frame of argument vectors that await evaluating.
   inline virtual void exploration() noexcept = 0;
 

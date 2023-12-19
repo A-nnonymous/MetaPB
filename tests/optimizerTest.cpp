@@ -3,6 +3,7 @@
 #include "Optimizer/OptimizerBase.hpp"
 #include "Optimizer/OptimizerPSO.hpp"
 #include "Optimizer/OptimizerAOA.hpp"
+#include "Optimizer/OptimizerRSA.hpp"
 #include "utils/CSVWriter.hpp"
 
 using Optimizer::OptimizerBase;
@@ -89,7 +90,11 @@ int main() {
   Optimizer::OptimizerAOA<double, double> optAOA(lowerLimitF, upperLimitF,
                                                dimNum, pointNum, iterNum,
                                         cof);
+  Optimizer::OptimizerRSA<double, double> optRSA(lowerLimitF, upperLimitF,
+                                               dimNum, pointNum, iterNum,
+                                        cof);
   testConcave<double, double>(optAOA, argHeader, valHeader, "AOAF");
+  testConcave<double, double>(optRSA, argHeader, valHeader, "RSAF");
 
   return 0;
 }

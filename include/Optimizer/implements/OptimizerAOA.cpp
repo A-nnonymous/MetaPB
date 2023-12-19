@@ -3,15 +3,15 @@
 #include "../OptimizerAOA.hpp"
 namespace Optimizer {
 
-/// @brief Extract additional information that needed by PSO
-template<typename aType, typename vType>
+/// @brief Extract additional information that needed by AOA
+template <typename aType, typename vType>
 void OptimizerAOA<aType, vType>::extraction() noexcept {
   // Iteration related argument extraction.
   currIterIdx++;
-  arg_w = (-2/M_PI) * (atan(currIterIdx)) + 1 + 0.5 * exp(-(double)currIterIdx/5);
-  arg_MOP = 1 - 
-            (pow(currIterIdx,(1 / arg_ALPHA)) / 
-             pow(this->iterNum, (1 / arg_ALPHA)));
+  arg_w = (-2 / M_PI) * (atan(currIterIdx)) + 1 +
+          0.5 * exp(-(double)currIterIdx / 5);
+  arg_MOP = 1 - (pow(currIterIdx, (1 / arg_ALPHA)) /
+                 pow(this->iterNum, (1 / arg_ALPHA)));
 
   // Additional worst point extraction.
   valFrm_t &lastValFrm = this->valHistory.back();
@@ -26,7 +26,7 @@ void OptimizerAOA<aType, vType>::extraction() noexcept {
 
 /// @brief AOA update method.
 /// @return New points frame.
-template<typename aType, typename vType>
+template <typename aType, typename vType>
 void OptimizerAOA<aType, vType>::exploration() noexcept {
   // Invariant: As the optimizer executed to this point, it maintains a global &
   // frame-wise optimum point/val(till now) to be used by user-defined update
@@ -40,31 +40,28 @@ void OptimizerAOA<aType, vType>::exploration() noexcept {
     const auto &thisPt = this->ptHistory.back()[ptIdx];
     const auto &thisVal = this->valHistory.back()[ptIdx];
     pt_t newPt(this->dimNum, (aType)0);
-    double MOA = 1 - pow((gWorstVal - thisVal) /
-                             (this->gBestVal - gWorstVal),arg_k);
+    double MOA =
+        1 - pow((gWorstVal - thisVal) / (this->gBestVal - gWorstVal), arg_k);
     for (size_t dimIdx = 0; dimIdx != this->dimNum; ++dimIdx) {
       auto upperBound = this->upperLimits[dimIdx];
       auto lowerBound = this->lowerLimits[dimIdx];
-      // Core algorithm of PSO
+      // Core algorithm of AOA
       double r1 = dist01(rng);
       double r2 = dist01(rng);
       double r3 = dist01(rng);
       double propose;
       if (r1 < MOA) {
         if (r2 > 0.5) {
-          propose =
-              this->gBestPt[dimIdx] / (arg_MOP + __DBL_MIN__) *
-              ((upperBound - lowerBound) * arg_Mu + lowerBound);
+          propose = this->gBestPt[dimIdx] / (arg_MOP + __DBL_MIN__) *
+                    ((upperBound - lowerBound) * arg_Mu + lowerBound);
         } else {
-          propose =
-              this->gBestPt[dimIdx] * arg_MOP *
-              ((upperBound - lowerBound) * arg_Mu + lowerBound);
+          propose = this->gBestPt[dimIdx] * arg_MOP *
+                    ((upperBound - lowerBound) * arg_Mu + lowerBound);
         }
       } else {
         if (r3 > 0.5) {
-          propose =
-              this->gBestPt[dimIdx] -
-              arg_MOP * ((upperBound - lowerBound) * arg_Mu + lowerBound);
+          propose = this->gBestPt[dimIdx] -
+                    arg_MOP * ((upperBound - lowerBound) * arg_Mu + lowerBound);
           /*
           newPt[dimIdx] = _w * _myPosition[dimIdx] +
                           arg_MOP * sin(2 * M_PI * dist(_rng)) *
@@ -72,9 +69,8 @@ void OptimizerAOA<aType, vType>::exploration() noexcept {
           _myPosition[dimIdx]);
           */
         } else {
-          propose =
-              this->gBestPt[dimIdx] +
-              arg_MOP * ((upperBound - lowerBound) * arg_Mu + lowerBound);
+          propose = this->gBestPt[dimIdx] +
+                    arg_MOP * ((upperBound - lowerBound) * arg_Mu + lowerBound);
           /*
           newPt[dimIdx] = _w * _myPosition[dimIdx] +
                           arg_MOP * cos(2 * M_PI * dist(_rng)) *
@@ -83,12 +79,12 @@ void OptimizerAOA<aType, vType>::exploration() noexcept {
           */
         }
       }
-      
-      // Handle rounding and limiting of integer arguments.
+
+      // Handling datatype adaptation.
       if constexpr (std::is_integral<aType>::value) {
-        newPt[dimIdx] = std::lround(propose);
+        newPt[dimIdx] = static_cast<aType>(std::lround(propose));
       } else if constexpr (std::is_floating_point<aType>::value) {
-        newPt[dimIdx] = (aType)(propose);
+        newPt[dimIdx] = static_cast<aType>(propose);
       }
 
       newPt[dimIdx] = newPt[dimIdx] > upperBound ? upperBound : newPt[dimIdx];
