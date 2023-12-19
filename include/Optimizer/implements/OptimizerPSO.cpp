@@ -17,12 +17,11 @@ OptimizerPSO<aType, vType>::OptimizerPSO(
   velocities.resize(pointNum, vector<double>(dimNum));
 
   // Random initialize velocities.
-  std::mt19937_64 rng(std::random_device{}());
   std::uniform_real_distribution<double> distV(-vMax, vMax);
   for (size_t ptIdx = 0; ptIdx != pointNum; ptIdx++) {
     for (size_t dimIdx = 0; dimIdx != dimNum; dimIdx++) {
       velocities[ptIdx][dimIdx] =
-          distV(rng) * (upperLimits[dimIdx] - lowerLimits[dimIdx]);
+          distV(this->rng) * (upperLimits[dimIdx] - lowerLimits[dimIdx]);
     }
   }
 }
@@ -30,8 +29,8 @@ OptimizerPSO<aType, vType>::OptimizerPSO(
 /// @brief Extract additional information that needed by PSO
 template <typename aType, typename vType>
 void OptimizerPSO<aType, vType>::extraction() noexcept {
-  valFrm_t &lastValFrm = this->valHistory.back();
-  ptFrm_t &lastPtFrm = this->ptHistory.back();
+  const auto &lastValFrm = this->valHistory.back();
+  const auto &lastPtFrm = this->ptHistory.back();
   for (size_t ptIdx = 0; ptIdx != lastPtFrm.size(); ++ptIdx) {
     if (lastValFrm[ptIdx] < pBestVals[ptIdx]) {
       pBestVals[ptIdx] = lastValFrm[ptIdx];
@@ -48,21 +47,19 @@ void OptimizerPSO<aType, vType>::exploration() noexcept {
   // func and the passed history of all points.
   ptFrm_t newFrm;
   newFrm.reserve(this->ptHistory.back().size());
-  std::mt19937_64 rng(std::random_device{}());
-  std::uniform_real_distribution<double> dist01(0, 1);
 
   for (size_t ptIdx = 0; ptIdx != this->pointNum; ++ptIdx) {
-    auto &myVelocity = velocities[ptIdx];
     const auto &myPt = this->ptHistory.back()[ptIdx];
+    auto &myVelocity = velocities[ptIdx];
     pt_t newPt = myPt;
     for (size_t dimIdx = 0; dimIdx != this->dimNum; ++dimIdx) {
       // Core algorithm of PSO
-      double r1 = dist01(rng);
-      double r2 = dist01(rng);
-      auto upperBound = this->upperLimits[dimIdx];
-      auto lowerBound = this->lowerLimits[dimIdx];
-      double vUpper = vMax * (upperBound - lowerBound);
-      double vLower = -vUpper;
+      const double r1 = this->dist01(this->rng);
+      const double r2 = this->dist01(this->rng);
+      const auto upperBound = this->upperLimits[dimIdx];
+      const auto lowerBound = this->lowerLimits[dimIdx];
+      const double vUpper = vMax * (upperBound - lowerBound);
+      const double vLower = -vUpper;
       myVelocity[dimIdx] =
           omega * myVelocity[dimIdx] +
           (r1 * ego) * (pBestPts[ptIdx][dimIdx] - myPt[dimIdx]) +
@@ -71,7 +68,7 @@ void OptimizerPSO<aType, vType>::exploration() noexcept {
           myVelocity[dimIdx] > vUpper ? vUpper : myVelocity[dimIdx];
       myVelocity[dimIdx] =
           myVelocity[dimIdx] < vLower ? vLower : myVelocity[dimIdx];
-      double dx = myVelocity[dimIdx] * dt;
+      const double dx = myVelocity[dimIdx] * dt;
 
       // Handline datatype adaptation.
       if constexpr (std::is_integral<aType>::value) {

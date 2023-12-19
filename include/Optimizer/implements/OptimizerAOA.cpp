@@ -14,8 +14,8 @@ void OptimizerAOA<aType, vType>::extraction() noexcept {
                  pow(this->iterNum, (1 / arg_ALPHA)));
 
   // Additional worst point extraction.
-  valFrm_t &lastValFrm = this->valHistory.back();
-  ptFrm_t &lastPtFrm = this->ptHistory.back();
+  const auto &lastValFrm = this->valHistory.back();
+  const auto &lastPtFrm = this->ptHistory.back();
   for (size_t ptIdx = 0; ptIdx != lastPtFrm.size(); ++ptIdx) {
     if (lastValFrm[ptIdx] > gWorstVal) {
       gWorstVal = lastValFrm[ptIdx];
@@ -33,22 +33,21 @@ void OptimizerAOA<aType, vType>::exploration() noexcept {
   // func and the passed history of all points.
   ptFrm_t newFrm;
   newFrm.reserve(this->ptHistory.back().size());
-  std::mt19937_64 rng(std::random_device{}());
-  std::uniform_real_distribution<double> dist01(0, 1);
 
   for (size_t ptIdx = 0; ptIdx != this->pointNum; ++ptIdx) {
     const auto &thisPt = this->ptHistory.back()[ptIdx];
     const auto &thisVal = this->valHistory.back()[ptIdx];
-    pt_t newPt(this->dimNum, (aType)0);
-    double MOA =
+    const double MOA =
         1 - pow((gWorstVal - thisVal) / (this->gBestVal - gWorstVal), arg_k);
+
+    pt_t newPt(this->dimNum, (aType)0);
     for (size_t dimIdx = 0; dimIdx != this->dimNum; ++dimIdx) {
-      auto upperBound = this->upperLimits[dimIdx];
-      auto lowerBound = this->lowerLimits[dimIdx];
+      const auto &upperBound = this->upperLimits[dimIdx];
+      const auto &lowerBound = this->lowerLimits[dimIdx];
       // Core algorithm of AOA
-      double r1 = dist01(rng);
-      double r2 = dist01(rng);
-      double r3 = dist01(rng);
+      const double r1 = this->dist01(this->rng);
+      const double r2 = this->dist01(this->rng);
+      const double r3 = this->dist01(this->rng);
       double propose;
       if (r1 < MOA) {
         if (r2 > 0.5) {

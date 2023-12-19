@@ -16,10 +16,8 @@ public:
     searching frames.
   */
   typedef vector<aType> pt_t;
-  typedef vector<vType> valFrm_t;
   typedef vector<pt_t> ptFrm_t;
-  typedef vector<ptFrm_t> ptHist_t;
-  typedef vector<valFrm_t> valHist_t;
+  typedef vector<vType> valFrm_t;
 
   OptimizerRSA(const pt_t lowerLimits, const pt_t upperLimits,
                const size_t dimNum, const size_t pointNum, const size_t iterNum,
@@ -30,6 +28,10 @@ public:
 private:
   const double arg_ALPHA = 0.1;
   const double arg_BETA = 0.005;
+
+  std::uniform_int_distribution<size_t> choice{0, this->pointNum - 1};
+  std::uniform_int_distribution<int> evoScaleDist{-2, 2};
+
   size_t currIterIdx = 0;
   double evoSense;
 

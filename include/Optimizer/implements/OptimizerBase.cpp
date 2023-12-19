@@ -45,7 +45,9 @@ OptimizerBase<aType, vType>::OptimizerBase(
 
 template <typename aType, typename vType>
 void OptimizerBase<aType, vType>::exec() noexcept {
+#ifndef NDEBUG
   auto start = std::chrono::high_resolution_clock::now();
+#endif
   // Invariant: All point frame till here is valid to evaluate.
   for (size_t frmIdx = 0; frmIdx < iterNum; ++frmIdx) {
     exploitation();
@@ -54,12 +56,12 @@ void OptimizerBase<aType, vType>::exec() noexcept {
     if (frmIdx != iterNum - 1) [[likely]]
       exploration();
   }
-  auto end = std::chrono::high_resolution_clock::now();
-  auto duration = 
-    std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-  double duration_ms = duration.count()/1000000.0;
-  std::cout << "\nWith time consumed " << duration_ms << " ms" << std::endl;
 #ifndef NDEBUG
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  double duration_ms = duration.count() / 1000000.0;
+  std::cout << "\nWith time consumed " << duration_ms << " ms" << std::endl;
   debug_check();
 #endif
 }
@@ -106,7 +108,7 @@ void OptimizerBase<aType, vType>::convergeLogging() noexcept {
 
 template <typename aType, typename vType>
 typename OptimizerBase<aType, vType>::ptFrm_t
-OptimizerBase<aType, vType>::getCumulatePointsHistory() const {
+OptimizerBase<aType, vType>::getCumulatePointsHistory() const noexcept {
   ptFrm_t result;
   result.reserve(pointNum * iterNum);
   for (const auto &kv : pt2Val) {
@@ -116,7 +118,7 @@ OptimizerBase<aType, vType>::getCumulatePointsHistory() const {
 }
 
 template <typename aType, typename vType>
-void OptimizerBase<aType, vType>::debug_check() noexcept {
+void OptimizerBase<aType, vType>::debug_check() const noexcept {
   // DEPRECATED
 }
 

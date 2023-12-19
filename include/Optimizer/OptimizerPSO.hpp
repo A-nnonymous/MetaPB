@@ -16,10 +16,8 @@ public:
     searching frames.
   */
   typedef vector<aType> pt_t;
-  typedef vector<vType> valFrm_t;
   typedef vector<pt_t> ptFrm_t;
-  typedef vector<ptFrm_t> ptHist_t;
-  typedef vector<valFrm_t> valHist_t;
+  typedef vector<vType> valFrm_t;
 
   OptimizerPSO(const double vMax, const double omega, const double dt,
                const double ego, const pt_t lowerLimits, const pt_t upperLimits,

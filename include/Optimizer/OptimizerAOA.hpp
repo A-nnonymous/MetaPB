@@ -16,10 +16,9 @@ public:
     searching frames.
   */
   typedef vector<aType> pt_t;
-  typedef vector<vType> valFrm_t;
   typedef vector<pt_t> ptFrm_t;
-  typedef vector<ptFrm_t> ptHist_t;
-  typedef vector<valFrm_t> valHist_t;
+  typedef vector<vType> valFrm_t;
+
   OptimizerAOA(const pt_t lowerLimits, const pt_t upperLimits,
                const size_t dimNum, const size_t pointNum, const size_t iterNum,
                const function<valFrm_t(const ptFrm_t &)> &evalFunc)

@@ -1,13 +1,13 @@
 #ifndef OPT_BASE_HPP
 #define OPT_BASE_HPP
 #include <cassert>
+#include <chrono>
 #include <functional>
 #include <iostream>
 #include <limits>
 #include <map>
 #include <random>
 #include <vector>
-#include <chrono>
 
 using std::function;
 using std::map;
@@ -63,7 +63,7 @@ public:
   /// @brief Flatten and cumulate all points arguments history and output
   /// @return A 2-dimensional aType vector shaped in (pointNum * iterNum,
   /// dimNum)
-  ptFrm_t getCumulatePointsHistory() const;
+  ptFrm_t getCumulatePointsHistory() const noexcept;
 
   /// @brief Get the best-at-a-time points' value of all search frame
   /// @return History of global optima point till that frame, a 1-D aType vector
@@ -97,7 +97,7 @@ protected:
   inline virtual void exploration() noexcept = 0;
 
   /// @brief Debug function used in the end of exec(), disabled in NDEBUG mode.
-  void debug_check() noexcept;
+  void debug_check() const noexcept;
 
   //-------------- constants--------------
   const pt_t lowerLimits;
@@ -109,6 +109,9 @@ protected:
   /// vector. Must be provided explicitly by user.
   const function<valFrm_t(const ptFrm_t &)> &evaluateFunc;
 
+  //----------- Common utilities----------
+  std::mt19937_64 rng{std::random_device{}()};
+  std::uniform_real_distribution<double> dist01{0, 1};
   // -------------- variables -------------
   // Custom comparison function for vectors
   struct ptCompare {
