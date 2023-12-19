@@ -14,7 +14,6 @@ void OptimizerRSA<aType, vType>::extraction() noexcept {
 }
 
 /// @brief RSA update method.
-/// @return New points frame.
 template <typename aType, typename vType>
 void OptimizerRSA<aType, vType>::exploration() noexcept {
   // Invariant: As the optimizer executed to this point, it maintains a global &

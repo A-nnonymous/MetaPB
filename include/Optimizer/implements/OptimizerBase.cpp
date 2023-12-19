@@ -45,6 +45,7 @@ OptimizerBase<aType, vType>::OptimizerBase(
 
 template <typename aType, typename vType>
 void OptimizerBase<aType, vType>::exec() noexcept {
+  auto start = std::chrono::high_resolution_clock::now();
   // Invariant: All point frame till here is valid to evaluate.
   for (size_t frmIdx = 0; frmIdx < iterNum; ++frmIdx) {
     exploitation();
@@ -53,6 +54,11 @@ void OptimizerBase<aType, vType>::exec() noexcept {
     if (frmIdx != iterNum - 1) [[likely]]
       exploration();
   }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = 
+    std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  double duration_ms = duration.count()/1000000.0;
+  std::cout << "\nWith time consumed " << duration_ms << " ms" << std::endl;
 #ifndef NDEBUG
   debug_check();
 #endif
@@ -111,40 +117,7 @@ OptimizerBase<aType, vType>::getCumulatePointsHistory() const {
 
 template <typename aType, typename vType>
 void OptimizerBase<aType, vType>::debug_check() noexcept {
-  std::cout << ptHistory.size() << " " << valHistory.size() << std::endl;
-  int nPoint = 0;
-  std::cout << "All point in frame0\n";
-  for (auto &&point : ptHistory[0]) {
-    nPoint++;
-    std::cout << "Point " << nPoint << " {";
-    for (auto &&dim : point) {
-      std::cout << dim << ", ";
-    }
-    std::cout << "} \n";
-  }
-
-  nPoint = 0;
-  std::cout << "All point in last frame\n";
-  for (auto &&point : ptHistory.back()) {
-    nPoint++;
-    std::cout << "Point " << nPoint << " {";
-    for (auto &&dim : point) {
-      std::cout << dim << ", ";
-    }
-    std::cout << "} \n";
-  }
-
-  nPoint = 0;
-  std::cout << "Squashed point history:\n";
-  auto squashed = getCumulatePointsHistory();
-  for (auto &&point : squashed) {
-    nPoint++;
-    std::cout << "Point " << nPoint << " {";
-    for (auto &&dim : point) {
-      std::cout << dim << ", ";
-    }
-    std::cout << "} \n";
-  }
+  // DEPRECATED
 }
 
 } // namespace Optimizer

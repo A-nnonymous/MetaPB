@@ -36,9 +36,7 @@ void testConcave(OptimizerBase<aType,vType> &opt, const vector<string> &argHeade
                  const vector<string> &valHeader,
                  const string optimizerName){
   opt.exec();
-  std::cout << "Optima is expected to be 0, ended with: "
-            << opt.getGlobalOptimaValue() << std::endl;
-  std::cout << "Optima vec is :";
+  std::cout << optimizerName <<" has optimized costs to: " << opt.getGlobalOptimaValue() << ".\n With argVec: ";
   auto pt = opt.getGlobalOptimaPoint();
   for (const auto &dim : pt) {
     std::cout << dim << ", ";
@@ -58,7 +56,7 @@ void testConcave(OptimizerBase<aType,vType> &opt, const vector<string> &argHeade
 
 int main() {
   size_t pointNum = 20;
-  size_t iterNum = 1000;
+  size_t iterNum = 100;
   size_t dimNum = 10;
   function<vector<double>(const vector<vector<double>> &)> cof(concave);
   function<vector<int>(const vector<vector<int>> &)> coi(concaveI);
@@ -74,27 +72,43 @@ int main() {
     valHeader.emplace_back(str);
   }
 
+  auto lowerLimitI = vector<int>(pointNum, -100);
+  auto upperLimitI = vector<int>(pointNum, 100);
+  auto lowerLimitF = vector<double>(pointNum, -100.0f);
+  auto upperLimitF = vector<double>(pointNum, 100.0f);
+
+  // PSO related extra arguments
   double dt = 0.1;
   double ego = 0.2;
   double omega = 0.7;
   double vMax = 2 * (200.0 / (iterNum * dt));
-
-  auto lowerLimitI = vector<int>(pointNum, -100);
-  auto upperLimitI = vector<int>(pointNum, 100);
-  Optimizer::OptimizerPSO<int, int> optPSO(vMax, omega, dt, ego, lowerLimitI,
+  Optimizer::OptimizerPSO<int, int> optPSOI(vMax, omega, dt, ego, lowerLimitI,
                                         upperLimitI, dimNum, pointNum, iterNum,
                                         coi);
-  testConcave<int, int>(optPSO, argHeader, valHeader, "PSOI");
-  auto lowerLimitF = vector<double>(pointNum, -100.0f);
-  auto upperLimitF = vector<double>(pointNum, 100.0f);
-  Optimizer::OptimizerAOA<double, double> optAOA(lowerLimitF, upperLimitF,
+  Optimizer::OptimizerPSO<double, double> optPSOF(vMax, omega, dt, ego, lowerLimitF,
+                                        upperLimitF, dimNum, pointNum, iterNum,
+                                        cof);
+
+  Optimizer::OptimizerAOA<int, int> optAOAI(lowerLimitI, upperLimitI,
+                                               dimNum, pointNum, iterNum,
+                                        coi);
+  Optimizer::OptimizerAOA<double, double> optAOAF(lowerLimitF, upperLimitF,
                                                dimNum, pointNum, iterNum,
                                         cof);
-  Optimizer::OptimizerRSA<double, double> optRSA(lowerLimitF, upperLimitF,
+
+  Optimizer::OptimizerRSA<int, int> optRSAI(lowerLimitI, upperLimitI,
+                                               dimNum, pointNum, iterNum,
+                                        coi);
+  Optimizer::OptimizerRSA<double, double> optRSAF(lowerLimitF, upperLimitF,
                                                dimNum, pointNum, iterNum,
                                         cof);
-  testConcave<double, double>(optAOA, argHeader, valHeader, "AOAF");
-  testConcave<double, double>(optRSA, argHeader, valHeader, "RSAF");
+
+  testConcave<int, int>(optPSOI, argHeader, valHeader, "PSOI");
+  testConcave<int, int>(optAOAI, argHeader, valHeader, "AOAI");
+  testConcave<int, int>(optRSAI, argHeader, valHeader, "RSAI");
+  testConcave<double, double>(optPSOF, argHeader, valHeader, "PSOF");
+  testConcave<double, double>(optAOAF, argHeader, valHeader, "AOAF");
+  testConcave<double, double>(optRSAF, argHeader, valHeader, "RSAF");
 
   return 0;
 }

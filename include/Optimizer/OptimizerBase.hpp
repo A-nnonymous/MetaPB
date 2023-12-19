@@ -7,6 +7,7 @@
 #include <map>
 #include <random>
 #include <vector>
+#include <chrono>
 
 using std::function;
 using std::map;
