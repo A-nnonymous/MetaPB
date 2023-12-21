@@ -1,6 +1,8 @@
 #ifndef OPT_PSO_SRC
 #define OPT_PSO_SRC
 #include "../OptimizerPSO.hpp"
+
+namespace MetaPB{
 namespace Optimizer {
 
 template <typename aType, typename vType>
@@ -86,4 +88,5 @@ void OptimizerPSO<aType, vType>::exploration() noexcept {
 }
 
 } // namespace Optimizer
+} // namespace MetaPB
 #endif

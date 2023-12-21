@@ -1,6 +1,8 @@
 #ifndef OPT_AOA_SRC
 #define OPT_AOA_SRC
 #include "../OptimizerAOA.hpp"
+
+namespace MetaPB{
 namespace Optimizer {
 
 /// @brief Extract additional information that needed by AOA
@@ -96,4 +98,5 @@ void OptimizerAOA<aType, vType>::exploration() noexcept {
 }
 
 } // namespace Optimizer
+} // namespace MetaPB
 #endif

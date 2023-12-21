@@ -2,6 +2,7 @@
 #define OPT_RSA_HPP
 #include "OptimizerBase.hpp"
 
+namespace MetaPB{
 namespace Optimizer {
 
 template <typename aType, typename vType>
@@ -38,6 +39,8 @@ private:
   inline virtual void extraction() noexcept override;
   inline virtual void exploration() noexcept override;
 };
+
 } // namespace Optimizer
+} // namespace MetaPB
 #endif
 #include "./implements/OptimizerRSA.cpp"

@@ -1,6 +1,6 @@
-file(GLOB SOURCES "./*.cpp")
+#file(GLOB SOURCES "./*.cpp")
 
-add_library(metaSchedulerLib ${SOURCES})
+#add_library(metaSchedulerLib ${SOURCES})
 
-target_link_libraries(metaSchedulerLib schedulerLib)
+#target_link_libraries(metaSchedulerLib schedulerLib)
 

@@ -1,20 +1,33 @@
-#TODO: 
-# 1. Add c++ compile flag and debug option toggler
+cmake_minimum_required(VERSION 3.27)
 
-cmake_minimum_required(VERSION 3.22.1)
+# The "C" language in this project is UPMEM-C in fact.
+project(MetaPB LANGUAGES CXX C)
 
-project(MetaPB LANGUAGES CXX)
-
+#------------------- CPU Compiler settings-------------------
+set(CMAKE_CXX_COMPILER /usr/bin/g++-12 )
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
-#set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
-set(EXECUTABLE_OUTPUT_PATH /output/bin)
+# Host side DPU library argument CXX_DPU_FLAGS generating
+execute_process(
+  COMMAND dpu-pkg-config --libs --cflags dpu
+  OUTPUT_VARIABLE CXX_DPU_FLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_DPU_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+
+#------------------- DPU Compiler settings-------------------
+set(CMAKE_C_COMPILER "dpu-upmem-dpurte-clang" )  
+set(CMAKE_C_FLAGS " -O2")  
+
+#------------------- Path variables -------------------------
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/cpu_bin)
+set(DPU_EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/dpu_bin)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
-#add_subdirectory(${CMAKE_SOURCE_DIR}/ext/stdexec)
-include_directories(${CMAKE_SOURCE_DIR}/submodules/stdexec/include) # Adding external library stdexec
+#------------------- Indexing directories -------------------
+include_directories(${CMAKE_SOURCE_DIR}/submodules/stdexec/include) 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(/usr/include/dpu)
 

@@ -2,8 +2,8 @@
 #define OPT_NAIVE_HPP
 #include "OptimizerBase.hpp"
 
+namespace MetaPB{
 namespace Optimizer {
-
 template <typename aType, typename vType>
 class OptimizerNaive : public OptimizerBase<aType, vType> {
 public:
@@ -34,6 +34,8 @@ private:
   inline virtual void exploration() noexcept override;
   inline virtual void extraction() noexcept override;
 };
+
 } // namespace Optimizer
+} // namespace MetaPB
 #endif
 #include "./implements/OptimizerNaive.cpp"

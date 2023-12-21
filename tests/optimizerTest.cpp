@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+using namespace MetaPB;
 using Optimizer::OptimizerBase;
 vector<double> concave(const vector<vector<double>> &pts) {
   vector<double> results;

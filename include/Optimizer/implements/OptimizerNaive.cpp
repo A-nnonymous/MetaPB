@@ -1,6 +1,8 @@
 #ifndef OPT_NAIVE_SRC
 #define OPT_NAIVE_SRC
 #include "../OptimizerNaive.hpp"
+
+namespace MetaPB{
 namespace Optimizer {
 
 template <typename aType, typename vType>
@@ -47,4 +49,5 @@ void OptimizerNaive<aType, vType>::exploration() noexcept {
 }
 
 } // namespace Optimizer
+} // namespace MetaPB
 #endif

@@ -1,6 +1,8 @@
 #ifndef OPT_RSA_SRC
 #define OPT_RSA_SRC
 #include "../OptimizerRSA.hpp"
+
+namespace MetaPB{
 namespace Optimizer {
 
 /// @brief Extract additional information that needed by RSA
@@ -80,4 +82,5 @@ void OptimizerRSA<aType, vType>::exploration() noexcept {
 }
 
 } // namespace Optimizer
+} // namespace MetaPB
 #endif
