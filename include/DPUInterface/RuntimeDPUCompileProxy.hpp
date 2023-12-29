@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace utils {
+namespace MetaPB {
 /// @brief A stateless dpu compile proxy.
 class DPUCompileProxy {
 public:
@@ -34,5 +34,6 @@ private:
       {outputFilePath, " -o"}};
   std::string parse(compileArgs &args) const noexcept;
 }; // DPUCompileProxy
-} // namespace utils
+
+} // namespace MetaPB 
 #endif

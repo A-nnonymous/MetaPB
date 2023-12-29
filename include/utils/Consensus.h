@@ -1,6 +1,10 @@
 #ifndef CONSENSUS_HPP
 #define CONSENSUS_HPP
 
+#ifdef __cplusplus
+namespace MetaPB{ // namespace confining
+#endif
+
 // This enum shares the consensus of datatype between host & dpu
 #define UCHAR8_32ALN 0   // unsigned char (uint8_t)
 #define CHAR8_32ALN 1    // char (int8_t)
@@ -47,6 +51,7 @@ template <> struct TypeVal<std::int64_t> {
 template <> struct TypeVal<float> { static const int value{FLOAT32_32ALN}; };
 template <> struct TypeVal<double> { static const int value{DOUBLE64_64ALN}; };
 
+} // namespace MetaPB
 #else // #ifdef __cplusplus
 // ----- C specialized pseudo-generic execution -----
 #define DATAPTR32_32ALN 10 // T* -- DPU pointer type.
@@ -106,5 +111,4 @@ template <> struct TypeVal<double> { static const int value{DOUBLE64_64ALN}; };
 //#define EXEC_KERNEL(Ttag, ...) DO_GENERIC(Ttag, KERNEL, __VA_ARGS__)
 
 #endif // #ifdef __cplusplus else
-
 #endif // CONSENSUS_HPP
