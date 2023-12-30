@@ -2,7 +2,7 @@
 #define OPT_AOA_HPP
 #include "OptimizerBase.hpp"
 
-namespace MetaPB{
+namespace MetaPB {
 namespace Optimizer {
 
 template <typename aType, typename vType>

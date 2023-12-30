@@ -2,7 +2,7 @@
 #define OPT_PSO_SRC
 #include "../OptimizerPSO.hpp"
 
-namespace MetaPB{
+namespace MetaPB {
 namespace Optimizer {
 
 template <typename aType, typename vType>

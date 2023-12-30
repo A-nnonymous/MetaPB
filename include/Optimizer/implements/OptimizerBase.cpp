@@ -2,7 +2,7 @@
 #define OPT_BASE_SRC
 #include "../OptimizerBase.hpp"
 
-namespace MetaPB{
+namespace MetaPB {
 namespace Optimizer {
 
 template <typename aType, typename vType>
@@ -46,9 +46,9 @@ OptimizerBase<aType, vType>::OptimizerBase(
 
 template <typename aType, typename vType>
 void OptimizerBase<aType, vType>::exec() noexcept {
-//#ifndef NDEBUG
+  //#ifndef NDEBUG
   auto start = std::chrono::high_resolution_clock::now();
-//#endif
+  //#endif
   // Invariant: All point frame till here is valid to evaluate.
   for (size_t frmIdx = 0; frmIdx < iterNum; ++frmIdx) {
     exploitation();
@@ -57,14 +57,14 @@ void OptimizerBase<aType, vType>::exec() noexcept {
     if (frmIdx != iterNum - 1) [[likely]]
       exploration();
   }
-//#ifndef NDEBUG
+  //#ifndef NDEBUG
   auto end = std::chrono::high_resolution_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
   double duration_ms = duration.count() / 1000000.0;
   std::cout << "\nWith time consumed " << duration_ms << " ms" << std::endl;
   debug_check();
-//#endif
+  //#endif
 }
 
 template <typename aType, typename vType>

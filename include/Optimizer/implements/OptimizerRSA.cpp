@@ -2,7 +2,7 @@
 #define OPT_RSA_SRC
 #include "../OptimizerRSA.hpp"
 
-namespace MetaPB{
+namespace MetaPB {
 namespace Optimizer {
 
 /// @brief Extract additional information that needed by RSA

@@ -3,8 +3,8 @@
 #include <map>
 #include <vector>
 
-namespace MetaPB{
-namespace Operator{
+namespace MetaPB {
+namespace Operator {
 
 class OperatorBase {
 public:
@@ -24,6 +24,5 @@ private:
 
 } // namespace Operator
 } // namespace MetaPB
-
 
 #endif

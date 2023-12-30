@@ -2,7 +2,7 @@
 #define OPT_NAIVE_SRC
 #include "../OptimizerNaive.hpp"
 
-namespace MetaPB{
+namespace MetaPB {
 namespace Optimizer {
 
 template <typename aType, typename vType>

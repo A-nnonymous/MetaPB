@@ -1,19 +1,19 @@
 #ifndef CHRNO_TGR_HPP
 #define CHRNO_TGR_HPP
 
+#include "MetricsGather.hpp"
 #include <chrono>
 #include <cmath>
 #include <pcm/cpucounters.h>
 #include <vector>
-#include "Quant.hpp"
 
 namespace MetaPB {
 namespace utils {
 
 using pcm::PCM;
-using std::vector;
 using pcm::SocketCounterState;
 using pcm::SystemCounterState;
+using std::vector;
 
 /// @brief Named after my favorite JRPG game,
 // is a reenterable time & performance statistic counter.
@@ -22,7 +22,7 @@ class ChronoTrigger {
   typedef std::chrono::time_point<clock> timePoint;
 
   /// @brief This struct is what tick-tock directly deals with.
-  typedef struct Probe{
+  typedef struct Probe {
     timePoint time;
     SystemCounterState systemState;
     vector<SocketCounterState> socketStates;
@@ -35,18 +35,21 @@ public:
 
   // In consideration of precision, the taskIdx must be a imm-num
   /// @brief Start counting time for a specific work
-  void tick(const size_t taskIdx);
+  void tick(const size_t taskIdx_In);
   /// @brief stop counting time for a specific work
-  void tock(const size_t taskIdx);
+  void tock(const size_t taskIdx_In);
 
-  inline Report getReport(size_t taskIdx)const noexcept{
-    return reports[taskIdx];
+  /// @brief Uses the overrided operator to correct the idle bias
+  /// @param taskIdx_In input taskIdx (0 - taskNum - 1)
+  /// @return Unbiased report.
+  inline Report getReport(size_t taskIdx_In) const noexcept {
+    return reports[taskIdx_In + 1] - reports[0];
   }
 
 private:
   // -------------- Intel PCM related members -------------
-  inline static PCM *pcmHandle = PCM::getInstance();
-  inline static const size_t socketNum = pcmHandle->getNumSockets();
+  PCM *pcmHandle;
+  size_t socketNum;
 
   const std::size_t taskNum;
   std::vector<Probe> lastProbes;

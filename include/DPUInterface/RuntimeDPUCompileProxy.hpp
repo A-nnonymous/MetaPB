@@ -35,5 +35,5 @@ private:
   std::string parse(compileArgs &args) const noexcept;
 }; // DPUCompileProxy
 
-} // namespace MetaPB 
+} // namespace MetaPB
 #endif

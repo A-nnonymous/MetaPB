@@ -2,7 +2,7 @@
 #define OPT_PSO_HPP
 #include "OptimizerBase.hpp"
 
-namespace MetaPB{
+namespace MetaPB {
 namespace Optimizer {
 template <typename aType, typename vType>
 class OptimizerPSO : public OptimizerBase<aType, vType> {
@@ -40,6 +40,6 @@ private:
 };
 
 } // namespace Optimizer
-} // namespace MetaPB 
+} // namespace MetaPB
 #endif
 #include "./implements/OptimizerPSO.cpp"

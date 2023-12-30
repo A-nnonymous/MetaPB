@@ -2,7 +2,7 @@
 #define OPT_AOA_SRC
 #include "../OptimizerAOA.hpp"
 
-namespace MetaPB{
+namespace MetaPB {
 namespace Optimizer {
 
 /// @brief Extract additional information that needed by AOA

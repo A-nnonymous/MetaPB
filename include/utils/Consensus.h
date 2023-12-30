@@ -2,7 +2,7 @@
 #define CONSENSUS_HPP
 
 #ifdef __cplusplus
-namespace MetaPB{ // namespace confining
+namespace MetaPB { // namespace confining
 #endif
 
 // This enum shares the consensus of datatype between host & dpu
@@ -52,7 +52,7 @@ template <> struct TypeVal<float> { static const int value{FLOAT32_32ALN}; };
 template <> struct TypeVal<double> { static const int value{DOUBLE64_64ALN}; };
 
 } // namespace MetaPB
-#else // #ifdef __cplusplus
+#else                      // #ifdef __cplusplus
 // ----- C specialized pseudo-generic execution -----
 #define DATAPTR32_32ALN 10 // T* -- DPU pointer type.
 #define CODEPTR32_32ALN 11 // T(*F)()  -- Function pointer type.
@@ -97,7 +97,7 @@ template <> struct TypeVal<double> { static const int value{DOUBLE64_64ALN}; };
     default:                                                                   \
       break;                                                                   \
   }) // MULTILINE DO_GENERIC
-     
+
 // Those macros upside may be used as pseudo generic executor:
 // A simple generic VA kernel might like this:
 //

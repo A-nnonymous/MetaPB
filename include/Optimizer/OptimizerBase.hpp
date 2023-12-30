@@ -13,7 +13,7 @@ using std::function;
 using std::map;
 using std::vector;
 
-namespace MetaPB{
+namespace MetaPB {
 namespace Optimizer {
 /// @brief The base class of Metaheuristic optimizer is constructed on three
 /// levels of strictly nested data structure, namely, point, frame and history,
@@ -133,9 +133,9 @@ protected:
   vector<vType> gBestValHist; // History of optimas' values till given frame.
                               // Can be used to draw converging line.
 };                            // namespace OptimizerBase
-                              
+
 } // namespace Optimizer
-} // namespace MetaPB 
+} // namespace MetaPB
 
 #endif
 // Tail include of template method implementaions

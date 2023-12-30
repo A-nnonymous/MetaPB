@@ -1,15 +1,15 @@
-// TODOs: 
+// TODOs:
 // 1. Refractor the root class DPUSetOps
 // 2. Purge unecessary friend relations.
 
 #include <atomic>
 #include <climits>
 #include <cstdarg>
+#include <cstdint>
 #include <functional>
 #include <ostream>
 #include <string>
 #include <vector>
-#include <cstdint>
 
 extern "C" {
 #include <dpu.h>
@@ -21,7 +21,7 @@ extern "C" {
  * @brief Contains all that is needed to manage DPUs.
  */
 namespace MetaPB {
-namespace DPUInterface{
+namespace DPUInterface {
 
 /**
  * @brief Constant used to allocate all available DPUs in
@@ -363,8 +363,8 @@ public:
    * @throws DpuError when the symbol is not big enough for the data
    */
   template <class F>
-  void copyScatterGather(const std::string &DstSymbol, std::uint32_t Offset, F f,
-                         size_t Size, bool length_check = true) {
+  void copyScatterGather(const std::string &DstSymbol, std::uint32_t Offset,
+                         F f, size_t Size, bool length_check = true) {
     get_block_t get_block_info{__get_block<F>, &f, sizeof(f)};
     copyScatterGather(DstSymbol, Offset, get_block_info, Size, length_check);
   }
@@ -1013,7 +1013,8 @@ private:
 
   explicit DpuSetAsync(DpuSet *Set) : DpuSetOps(Set->cSet, true), set(Set) {}
 
-  static dpu_error_t cbWrapper(struct dpu_set_t CSet, std::uint32_t Idx, void *Arg) {
+  static dpu_error_t cbWrapper(struct dpu_set_t CSet, std::uint32_t Idx,
+                               void *Arg) {
     DpuSet dpuSet(CSet, false, true);
     CallContext *context = static_cast<CallContext *>(Arg);
     context->callback(dpuSet, Idx);

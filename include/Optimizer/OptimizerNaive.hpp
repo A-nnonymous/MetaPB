@@ -2,7 +2,7 @@
 #define OPT_NAIVE_HPP
 #include "OptimizerBase.hpp"
 
-namespace MetaPB{
+namespace MetaPB {
 namespace Optimizer {
 template <typename aType, typename vType>
 class OptimizerNaive : public OptimizerBase<aType, vType> {
