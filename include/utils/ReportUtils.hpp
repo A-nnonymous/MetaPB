@@ -39,7 +39,7 @@ typedef struct reportItem {
     }
     return *this;
   }
-  friend reportItem operator-(const reportItem &lhs, const reportItem &rhs) {
+  friend reportItem operator-(const reportItem &lhs, const reportItem &rhs){
     reportItem result(lhs);
     result -= rhs;
     return result;
@@ -53,6 +53,7 @@ typedef struct Report {
   size_t itemNum;
   vector<reportItem> reportItems;
 
+  Report() = default;
   Report(size_t socketN, size_t itemNum) : itemNum(itemNum) {
     reportItems.resize(itemNum);
   }
