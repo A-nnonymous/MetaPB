@@ -1,23 +1,9 @@
 #include "utils/ChronoTrigger.hpp"
-#define CORRECTION_REPEAT 20
+#define BIAS_CORRECTION_REPEAT 20
 
 namespace MetaPB {
 namespace utils {
 
-using pcm::getBackendBound;
-using pcm::getBadSpeculation;
-using pcm::getBytesReadFromMC;
-using pcm::getBytesWrittenToMC;
-using pcm::getConsumedJoules;
-using pcm::getCoreBound;
-using pcm::getDRAMConsumedJoules;
-using pcm::getFrontendBound;
-using pcm::getL3CacheHitRatio;
-using pcm::getL3CacheOccupancy;
-using pcm::getMemoryBound;
-using pcm::getQPItoMCTrafficRatio;
-using pcm::SocketCounterState;
-using pcm::SystemCounterState;
 using std::vector;
 
 ChronoTrigger::ChronoTrigger(size_t taskNum) : taskNum(taskNum) {
@@ -34,8 +20,8 @@ ChronoTrigger::ChronoTrigger(size_t taskNum) : taskNum(taskNum) {
       taskNum + 1,
       Report(socketNum, metricTag::size)); // task0 is for bias correction.
 
-#pragma unroll CORRECTION_REPEAT
-  for (auto corr = 0; corr < CORRECTION_REPEAT; corr++) {
+#pragma unroll BIAS_CORRECTION_REPEAT
+  for (auto corr = 0; corr < BIAS_CORRECTION_REPEAT; corr++) {
     tick(-1);
     tock(-1);
   }
@@ -53,7 +39,7 @@ void ChronoTrigger::tick(const size_t taskIdx_In) {
     }
   }
   lastProbes[taskIdx].systemState = pcmHandle->getSystemCounterState();
-  // Ensure the tick is always behind all miscs
+  // Ensure the time tick is always beneath all others.
   lastProbes[taskIdx].time = clock::now();
 }
 
