@@ -27,14 +27,30 @@ typedef struct reportItem {
   }
   reportItem &operator-=(const reportItem &rhs) {
     if (this->data.index() == 0) {
-      auto &myMean = std::get<Stats>(data).mean;
-      const auto &rhsMean = std::get<Stats>(rhs.data).mean;
-      std::get<Stats>(data).mean -= std::get<Stats>(rhs.data).mean;
+      auto &myData = std::get<Stats>(data);
+      const auto &rhsData= std::get<Stats>(rhs.data);
+      // Noise data purging.
+      if(rhsData.mean > myData.mean){
+        myData = Stats();
+        return *this;
+      } 
+      myData.mean -= rhsData.mean;
+      myData.sum -= myData.rep * rhsData.mean;
+      myData.upperBound -= rhsData.mean;
+      myData.lowerBound -= rhsData.mean;
     } else {
       auto &myVec = std::get<vector<Stats>>(data);
       const auto &rhsVec = std::get<vector<Stats>>(rhs.data);
       for (auto i = 0; i < myVec.size(); i++) {
+        // Noise data purging
+        if(rhsVec[i].mean > myVec[i].mean){
+          myVec[i] = Stats();
+          continue;
+        }
         myVec[i].mean -= rhsVec[i].mean;
+        myVec[i].sum -= myVec[i].rep * rhsVec[i].mean;
+        myVec[i].upperBound -= rhsVec[i].mean;
+        myVec[i].lowerBound -= rhsVec[i].mean;
       }
     }
     return *this;

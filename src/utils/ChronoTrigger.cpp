@@ -1,5 +1,5 @@
 #include "utils/ChronoTrigger.hpp"
-#define BIAS_CORRECTION_REPEAT 20
+#define BIAS_CORRECTION_REPEAT 100
 
 namespace MetaPB {
 namespace utils {
@@ -85,8 +85,11 @@ void ChronoTrigger::dumpAllReport(std::string path){
     vector<vector<std::string>> completeData;
     // For each metric, gather all reports' data
     for(const auto& [taskName, report] : task2Report){
+      const auto correctedReport = taskName=="__BIAS__" ?
+      report :
+      report - task2Report["__BIAS__"];
       vector<vector<std::string>> items;
-      const reportItem &metric = report.reportItems[tag];
+      const reportItem &metric = correctedReport.reportItems[tag];
         // singlular metric, one task one metric
         if(metric.data.index() == 0){
           const Stats &data = std::get<Stats>(metric.data);
@@ -99,8 +102,9 @@ void ChronoTrigger::dumpAllReport(std::string path){
             std::to_string(data.mean),
             std::to_string(data.variance),
             std::to_string(data.stdVar),
-            std::to_string(data.upperBound),
-            std::to_string(data.lowerBound),
+            // Normally there's no data that is untouched, but noise purging might introduce them.
+            std::to_string((data.upperBound == -__DBL_MAX__)? 0.0f : data.upperBound),
+            std::to_string((data.lowerBound == __DBL_MAX__)? 0.0f :data.lowerBound),
             std::to_string(data.upperBias),
             std::to_string(data.lowerBias)
           };
@@ -117,8 +121,9 @@ void ChronoTrigger::dumpAllReport(std::string path){
               std::to_string(datavec[i].mean),
               std::to_string(datavec[i].variance),
               std::to_string(datavec[i].stdVar),
-              std::to_string(datavec[i].upperBound),
-              std::to_string(datavec[i].lowerBound),
+            // Normally there's no data that is untouched, but noise purging might introduce them.
+              std::to_string((datavec[i].upperBound == -__DBL_MAX__)? 0.0f : datavec[i].upperBound),
+              std::to_string((datavec[i].lowerBound == __DBL_MAX__)? 0.0f : datavec[i].lowerBound),
               std::to_string(datavec[i].upperBias),
               std::to_string(datavec[i].lowerBias)
             };

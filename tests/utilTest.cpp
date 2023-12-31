@@ -23,13 +23,13 @@ int main() {
     /*
     ct.tick(0);
     */
-    ct.tick("naive" + std::to_string(r));
+    ct.tick("naive" );
 #endif
     for (size_t i = 0; i < itemNum; i++) {
       a[i]++;
     }
 #ifdef CT
-    ct.tock("naive" + std::to_string(r));
+    ct.tock("naive" );
     /*
     ct.tock(0);
     */
@@ -41,7 +41,7 @@ int main() {
   }
 #ifdef CT
   //Report rp = ct.getReport(0);
-  Report rp = ct.getReport("naive0");
+  Report rp = ct.getReport("naive");
   std::cout << (std::get<Stats>(rp.reportItems[0].data).mean) / 1e6
             << std::endl;
   std::cout << (std::get<Stats>(rp.reportItems[0].data).lowerBound) / 1e6
