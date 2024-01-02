@@ -3,6 +3,7 @@
 
 #ifdef __cplusplus
 namespace MetaPB { // namespace confining
+#include <cstdint>
 #endif
 
 // This enum shares the consensus of datatype between host & dpu
@@ -19,7 +20,6 @@ namespace MetaPB { // namespace confining
 
 // ----- C++ specialized type signature generation -----
 #ifdef __cplusplus
-#include <cstdint>
 // Other type returns -1 by default.
 // These structs down below may be used as a consensus Type tag:
 // int consensusTypeID = TypeVal<T>::value;

@@ -36,8 +36,7 @@ public:
   /// @brief This class should not be initialized without taskNum
   ChronoTrigger();
 
-  // In consideration of precision, the taskIdx must be a imm-num
-  /// @brief Unique name of specific task(cannot be __BIAS__)
+  /// @brief Unique name of specific task(exclude __BIAS__)
   void tick(const std::string &taskName);
   /// @brief stop counting time for a specific work
   void tock(const std::string &taskName);

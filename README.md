@@ -18,8 +18,8 @@ This work is build and tested in real world commercial PIM computing system **UP
 |System|Linux kernel|5.4.0-166-generic_amd64|
 |Toolchains|UPMEM SDK|2023.2.0|
 |Toolchains|UPMEM driver dkms|2023.2.0|
-|Toolchains|GCC|11.4.0|
-|Toolchains|G++|11.4.0|
+|Toolchains|GCC|12.3.0|
+|Toolchains|G++|12.3.0|
 |Toolchains|CMake|3.28.0|
 |Submodules|stdexec|commit 4da440447|  
 
