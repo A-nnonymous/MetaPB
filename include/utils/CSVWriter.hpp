@@ -9,7 +9,7 @@
 using std::string;
 using std::vector;
 
-namespace MetaPB{
+namespace MetaPB {
 namespace utils {
 
 template <typename dType> class CSVWriter {

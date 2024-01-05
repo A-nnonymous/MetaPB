@@ -1,3 +1,5 @@
+#ifndef DPU_HPP
+#define DPU_HPP
 // TODOs:
 // 1. Refractor the root class DPUSetOps
 // 2. Purge unecessary friend relations.
@@ -846,6 +848,24 @@ public:
    */
   std::vector<DpuSet *> &ranks() { return _ranks; }
 
+  // ------------------- Added getter functions --------------------//
+  inline const std::uint32_t getDPUNums() const noexcept{
+    return _dpus.size();
+  }
+  inline const std::uint32_t getDPURankNums() const noexcept{
+    return _ranks.size();
+  }
+  const std::vector<std::uint32_t> getRankWiseDPUNums() const noexcept{
+    std::vector<std::uint32_t> result;
+    result.reserve(_ranks.size());
+    std::uint32_t temp;
+    for(const auto& rank : _ranks){
+      dpu_get_nr_dpus(rank->cSet, &temp);
+      result.emplace_back(temp);
+    }
+    return result;
+  }
+  // ------------------- ---------------------- --------------------//
   /**
    * @brief Allocate a number of DPUs with the given profile.
    * @param NrDpus the number of DPUs to allocate (defaults to ALLOCATE_ALL)
@@ -1029,3 +1049,5 @@ inline DpuSetAsync DpuSet::async() { return DpuSetAsync(this); }
 
 } // namespace DPUInterface
 } // namespace MetaPB
+  //
+#endif

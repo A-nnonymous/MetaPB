@@ -39,8 +39,9 @@ void OptimizerAOA<aType, vType>::exploration() noexcept {
   for (size_t ptIdx = 0; ptIdx != this->pointNum; ++ptIdx) {
     const auto &thisPt = this->ptHistory.back()[ptIdx];
     const auto &thisVal = this->valHistory.back()[ptIdx];
-    const double MOA =
-        1 - pow((gWorstVal - thisVal) / (this->gBestVal - gWorstVal), arg_k);
+    //const double MOA =
+    //   1 - pow((gWorstVal - thisVal) / (this->gBestVal - gWorstVal), arg_k);
+    const double MOA = 0.2 + currIterIdx*(0.8/this->iterNum);
 
     pt_t newPt(this->dimNum, (aType)0);
     for (size_t dimIdx = 0; dimIdx != this->dimNum; ++dimIdx) {
@@ -50,7 +51,7 @@ void OptimizerAOA<aType, vType>::exploration() noexcept {
       const double r1 = this->dist01(this->rng);
       const double r2 = this->dist01(this->rng);
       const double r3 = this->dist01(this->rng);
-      double propose;
+      double propose = 1.0f;
       if (r1 < MOA) {
         if (r2 > 0.5) {
           propose = this->gBestPt[dimIdx] / (arg_MOP + __DBL_MIN__) *

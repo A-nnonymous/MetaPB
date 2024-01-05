@@ -1,13 +1,13 @@
 #ifndef CHRNO_TGR_HPP
 #define CHRNO_TGR_HPP
 
-#include "MetricsGather.hpp"
 #include "CSVWriter.hpp"
-#include <pcm/cpucounters.h>
+#include "MetricsGather.hpp"
 #include <chrono>
 #include <cmath>
-#include <vector>
 #include <map>
+#include <pcm/cpucounters.h>
+#include <vector>
 
 namespace MetaPB {
 namespace utils {
@@ -15,8 +15,8 @@ namespace utils {
 using pcm::PCM;
 using pcm::SocketCounterState;
 using pcm::SystemCounterState;
-using std::vector;
 using std::map;
+using std::vector;
 
 /// @brief Named after my favorite JRPG game(OST specificlly),
 // is a reentrant time & performance statistic counter & report generator
@@ -45,12 +45,12 @@ public:
   /// @param taskIdx_In input taskIdx (0 - taskNum - 1)
   /// @return Unbiased report.
   inline Report getReport(const std::string &taskName) {
-    return task2Report[taskName]  - task2Report["__BIAS__"];
+    return task2Report[taskName] - task2Report["__BIAS__"];
   }
-  
+
   /// @brief Dump all report into a given path, ordered correspond to
   /// metricTag that used in this profiling task;
-  /// @param path A path that store all goods, expected to witness 
+  /// @param path A path that store all goods, expected to witness
   /// metricTag::size number of csv file.
   void dumpAllReport(std::string path);
 
