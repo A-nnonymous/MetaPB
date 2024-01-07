@@ -1,12 +1,17 @@
 #ifndef OP_BASE_HPP
 #define OP_BASE_HPP
-#include <map>
+#include "Operator/Datablock.hpp"
+#include <unordered_map>
 #include <vector>
 
+using std::unordered_map;
+using std::vector;
 namespace MetaPB {
 namespace Operator {
 
 class OperatorBase {
+  enum execPlace { CPU, DPU };
+
 public:
   OperatorBase() = delete;
 
@@ -14,12 +19,9 @@ public:
   /// @param t Type of executor decided by upper level scheduler.
   virtual void exec() = 0;
 
-  /// @brief
-  /// @param part
-  /// @return
-  virtual std::vector<OperatorBase *> split(size_t part) = 0;
-
 private:
+  unordered_map<> vector<Datablock *> inputBlocks;
+  OperatorBase *nextOperator
 };
 
 } // namespace Operator

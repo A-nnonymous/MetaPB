@@ -23,6 +23,7 @@ extern "C" {
  * @brief Contains all that is needed to manage DPUs.
  */
 namespace MetaPB {
+namespace utils {
 namespace DPUInterface {
 
 /**
@@ -849,17 +850,17 @@ public:
   std::vector<DpuSet *> &ranks() { return _ranks; }
 
   // ------------------- Added getter functions --------------------//
-  inline const std::uint32_t getDPUNums() const noexcept{
+  inline const std::uint32_t getDPUNums() const noexcept {
     return _dpus.size();
   }
-  inline const std::uint32_t getDPURankNums() const noexcept{
+  inline const std::uint32_t getDPURankNums() const noexcept {
     return _ranks.size();
   }
-  const std::vector<std::uint32_t> getRankWiseDPUNums() const noexcept{
+  const std::vector<std::uint32_t> getRankWiseDPUNums() const noexcept {
     std::vector<std::uint32_t> result;
     result.reserve(_ranks.size());
     std::uint32_t temp;
-    for(const auto& rank : _ranks){
+    for (const auto &rank : _ranks) {
       dpu_get_nr_dpus(rank->cSet, &temp);
       result.emplace_back(temp);
     }
@@ -1048,6 +1049,7 @@ private:
 inline DpuSetAsync DpuSet::async() { return DpuSetAsync(this); }
 
 } // namespace DPUInterface
+} // namespace utils
 } // namespace MetaPB
   //
 #endif

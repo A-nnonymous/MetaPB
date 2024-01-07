@@ -8,7 +8,7 @@ set(CMAKE_CXX_COMPILER /usr/bin/g++-12 )
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -g")
 
 execute_process(
   COMMAND dpu-pkg-config --libs --cflags dpu
