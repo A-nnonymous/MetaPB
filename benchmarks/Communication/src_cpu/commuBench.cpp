@@ -52,10 +52,12 @@ void RankWisePush(const vector<vector<uint32_t>> &data, DpuSet *Rank) {
 
 void threadRankPush(DpuSet *wholeSet, const vector<rankData> & src, size_t idx) {
   wholeSet->ranks()[idx]->async().copy(DPU_MRAM_HEAP_POINTER_NAME, 0, src[idx]);
+  //wholeSet->ranks()[idx]->copy(DPU_MRAM_HEAP_POINTER_NAME, 0, src[idx]);
 }
 
 void threadRankPull(vector<rankData> &result, DpuSet *wholeSet, size_t idx) {
   wholeSet->ranks()[idx]->async().copy(result[idx], DPU_MRAM_HEAP_POINTER_NAME, 0);
+  //wholeSet->ranks()[idx]->copy(result[idx], DPU_MRAM_HEAP_POINTER_NAME, 0);
 }
 
 void summonPush(DpuSet *wholeSet, const vector<rankData> & src, size_t usedRank) {
@@ -84,7 +86,7 @@ int main(int argc, char **argv) {
   const auto maxThreadCount = thread::hardware_concurrency();
   constexpr size_t mram_occupy_Byte = ((size_t)32 << 20); // 32MiB
   constexpr size_t elementPerDPU = mram_occupy_Byte / sizeof(std::uint32_t);
-  auto wholeSys = DpuSet::allocateRanks();
+  auto wholeSys = DpuSet::allocateRanks(ALLOCATE_ALL, "nrThreadsPerRank=1");
   const auto rankDPUsVec = wholeSys.getRankWiseDPUNums();
   vector<DpuSet*> rankPtrVec = wholeSys.ranks();
   const auto dpuNum = wholeSys.getDPUNums();
@@ -119,10 +121,11 @@ int main(int argc, char **argv) {
   constexpr int rep = 20;
 
   for(auto usedRank = 1; usedRank < rankNum; usedRank<<=1){
+    std::cout<< "#### Rank concurrence: "<< usedRank<<std::endl;
     for (int i = 0; i < rep+warmup; i++) {
       if(i >= warmup) ct.tick("RankWisePush_32MiB_" + std::to_string(usedRank) + "Rank");
       summonPush(&wholeSys, RankBuffers,usedRank);
-      if(i >= warmup) ct.tick("RankWisePush_32MiB_" + std::to_string(usedRank) + "Rank");
+      if(i >= warmup) ct.tock("RankWisePush_32MiB_" + std::to_string(usedRank) + "Rank");
 
       if(i >= warmup) ct.tick("RankWisePull_32MiB_" + std::to_string(usedRank) + "Rank");
       summonPull(RankBuffers, &wholeSys,usedRank);
@@ -131,7 +134,7 @@ int main(int argc, char **argv) {
       if(i >= warmup) ct.tick("Sync_" + std::to_string(usedRank) + "Rank");
       wholeSys.async().sync();
       if(i >= warmup) ct.tock("Sync_" + std::to_string(usedRank) + "Rank");
-      std::cout << i<<std::endl;
+      std::cout << "Rep "<< i<<std::endl;
     }
   }
   ct.dumpAllReport("/output/transferData");
