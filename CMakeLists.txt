@@ -17,12 +17,18 @@ execute_process(
 )
 #------------------- DPU Compiler settings-------------------
 set(CMAKE_C_COMPILER "dpu-upmem-dpurte-clang" )  
-set(CMAKE_C_FLAGS " -O2")  
+set(CMAKE_C_FLAGS " -O2 ")  
 
 #------------------- Path variables -------------------------
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/cpu_bin)
 set(DPU_EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/dpu_bin)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
+
+#------------------- External library -----------------------
+# Adding nvidia stdexec directory, but disabling all tests to save compiling time.
+option(STDEXEC_BUILD_EXAMPLES "Build stdexec examples" OFF)
+option(STDEXEC_BUILD_TESTS "Build stdexec tests" OFF)
+add_subdirectory(submodules/stdexec)
 
 #------------------- Indexing directories -------------------
 #include_directories(${CMAKE_SOURCE_DIR}/submodules/stdexec/include) 

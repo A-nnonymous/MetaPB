@@ -81,59 +81,66 @@ void summonPull(vector<rankData> &result, DpuSet *wholeSet, size_t usedRank) {
   }
 }
 
+void officialPush(size_t rankNum, vector<dpuData> &buffer){
+  auto ranks = DpuSet::allocateRanks(rankNum);
+  const auto dpuPath = getDPUBinaryPath();
+  ranks.load(dpuPath);
+  ranks.async().copy(DPU_MRAM_HEAP_POINTER_NAME, 0, buffer);
+}
+
+void officialPull(size_t rankNum, vector<dpuData> &buffer){
+  auto ranks = DpuSet::allocateRanks(rankNum);
+  const auto dpuPath = getDPUBinaryPath();
+  ranks.load(dpuPath);
+  ranks.async().copy(buffer, DPU_MRAM_HEAP_POINTER_NAME,0);
+}
+
+vector<uint32_t> getRankDpus(){
+  auto wholeSys = DpuSet::allocateRanks();
+  return wholeSys.getRankWiseDPUNums();
+}
+
+size_t getTotalDPU(){
+  auto wholeSys = DpuSet::allocateRanks();
+  return size_t(wholeSys.getDPUNums());
+}
 int main(int argc, char **argv) {
   ChronoTrigger ct;
-  const auto maxThreadCount = thread::hardware_concurrency();
   constexpr size_t mram_occupy_Byte = ((size_t)32 << 20); // 32MiB
   constexpr size_t elementPerDPU = mram_occupy_Byte / sizeof(std::uint32_t);
-  auto wholeSys = DpuSet::allocateRanks(ALLOCATE_ALL, "nrThreadsPerRank=1");
-  const auto rankDPUsVec = wholeSys.getRankWiseDPUNums();
-  vector<DpuSet*> rankPtrVec = wholeSys.ranks();
-  const auto dpuNum = wholeSys.getDPUNums();
-  const auto rankNum = rankPtrVec.size();
-  const size_t wholeSize_Byte = dpuNum * mram_occupy_Byte;
-  const double wholeSize_GiB = ((double)wholeSize_Byte / (1 << 30));
 
-  std::cout << "Allocated " << rankDPUsVec.size() << " ranks\n";
-  std::cout << "Total transferring data size is: " << wholeSize_GiB << " GiB\n";
-  const auto dpuPath = getDPUBinaryPath();
-  wholeSys.load(dpuPath);
+  const auto rankDPUsVec = getRankDpus();
 
-/*
-  const vector<vector<std::uint32_t>> buffer(64,
-               vector<std::uint32_t>(elementPerDPU, 666)); // whole rank parallel
-               */
   dpuData dullBlock = dpuData(elementPerDPU, 666);
+  /*
   vector<rankData> RankBuffers;
-
   #pragma omp parallel for
-  for(auto rankIdx = 0; rankIdx < rankNum; rankIdx++){
+  for(auto rankIdx = 0; rankIdx < 32; rankIdx++){
     auto thisDPUNum = rankDPUsVec[rankIdx];
     RankBuffers.emplace_back(rankData(thisDPUNum, dullBlock));
   }
-  
-  /*
-  constexpr size_t choice = 0;
-  const auto thisDPUNum = rankDPUsVec[choice];
-  vector<vector<std::uint32_t>> result(thisDPUNum,vector<uint32_t> (elementPerDPU,0));
   */
+  vector<dpuData> dpuBuffer(getTotalDPU(), dullBlock);
+  
   constexpr int warmup = 5;
   constexpr int rep = 20;
 
-  for(auto usedRank = 1; usedRank < rankNum; usedRank<<=1){
+  for(auto usedRank = 1; usedRank <= 32; usedRank<<=1){
     std::cout<< "#### Rank concurrence: "<< usedRank<<std::endl;
     for (int i = 0; i < rep+warmup; i++) {
       if(i >= warmup) ct.tick("RankWisePush_32MiB_" + std::to_string(usedRank) + "Rank");
-      summonPush(&wholeSys, RankBuffers,usedRank);
+      officialPush(usedRank, dpuBuffer);
       if(i >= warmup) ct.tock("RankWisePush_32MiB_" + std::to_string(usedRank) + "Rank");
 
       if(i >= warmup) ct.tick("RankWisePull_32MiB_" + std::to_string(usedRank) + "Rank");
-      summonPull(RankBuffers, &wholeSys,usedRank);
+      officialPull(usedRank, dpuBuffer);
       if(i >= warmup) ct.tock("RankWisePull_32MiB_" + std::to_string(usedRank) + "Rank");
       
+      /*
       if(i >= warmup) ct.tick("Sync_" + std::to_string(usedRank) + "Rank");
       wholeSys.async().sync();
       if(i >= warmup) ct.tock("Sync_" + std::to_string(usedRank) + "Rank");
+      */
       std::cout << "Rep "<< i<<std::endl;
     }
   }
