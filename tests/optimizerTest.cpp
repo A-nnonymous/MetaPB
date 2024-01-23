@@ -1,8 +1,8 @@
 #include "Optimizer/OptimizerAOA.hpp"
 #include "Optimizer/OptimizerBase.hpp"
+#include "Optimizer/OptimizerNaive.hpp"
 #include "Optimizer/OptimizerPSO.hpp"
 #include "Optimizer/OptimizerRSA.hpp"
-#include "Optimizer/OptimizerNaive.hpp"
 #include "utils/CSVWriter.hpp"
 #include <string>
 #include <vector>
@@ -14,7 +14,7 @@ vector<double> concave(const vector<vector<double>> &pts) {
   for (size_t ptIdx = 0; ptIdx != pts.size(); ptIdx++) {
     double val = 0.0;
     for (const auto &dim : pts[ptIdx]) {
-      val += (dim - 100.0f)*(dim - 100.0f);
+      val += (dim - 100.0f) * (dim - 100.0f);
     }
     results.emplace_back(val);
   }
@@ -58,13 +58,13 @@ void testConcave(OptimizerBase<aType, vType> &opt,
                   "./convergeHist_" + optimizerName + ".csv");
 }
 
-vector<double> evalFunc(const vector<vector<int>> &points){
+vector<double> evalFunc(const vector<vector<int>> &points) {
   vector<double> results;
-  const vector<int> optima = {400,52}; // 1000mv 61ms
-  for(const auto & point: points){
+  const vector<int> optima = {400, 52}; // 1000mv 61ms
+  for (const auto &point : points) {
     double result = 0.0f;
-    for(size_t i = 0; i < point.size(); i++){
-      result += (optima[i] - point[i])*(optima[i] - point[i]);
+    for (size_t i = 0; i < point.size(); i++) {
+      result += (optima[i] - point[i]) * (optima[i] - point[i]);
     }
     results.emplace_back(result);
   }

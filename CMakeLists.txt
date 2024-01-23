@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.27)
 # The "C" language in this project is UPMEM-C in fact.
 project(MetaPB LANGUAGES CXX C)
 
+#------------------ Runtime environmanet asertions ---------
+find_package(xgboost REQUIRED)
 #------------------- CPU Compiler settings-------------------
 set(CMAKE_CXX_COMPILER /usr/bin/g++-12 )
 set(CMAKE_CXX_STANDARD 23)
