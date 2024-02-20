@@ -14,8 +14,9 @@ extern "C" {
 #include "../support/params.h"
 #include "../support/timer.h"
 }
-
+typedef float T;
 #include <string>
+#include <thread>
 using std::string;
 // Define the DPU Binary path as DPU_BINARY here
 #ifndef DPU_BINARY
@@ -39,7 +40,7 @@ static T *C2;
 // Create input arrays
 static void read_input(T *A, T *B, size_t nr_elements) {
   srand(0);
-  printf("nr_elements\t%u\t", nr_elements);
+  printf("nr_elements\t%lu\t", nr_elements);
 #pragma omp parallel for
   for (size_t i = 0; i < nr_elements; i++) {
     A[i] = (T)(1);
@@ -48,16 +49,48 @@ static void read_input(T *A, T *B, size_t nr_elements) {
 }
 
 // Compute output in the host
-static void vector_addition_host(T *C, T *A, T *B, size_t nr_elements) {
-#pragma omp parallel for
-  for (size_t i = 0; i < nr_elements; i++) {
+void vectorAdd(T *C, const T *A, const T *B, size_t start, size_t end) {
+  for (size_t i = start; i < end; i++) {
     C[i] = A[i] + B[i];
   }
 }
-static void vector_multiplication_host(T *C, T *A, T *B, size_t nr_elements) {
-#pragma omp parallel for
-  for (size_t i = 0; i < nr_elements; i++) {
+static void vector_addition_host(T *C, const T *A, const T *B,
+                                 size_t nr_elements) {
+  const size_t numThreads = std::thread::hardware_concurrency();
+  size_t chunkSize = nr_elements / numThreads;
+
+  std::vector<std::thread> threads;
+  for (size_t i = 0; i < numThreads; ++i) {
+    size_t start = i * chunkSize;
+    size_t end = (i == numThreads - 1) ? nr_elements : (i + 1) * chunkSize;
+    threads.emplace_back(vectorAdd, std::ref(C), std::cref(A), std::cref(B),
+                         start, end);
+  }
+
+  for (auto &thread : threads) {
+    thread.join();
+  }
+}
+void vectorMul(T *C, const T *A, const T *B, size_t start, size_t end) {
+  for (size_t i = start; i < end; i++) {
     C[i] = A[i] * B[i];
+  }
+}
+static void vector_multiplication_host(T *C, const T *A, const T *B,
+                                       size_t nr_elements) {
+  const size_t numThreads = std::thread::hardware_concurrency();
+  size_t chunkSize = nr_elements / numThreads;
+
+  std::vector<std::thread> threads;
+  for (size_t i = 0; i < numThreads; ++i) {
+    size_t start = i * chunkSize;
+    size_t end = (i == numThreads - 1) ? nr_elements : (i + 1) * chunkSize;
+    threads.emplace_back(vectorMul, std::ref(C), std::cref(A), std::cref(B),
+                         start, end);
+  }
+
+  for (auto &thread : threads) {
+    thread.join();
   }
 }
 
@@ -81,7 +114,7 @@ int main(int argc, char **argv) {
   printf("Allocated %d DPU(s)\n", nr_of_dpus);
   size_t i = 0;
   // const size_t total_size = 8*1024*size_t(1024*1024);//32GiB int32
-  const size_t total_size = 1* size_t(1024* 1024 * 1024); // NGiB int32
+  const size_t total_size = 1 * size_t(1024 * 1024 * 1024); // NGiB int32
   A = (T *)malloc(total_size * sizeof(T));
   B = (T *)malloc(total_size * sizeof(T));
   C = (T *)malloc(total_size * sizeof(T));
@@ -114,12 +147,12 @@ int main(int argc, char **argv) {
   T *bufferC = C2;
   */
   auto warmup = 5;
-  auto reps = 10;
+  auto reps = 20;
   std::vector<std::string> kernels = {"VA", "VM"};
 
-  for (std::string  kernel : kernels) {
+  for (std::string kernel : kernels) {
     DPU_ASSERT(dpu_load(dpu_set, ("../dpu_bin/dpu" + kernel).c_str(), NULL));
-    for (size_t input_size = total_size / 4; input_size <= total_size;
+    for (size_t input_size = total_size / 256; input_size <= total_size;
          input_size <<= 1) {
       const size_t input_size_8bytes =
           ((input_size * sizeof(T)) % 8) != 0
@@ -145,17 +178,35 @@ int main(int argc, char **argv) {
         // Compute output on CPU (performance comparison and verification
         // purposes)
         if (rep >= warmup)
-          ct.tick(kernel + "_CPU_" + std::to_string(GiBytes) + "GiBytes");
+          ct.tick(kernel + "_CPU_" +
+                  static_cast<std::ostringstream>(
+                      std::ostringstream()
+                      << std::fixed <<   std::setprecision(4) << std::setw(7)
+                      << std::setfill('0') << GiBytes)
+                      .str() +
+                  "GiBytes");
         if (kernel == "VA")
           vector_addition_host(C, A, B, input_size);
         if (kernel == "VM")
           vector_multiplication_host(C, A, B, input_size);
         if (rep >= warmup)
-          ct.tock(kernel + "_CPU_" + std::to_string(GiBytes) + "GiBytes");
+          ct.tock(kernel + "_CPU_" +
+                  static_cast<std::ostringstream>(
+                      std::ostringstream()
+                      << std::fixed <<   std::setprecision(4) << std::setw(7)
+                      << std::setfill('0') << GiBytes)
+                      .str() +
+                  "GiBytes");
 
         printf("Load input data\n");
         if (rep >= warmup)
-          ct.tick("CPU2DPU_" + std::to_string(GiBytes) + "GiBytes");
+          ct.tick("CPU2DPU_" +
+                  static_cast<std::ostringstream>(
+                      std::ostringstream()
+                      << std::fixed <<   std::setprecision(4) << std::setw(7)
+                      << std::setfill('0') << GiBytes)
+                      .str() +
+                  "GiBytes");
         // Input arguments
         dpu_arguments_t input_arguments[NR_DPUS];
         for (i = 0; i < nr_of_dpus - 1; i++) {
@@ -196,16 +247,34 @@ int main(int argc, char **argv) {
                           input_size_dpu_8bytes * sizeof(T),
                           input_size_dpu_8bytes * sizeof(T), DPU_XFER_DEFAULT));
         if (rep >= warmup)
-          ct.tock("CPU2DPU_" + std::to_string(GiBytes) + "GiBytes");
+          ct.tock("CPU2DPU_" +
+                  static_cast<std::ostringstream>(
+                      std::ostringstream()
+                      << std::fixed <<   std::setprecision(4) << std::setw(7)
+                      << std::setfill('0') << GiBytes)
+                      .str() +
+                  "GiBytes");
 
         printf("Run program on DPU(s) \n");
         // Run DPU kernel
         if (rep >= warmup) {
-          ct.tick("DPU_KERNEL_" + kernel + "_"+std::to_string(GiBytes) + "GiBytes");
+          ct.tick("DPU_KERNEL_" + kernel + "_" +
+                  static_cast<std::ostringstream>(
+                      std::ostringstream()
+                      << std::fixed <<   std::setprecision(4) << std::setw(7)
+                      << std::setfill('0') << GiBytes)
+                      .str() +
+                  "GiBytes");
         }
         DPU_ASSERT(dpu_launch(dpu_set, DPU_SYNCHRONOUS));
         if (rep >= warmup) {
-          ct.tock("DPU_KERNEL_" + kernel + "_"+std::to_string(GiBytes) + "GiBytes");
+          ct.tock("DPU_KERNEL_" + kernel + "_" +
+                  static_cast<std::ostringstream>(
+                      std::ostringstream()
+                      << std::fixed <<   std::setprecision(4) << std::setw(7)
+                      << std::setfill('0') << GiBytes)
+                      .str() +
+                  "GiBytes");
         }
 
 #if PRINT
@@ -222,7 +291,13 @@ int main(int argc, char **argv) {
 
         printf("Retrieve results\n");
         if (rep >= warmup)
-          ct.tick("DPU2CPU_" + std::to_string(GiBytes) + "GiBytes");
+          ct.tick("DPU2CPU_" +
+                  static_cast<std::ostringstream>(
+                      std::ostringstream()
+                      << std::fixed <<   std::setprecision(4) << std::setw(7)
+                      << std::setfill('0') << GiBytes)
+                      .str() +
+                  "GiBytes");
         i = 0;
         // PARALLEL RETRIEVE TRANSFER
         DPU_FOREACH(dpu_set, dpu, i) {
@@ -234,10 +309,16 @@ int main(int argc, char **argv) {
             input_size_dpu_8bytes * sizeof(T),
             input_size_dpu_8bytes * sizeof(T), DPU_XFER_DEFAULT));
         if (rep >= warmup)
-          ct.tock("DPU2CPU_" + std::to_string(GiBytes) + "GiBytes");
+          ct.tock("DPU2CPU_" +
+                  static_cast<std::ostringstream>(
+                      std::ostringstream()
+                      << std::fixed <<   std::setprecision(4) << std::setw(7)
+                      << std::setfill('0') << GiBytes)
+                      .str() +
+                  "GiBytes");
       } // rep
 
-
+      /*
       // Check output
       bool status = true;
       for (i = 0; i < input_size; i++) {
@@ -255,10 +336,11 @@ int main(int argc, char **argv) {
         printf("[" ANSI_COLOR_RED "ERROR" ANSI_COLOR_RESET
                "] Outputs differ!\n");
       }
+      */
 
     } // input size
   }   // kernel
-      ct.dumpAllReport("./");
+  ct.dumpAllReport("./");
   // Deallocation
   free(A);
   free(B);

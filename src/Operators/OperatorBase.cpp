@@ -54,8 +54,8 @@ float OperatorBase::predictUsingModel(const vector<float> &inputFeature,
   return out_result[0];
 }
 
-/// @brief Predict the whole time consume, assume that the CPU-DPU is working in
-/// parallel
+/// @brief Predict the whole time consume, assume that all worker is working in
+/// fully parallel
 /// @param proposed Metaheuristic proposed argument set
 /// @return Predicted time consume.
 float OperatorBase::predictTimeConsume(const ArgMap &proposed) noexcept {
@@ -70,7 +70,7 @@ float OperatorBase::predictTimeConsume(const ArgMap &proposed) noexcept {
 float OperatorBase::predictEnergyConsume(const ArgMap &proposed) noexcept {
   auto pvec = getPerfSignature(proposed);
   return predictUsingModel(pvec, CPUPerfModel.energyConsumeModelHandle) +
-         POWER_CONSTANT_NS *
+         DPU_ENERGY_CONSTANT_PER_NS *
              predictUsingModel(pvec, DPUPerfModel.timeConsumeModelHandle);
 }
 

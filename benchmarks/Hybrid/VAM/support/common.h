@@ -22,6 +22,7 @@ typedef struct {
 #endif
 
 // Data type
+/*
 #ifdef UINT32
 #define T uint32_t
 #define DIV 2 // Shift right to divide by sizeof(T)
@@ -35,8 +36,14 @@ typedef struct {
 #define T int64_t
 #define DIV 3 // Shift right to divide by sizeof(T)
 #elif FLOAT
+*/
+
+#ifdef __cplusplus
+#else
 #define T float
 #define DIV 2 // Shift right to divide by sizeof(T)
+#endif
+/*
 #elif DOUBLE
 #define T double
 #define DIV 3 // Shift right to divide by sizeof(T)
@@ -47,6 +54,7 @@ typedef struct {
 #define T short
 #define DIV 1 // Shift right to divide by sizeof(T)
 #endif
+*/
 
 #ifndef ENERGY
 #define ENERGY 0
