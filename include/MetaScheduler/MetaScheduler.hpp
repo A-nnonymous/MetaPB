@@ -1,17 +1,5 @@
 // TODO:
-// 1. Executor Task with:
-//      b. Fixed argument range (for research only)
-//      c. Fixed execution order(for UPMEM cannot run multi-kernel simutaneously
-//      in single DPU)
-//      d. (based on c) A one-to-one mapping of scheduleVec.
-//      e. set of operator Tag (task.opTagSet) that contain operator and
-//      auxillary information. f. deduceTime and deduceEnergy method takes
-//      schedule and return double g. random schedule Generator that take
-//      batchsize and output 2dVec.
-// 2. Operator with:
-//      a. A factory class that perform tagged Operator instance generating and
-//      perf model training.(Operator::modelize(opTag))
-// 3. Optimizer with:
+// 1. Optimizer with:
 //      a. A factory class that generates Optimizer instance
 //      (Optimizer::generate(optType))
 #ifndef METASCHED_HPP
@@ -19,7 +7,6 @@
 
 #include <Executor/Task.hpp>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 using std::string;
@@ -34,13 +21,26 @@ namespace MetaScheduler {
 class MetaScheduler {
 public:
   typedef vector<double> Schedule;
-  typedef vector<Schedule> ScheduleVec;
+  
+  typedef struct PerfCost{
+    double timeCost_second;
+    double energyCost_joule;
+  }perfCost;
+
+  typedef struct ScheduleResult{
+    Schedule schedule;
+    perfCost estimateCost; 
+  }ScheduleResult;
+
+  static void cachedModelize(const vector<Task> &, const string)noexcept;
+
+
   MetaScheduler(const Task &, const double, const double,
                 const Optimizer::OptimizerTag, const size_t, const bool);
 
-  void setTask(const Task &) noexcept;
-
-  Schedule scheduleGen(string perfModelPath) const noexcept;
+  scheduleResult schedule(const Task&, double, double);
+  scheduleResult scheduleAllCPU(const Task&);
+  scheduleResult scheduleAllDPU(const Task&);
 
 private:
   inline static const string defaultPerfModelPath = "/tmp/MetaPB_PerfModels";
@@ -52,11 +52,8 @@ private:
   const size_t batchSize;
   const bool isEarlyEndEnable = false;
 
-  Task &task;
-  string perfModelPath;
-  void modelizeIfNotLoaded(const string perfModelPath) noexcept;
-  double perfEval(const ScheduleVec &) const noexcept;
-  void schedOptimize(const ScheduleVec &) noexcept;
+  double perfEval(const Task&, const ScheduleVec &) const noexcept;
+  void schedOptimize(const Task& const ScheduleVec &) noexcept;
 }; // class MetaScheduler
 
 } // namespace MetaScheduler
