@@ -1,2 +1,5 @@
 build/
 .vscode/
+paperOutput/
+paperArchive/
+.ipynb_checkpoints/

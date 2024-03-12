@@ -1,6 +1,6 @@
-[submodule "submodules/stdexec-pim"]
-	path = submodules/stdexec-pim
-	url = git@github.com:A-nnonymous/stdexec-pim.git
 [submodule "submodules/stdexec"]
 	path = submodules/stdexec
 	url = git@github.com:A-nnonymous/stdexec-pim.git
+[submodule "submodules/paper"]
+	path = submodules/paper
+	url = git@github.com:A-nnonymous/MetaPB_Paper.git

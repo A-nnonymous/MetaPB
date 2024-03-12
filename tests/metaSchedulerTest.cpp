@@ -17,7 +17,7 @@ enum class scheduleType{
   pure_CPU,
   pure_DPU,
   energy_sensitive,
-  time_sensitive
+  time_sensitive,
   hybrid
 };
 
