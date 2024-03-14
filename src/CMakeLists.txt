@@ -2,7 +2,7 @@
 add_subdirectory(utils)
 
 # Implementation of CPU-DPU mixed Operator
-add_subdirectory(Operators)
+add_subdirectory(Operator)
 
 # Implementation of multistage weighted task executor
 #add_subdirectory(Executor)

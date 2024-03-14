@@ -26,7 +26,7 @@ namespace MetaPB {
 namespace Operator {
 
 /// @brief This class is the uniformed interface of all operator.
-class OperatorBase {
+class OperatorVAOperatorBase {
 public:
   /// @brief Ordered map of all arguments, mapping name to float(converted).
   // Be aware of type convertion.

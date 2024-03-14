@@ -9,15 +9,12 @@
 
 #ifndef TASK_HPP
 #define TASK_HPP
-#include <MetaScheduler/MetaScheduler.hpp>
-#include <Operators/OperatorManager.hpp>
+#include "Scheduler/SchedulerManager.hpp"
+#include "Operator/OperatorManager.hpp"
 #include <boost/graph/adjacency_list.hpp>
-#include <list>
-#include <map>
-#include <queue>
-#include <set>
-#include <string>
 #include <utils/ChronoTrigger.hpp>
+#include <map>
+#include <string>
 #include <vector>
 
 using std::list;
@@ -27,33 +24,32 @@ using std::string;
 using std::vector;
 
 namespace MetaPB {
+using Operator::OperatorTag;
+using Operator::OperatorType;
+using utils::ChronoTrigger;
+using Regressor::perfStats;
+
 namespace Executor {
 
+typedef struct TaskProperties {
+  OperatorTag op = OperatorTag::UNDEFINED;
+  OperatorType opType = OperatorType::Undefined;
+  size_t inputSize = 0;
+  std::string color = "blue";
+  std::string name = "N/A";
+  // ----- Schedule adjust zone ------
+  bool isCPUOnly = false;
+  bool isDPUOnly = false;
+  double offloadRatio = 0.0f;
+  // ----- Schedule adjust zone ------
+} TaskProperties;
+
 class Task {
-  using Schedule = MetaPB::MetaScheduler::Schedule;
-  using OperatorTag = MetaPB::Operator::OperatorTag;
-  using ScaleTag = MetaPB::Operator::ScaleTag;
-  using ChronoTrigger = MetaPB::utils::ChronoTrigger;
-
 public:
-  typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS>
-      Graph;
-  typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
-  typedef boost::graph_traits<Graph>::edge_descriptor Edge;
-  typedef map<OperatorTag, set<ScaleTag>> OperatorRegistry;
-  typedef struct Load {
-    OperatorTag op;
-    string name;
-
-  } Load;
-
-  Task();
-  Task(const Graph);
+  Task(TaskProperties tpIn): tp(tpIn){}
   // --------------- MetaScheduler interaction -------------
-  vector<Schedule> randSchedule(const size_t batchSize) const noexcept;
-  double deduceTime_ns(const Schedule &) const noexcept;
-  double deduceEnergy_joule(const Schedule &) const noexcept;
-
+  // deduce task time&energy consume in pure compute sight.
+  perfStats deduceMetrics(const double offloadRatio) const noexcept;
   // ---------------------- Execution ----------------------
   void repeatExec(const string &, const Schedule &, int, int) const noexcept;
   void exec(const Schedule &) const noexcept;
@@ -64,10 +60,9 @@ public:
   void dumpAllReports(const string) const noexcept;
 
 private:
+  TaskProperties tp;
   OperatorRegistry reg;
   ChronoTrigger ct;
-  Graph g;
-  map<Vertex, Load>
 };
 } // namespace Executor
 } // namespace MetaPB
