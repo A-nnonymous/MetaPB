@@ -1,3 +1,4 @@
+#ifdef TODO_HETERO
 #include <condition_variable>
 #include <functional>
 #include <mutex>
@@ -74,5 +75,5 @@ private:
         dpuSlave.execute(dpuTask);
       }
     }
-  }
-};
+  };
+#endif

@@ -1,4 +1,4 @@
-
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/test)
 add_executable(opt ./optimizerTest.cpp)
 add_executable(utl ./utilTest.cpp)
 add_executable(async ./asyncTest.cpp)

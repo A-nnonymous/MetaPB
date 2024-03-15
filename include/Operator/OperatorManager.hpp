@@ -4,35 +4,38 @@
 #include <memory>
 #include "Executor/TaskGraph.hpp"
 #include "Operator/OperatorBase.hpp"
-#include "Regressor/OPRegressor.hpp"
+
+using regressionTask =  MetaPB::Executor::regressionTask;
+using perfStats = MetaPB::Executor::perfStats;
+using OperatorBase = MetaPB::Operator::OperatorBase;
 
 namespace MetaPB {
 namespace Operator {
-  using regressionTask = Executor::regressionTask;
-  using perfStats = Executor::perfStats;
-  using OperatorBase = Operator::OperatorBase;
+
 enum class OperatorTag {
-  VM,
-  VA,
-  MAC,
-  EUDIST,
-  CONV_1D,
-  LOOKUP,
-  DOT_PROD,
-  LOGIC_START,
-  MAP_START,
-  LOGIC_END,
-  REDUCE_END,
-  UNDEFINED
+  VM,           // Vectorized Multiplication
+  VA,           // Vectorized Addition
+  MAC,          // Vectorized MAC
+  EUDIST,       // Vector Euclidean-distance(modified)
+  CONV_1D,      // Convolution in 1 dimension
+  LOOKUP,       // Table lookup
+  DOT_PROD,     // Vector dot product
+  LOGIC_START,  // Logical Start Operator
+  MAP_START,    // Start with a data mapping
+  LOGIC_END,    // Logical End Operator
+  REDUCE_END,   // End with a reduce
+  UNDEFINED     // Undefined Operator
 };
 
 enum class OperatorType {
   CoumputeBound,
   MemoryBound,
+  // ------- CPU Only ----------
   Logical,
   Map,
   Reduce,
   Undefined
+  // ------- CPU Only ----------
 };
 
 

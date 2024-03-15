@@ -2,7 +2,7 @@
 #include <boost/graph/graphviz.hpp>
 
 #include "Executor/Task.hpp"
-#include "Operators/OperatorManager.hpp"
+#include "Operator/OperatorManager.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iostream>

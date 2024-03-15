@@ -10,15 +10,6 @@
 #include <vector>
 #include <xgboost/c_api.h>
 #define DPU_ENERGY_CONSTANT_PER_NS 280.0 / 1000000000
-#define safe_xgboost(call)                                                     \
-  {                                                                            \
-    int err = (call);                                                          \
-    if (err != 0) {                                                            \
-      std::cerr << __FILE__ << ":" << __LINE__ << " error in " << #call << ":" \
-                << XGBGetLastError();                                          \
-      exit(1);                                                                 \
-    }                                                                          \
-  }
 
 using std::map;
 using std::string;
