@@ -7,7 +7,7 @@ int main() {
   mt19937_64 rng(random_device{}());
   uniform_real_distribution<float> dist(0,99);
   Learner l;
-  constexpr int trainSize = 100;
+  constexpr int trainSize = 200;
   constexpr int testSize = 10;
   float trainData[trainSize];
   float trainLabel[trainSize];

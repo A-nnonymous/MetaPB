@@ -22,6 +22,7 @@ enum class SchedulerTag{
   MetaPB_EffiFirst  // Proposed algorithm, in a Efficiency-first weight
 };
 
+/* TODO: finish all scheduler
 /// @brief Factory class that produce Scheduler.
 struct SchedulerManager{
   SchedulerBase getScheduler(SchedulerTag tag){
@@ -35,6 +36,7 @@ struct SchedulerManager{
     }
   }
 }; // struct SchedulerManager
+*/
 
 } // namespace MetaPB
 } // namespace Scheduler

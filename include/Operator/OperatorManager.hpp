@@ -2,43 +2,18 @@
 #define OP_MNGR
 #include <string>
 #include <memory>
+#include <map>
 #include "Executor/TaskGraph.hpp"
 #include "Operator/OperatorBase.hpp"
+#include "Operator/OperatorRegistry.hpp"
 
-using regressionTask =  MetaPB::Executor::regressionTask;
-using perfStats = MetaPB::Executor::perfStats;
-using OperatorBase = MetaPB::Operator::OperatorBase;
 
 namespace MetaPB {
+//using MetaPB::Executor::regressionTask;
+//using MetaPB::Executor::perfStats;
 namespace Operator {
 
-enum class OperatorTag {
-  VM,           // Vectorized Multiplication
-  VA,           // Vectorized Addition
-  MAC,          // Vectorized MAC
-  EUDIST,       // Vector Euclidean-distance(modified)
-  CONV_1D,      // Convolution in 1 dimension
-  LOOKUP,       // Table lookup
-  DOT_PROD,     // Vector dot product
-  LOGIC_START,  // Logical Start Operator
-  MAP_START,    // Start with a data mapping
-  LOGIC_END,    // Logical End Operator
-  REDUCE_END,   // End with a reduce
-  UNDEFINED     // Undefined Operator
-};
-
-enum class OperatorType {
-  CoumputeBound,
-  MemoryBound,
-  // ------- CPU Only ----------
-  Logical,
-  Map,
-  Reduce,
-  Undefined
-  // ------- CPU Only ----------
-};
-
-
+/* TODO: finish all Operator
 struct OperatorManager{
   void instantiateOpSet(const regressionTask& task){
     for(const auto& [opTag, _] : task){
@@ -78,6 +53,7 @@ private:
 
   std::map<OperatorTag, std::unique_ptr<OperatorBase>> opMap;
 };
+*/
 } // namespace Operator
 } // namespace MetaPB
 #endif

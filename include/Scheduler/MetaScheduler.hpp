@@ -6,7 +6,6 @@
 #define METASCHED_HPP
 
 #include "Executor/Task.hpp"
-#include "Operator/OperatorManager.hpp"
 #include "Optimizer/OptimizerManager.hpp"
 #include <string>
 #include <vector>

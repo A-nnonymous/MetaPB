@@ -26,8 +26,8 @@ struct Task {
 
 class SchedulerBase{
 public:
-  typedef vector<double> Schedule;
-  virtual Schedule doSchedule(const Workload&) = 0;
+  //typedef vector<double> Schedule;
+  //virtual Schedule doSchedule(const Workload&) = 0;
    
 };
 

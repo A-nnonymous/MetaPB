@@ -1,6 +1,6 @@
 file(GLOB SOURCES "./*.cpp")
 
-add_library(schedulerLib ${SOURCES})
+add_library(executorLib ${SOURCES})
 
-target_link_libraries(schedulerLib taskLib)
+target_link_libraries(executorLib utilsLib)
 

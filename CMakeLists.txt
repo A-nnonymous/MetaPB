@@ -5,6 +5,7 @@ project(MetaPB LANGUAGES CXX C)
 
 #------------------ Runtime environmanet asertions ---------
 find_package(xgboost REQUIRED)
+find_package(OpenMP REQUIRED)
 #------------------- CPU Compiler settings-------------------
 set(CMAKE_CXX_COMPILER /usr/bin/g++-12 )
 set(CMAKE_CXX_STANDARD 23)
@@ -28,9 +29,9 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 #------------------- External library -----------------------
 # Adding nvidia stdexec directory, but disabling all tests to save compiling time.
-option(STDEXEC_BUILD_EXAMPLES "Build stdexec examples" OFF)
-option(STDEXEC_BUILD_TESTS "Build stdexec tests" OFF)
-add_subdirectory(submodules/stdexec)
+#option(STDEXEC_BUILD_EXAMPLES "Build stdexec examples" OFF)
+#option(STDEXEC_BUILD_TESTS "Build stdexec tests" OFF)
+#add_subdirectory(submodules/stdexec)
 
 #------------------- Indexing directories -------------------
 #include_directories(${CMAKE_SOURCE_DIR}/submodules/stdexec/include) 

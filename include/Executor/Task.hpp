@@ -27,8 +27,7 @@ namespace MetaPB {
 using Operator::OperatorTag;
 using Operator::OperatorType;
 using utils::ChronoTrigger;
-using Regressor::perfStats;
-
+//using Executor::perfStats;
 namespace Executor {
 
 typedef struct TaskProperties {
@@ -44,6 +43,7 @@ typedef struct TaskProperties {
   // ----- Schedule adjust zone ------
 } TaskProperties;
 
+/*
 class Task {
 public:
   Task(TaskProperties tpIn): tp(tpIn){}
@@ -61,9 +61,9 @@ public:
 
 private:
   TaskProperties tp;
-  OperatorRegistry reg;
   ChronoTrigger ct;
 };
+*/
 } // namespace Executor
 } // namespace MetaPB
 

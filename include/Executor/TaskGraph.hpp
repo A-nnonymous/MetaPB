@@ -1,6 +1,6 @@
 #ifndef TASK_GRAPH
 #define TASK_GRAPH
-#include "Operator/OperatorManager.hpp"
+#include "Operator/OperatorRegistry.hpp"
 #include "Executor/graphTraits.hpp"
 #include "Executor/Task.hpp"
 
