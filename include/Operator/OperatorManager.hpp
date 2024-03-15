@@ -3,7 +3,7 @@
 #include <string>
 #include <memory>
 #include <map>
-#include "Executor/TaskGraph.hpp"
+//#include "Executor/TaskGraph.hpp"
 #include "Operator/OperatorBase.hpp"
 #include "Operator/OperatorRegistry.hpp"
 
@@ -28,8 +28,8 @@ struct OperatorManager{
     }
   }
 
-  perfStats deducePerf(OperatorTag opTag, double offloadRatio, size_t batchSize){
-    return opMap[opTag]->deducePerf(offloadRatio,batchSize);
+  perfStats deducePerf(OperatorTag opTag, double offloadRatio, size_t batchSize_MiB){
+    return opMap[opTag]->deducePerf(offloadRatio,batchSize_MiB);
   }
 
 private:

@@ -6,10 +6,10 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graphviz.hpp>
-#include "Operator/OperatorManager.hpp"
 #include "Scheduler/SchedulerManager.hpp"
 #include "Executor/Task.hpp"
 #include "Executor/Transfer.hpp"
+#include "Operator/OperatorRegistry.hpp"
 
 namespace MetaPB{
 using OperatorTag = Operator::OperatorTag;

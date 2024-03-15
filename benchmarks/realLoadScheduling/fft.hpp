@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-TaskGraph genFFT(int signalLength, size_t batchSize) {
+TaskGraph genFFT(int signalLength, size_t batchSize_MiB) {
   std::uint32_t N = signalLength;
   // Bitwise magic to find next exp2, learned from a English AMDer
   N--;
@@ -25,7 +25,7 @@ TaskGraph genFFT(int signalLength, size_t batchSize) {
                             4096,
                             "red", "MAC"};
 
-  TransferProperties fftTransfer = {batchSize * sizeof(float), true};
+  TransferProperties fftTransfer = {batchSize_MiB * sizeof(float), true};
 
   TransferProperties logicDependence = {0, false};
 

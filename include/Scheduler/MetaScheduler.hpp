@@ -47,7 +47,7 @@ private:
   const double Arg_Beta;
   const OptimizerTag optType;
   const size_t OptIterMax;
-  const size_t batchSize;
+  const size_t batchSize_MiB;
   const bool isEarlyEndEnable = false;
 
   double perfEval(const Task &, const Schedule &) const noexcept;

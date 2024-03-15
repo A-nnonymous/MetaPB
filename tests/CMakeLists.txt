@@ -10,7 +10,7 @@ target_link_libraries(utl utilsLib)
 target_compile_options(utl PRIVATE -DCT)
 target_link_libraries(regression xgboost::xgboost)
 add_executable(opTest ./operatorTest.cpp)
-target_link_libraries(opTest operatorLib)
+target_link_libraries(opTest operatorLib utilsLib xgboost::xgboost)
 
 add_executable(execTest ./ExecutorTest.cpp)
 target_link_libraries(execTest executorLib)

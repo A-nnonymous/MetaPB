@@ -1,3 +1,4 @@
+/*
 #ifndef OP_LOGIC_START_HPP
 #define OP_LOGIC_START_HPP
 
@@ -10,8 +11,8 @@ class Operator : public  OperatorBase {
 public:
   Operator() = default;
 
-  virtual void execCPU(const size_t batchSize)override;
-  virtual void execDPU(const size_t batchSize)override;
+  virtual void execCPU(const size_t batchSize_MiB)override;
+  virtual void execDPU(const size_t batchSize_MiB)override;
 
 private:
   inline static const std::string OpName = "";
@@ -20,3 +21,5 @@ private:
 } // namespace Operator
 } // namespace MetaPB
 #endif
+
+*/

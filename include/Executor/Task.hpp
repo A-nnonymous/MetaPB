@@ -9,13 +9,11 @@
 
 #ifndef TASK_HPP
 #define TASK_HPP
-#include "Scheduler/SchedulerManager.hpp"
-#include "Operator/OperatorManager.hpp"
-#include <boost/graph/adjacency_list.hpp>
-#include <utils/ChronoTrigger.hpp>
 #include <map>
 #include <string>
 #include <vector>
+#include <boost/graph/adjacency_list.hpp>
+#include "Operator/OperatorRegistry.hpp"
 
 using std::list;
 using std::map;
@@ -26,7 +24,6 @@ using std::vector;
 namespace MetaPB {
 using Operator::OperatorTag;
 using Operator::OperatorType;
-using utils::ChronoTrigger;
 //using Executor::perfStats;
 namespace Executor {
 
@@ -43,27 +40,6 @@ typedef struct TaskProperties {
   // ----- Schedule adjust zone ------
 } TaskProperties;
 
-/*
-class Task {
-public:
-  Task(TaskProperties tpIn): tp(tpIn){}
-  // --------------- MetaScheduler interaction -------------
-  // deduce task time&energy consume in pure compute sight.
-  perfStats deduceMetrics(const double offloadRatio) const noexcept;
-  // ---------------------- Execution ----------------------
-  void repeatExec(const string &, const Schedule &, int, int) const noexcept;
-  void exec(const Schedule &) const noexcept;
-  void execAsync(const Schedule &) const noexcept;
-  // ------------------ Getter & Setter --------------------
-  // reduced operator scaleArg maximum range.
-  map<OperatorTag, ScaleTag> getTrainRequirement() const noexcept;
-  void dumpAllReports(const string) const noexcept;
-
-private:
-  TaskProperties tp;
-  ChronoTrigger ct;
-};
-*/
 } // namespace Executor
 } // namespace MetaPB
 

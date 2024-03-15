@@ -16,17 +16,17 @@ inline const std::string getCordinateStr(int row, int col) noexcept{
   return "[" + std::to_string(row) + "," + std::to_string(col) + "]";
 }
 
-TaskGraph genGEA(int matrixSize, size_t batchSize) {
+TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
   int N = matrixSize;
   Graph g;
 
   TaskProperties geaNode = {OperatorTag::MAC,
                             OperatorType::CoumputeBound, 
-                            batchSize,
+                            batchSize_MiB,
                             "blue", "MAC"};
   TaskProperties geaDiagonal = {OperatorTag::VM,
                             OperatorType::MemoryBound, 
-                            batchSize,
+                            batchSize_MiB,
                             "blue", "VM"};
                           
   TransferProperties geaTransfer = {1.0f,true};
@@ -63,7 +63,7 @@ TaskGraph genGEA(int matrixSize, size_t batchSize) {
   
   return {g, "GEA_" + std::to_string(N)};
 }
-TaskGraph genFFT(int signalLength, size_t batchSize) {
+TaskGraph genFFT(int signalLength, size_t batchSize_MiB) {
   std::uint32_t N = signalLength;
   // Bitwise magic to find next exp2, learned from a English AMDer
   N--;

@@ -15,7 +15,7 @@ regressionTask TaskGraph::genRegressionTask(size_t){
   return {};
 }
 // Using regression model to predict the performance metrics
-// of a specific schedule, batchsize.
+// of a specific schedule, batchSize_MiB.
 perfStats TaskGraph::deduceMetrics(const Schedule&, size_t){
   return {};
 }

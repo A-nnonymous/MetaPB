@@ -50,7 +50,7 @@ Schedule MetaScheduler::scheduleGen(string perfModelPathIn) noexcept {
   // Invariant: To this point, the whole set of operators in given task is fully
   // modelized.
   auto schedVec =
-      task.randSchedule(batchSize); // Random init a schedule to be optimized.
+      task.randSchedule(batchSize_MiB); // Random init a schedule to be optimized.
   schedOptimize(schedVec);
 #endif // DRY_RUN
   return schedVec;
@@ -80,7 +80,7 @@ MetaScheduler::perfEval(const ScheduleVec &schedVec) const noexcept {
 #else
   // The true implementaion of final evaluation function
   vector<double> result();
-  result.reserve(batchSize);
+  result.reserve(batchSize_MiB);
   for (const auto &schedule : schedVec) {
     double timeCost_Second = task.deduceTime_ns(schedVec) / 1e9;
     double energyCost_Joule = task.deduceEnergy_joule(schedVec);

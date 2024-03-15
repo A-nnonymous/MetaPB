@@ -3,20 +3,17 @@
 #include "Operator/OperatorRegistry.hpp"
 #include "Executor/graphTraits.hpp"
 #include "Executor/Task.hpp"
+#include "utils/Stats.hpp"
 
 namespace MetaPB{
 namespace Executor{
 
 using OperatorTag = Operator::OperatorTag;
 using Schedule = Scheduler::Schedule;
+using perfStats = utils::perfStats;
 
 typedef std::map<OperatorTag, size_t> regressionTask;
 
-typedef struct{
-  double energyCost_Joule;
-  double timeCost_Second;
-  size_t dataMovement_GiB;
-}perfStats;
 
 class TaskGraph {
 public:
@@ -28,7 +25,7 @@ public:
   // Generate regression task according to op set and batch size.
   regressionTask genRegressionTask(size_t);
   // Using regression model to predict the performance metrics
-  // of a specific schedule, batchsize.
+  // of a specific schedule, batchSize_MiB.
   perfStats deduceMetrics(const Schedule&, size_t);
   // Execute the whole graph with specific schedule
   perfStats exec(const Schedule&, size_t);

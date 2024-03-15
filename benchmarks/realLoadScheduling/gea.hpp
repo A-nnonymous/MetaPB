@@ -9,7 +9,7 @@ inline const std::string getCordinateStr(int row, int col) noexcept{
   return "[" + std::to_string(row) + "," + std::to_string(col) + "]";
 }
 
-TaskGraph genGEA(int matrixSize, size_t batchSize) {
+TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
   int N = matrixSize;
   Graph g;
 
@@ -18,7 +18,7 @@ TaskGraph genGEA(int matrixSize, size_t batchSize) {
                             4096,
                             "blue", "MAC"};
 
-  TransferProperties geaTransfer = {batchSize * sizeof(float), true};
+  TransferProperties geaTransfer = {batchSize_MiB * sizeof(float), true};
 
   std::map<std::pair<int, int>, Task> rc2Task;
   for (int row = 0; row < N - 1; ++row) { // N - 1 stage

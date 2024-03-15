@@ -59,6 +59,7 @@ void ChronoTrigger::tock(const std::string &taskName) {
                            taskLastProbe.socketStates, currSocketState,
                            taskLastProbe.systemState, currSysState);
   }
+
 }
 
 void ChronoTrigger::dumpAllReport(std::string path) {
