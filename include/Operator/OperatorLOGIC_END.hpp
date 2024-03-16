@@ -1,14 +1,14 @@
-#ifndef OP_LOGIC_START_HPP
-#define OP_LOGIC_START_HPP
+#ifndef OP_LOGIC_END
+#define OP_LOGIC_END
 
 #include "Operator/OperatorBase.hpp"
 
 namespace MetaPB {
 namespace Operator {
 
-class OperatorLOGIC_START : public OperatorBase {
+class OperatorLOGIC_END : public OperatorBase {
 public:
-  OperatorLOGIC_START() {}
+  OperatorLOGIC_END() {}
 
   inline virtual const std::string get_name() const noexcept override {
     return OpName;
@@ -27,7 +27,7 @@ public:
   }
 
 private:
-  inline static const std::string OpName = "LOGIC_START";
+  inline static const std::string OpName = "LOGIC_END";
 };
 } // namespace Operator
 } // namespace MetaPB

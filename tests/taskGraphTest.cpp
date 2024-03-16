@@ -12,7 +12,7 @@ using OperatorTag = MetaPB::Operator::OperatorTag;
 using MetaPB::Executor::op_property_writer;
 using MetaPB::Executor::xfer_property_writer;
 
-inline const std::string getCordinateStr(int row, int col) noexcept{
+inline const std::string getCordinateStr(int row, int col) noexcept {
   return "[" + std::to_string(row) + "," + std::to_string(col) + "]";
 }
 
@@ -20,47 +20,42 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
   int N = matrixSize;
   Graph g;
 
-  TaskProperties geaNode = {OperatorTag::MAC,
-                            OperatorType::CoumputeBound, 
-                            batchSize_MiB,
-                            "blue", "MAC"};
-  TaskProperties geaDiagonal = {OperatorTag::VM,
-                            OperatorType::MemoryBound, 
-                            batchSize_MiB,
-                            "blue", "VM"};
-                          
-  TransferProperties geaTransfer = {1.0f,true};
+  TaskProperties geaNode = {OperatorTag::MAC, OperatorType::CoumputeBound,
+                            batchSize_MiB, "blue", "MAC"};
+  TaskProperties geaDiagonal = {OperatorTag::DOT_PROD,
+                                OperatorType::MemoryBound, batchSize_MiB,
+                                "blue", "DOT_PROD"};
+
+  TransferProperties geaTransfer = {1.0f, true};
 
   std::map<std::pair<int, int>, Task> rc2Task;
   for (int row = 0; row < N - 1; ++row) { // N - 1 stage
-      for (int col = row; col < N; ++col) { 
-        rc2Task[{row, col}] = boost::add_vertex( g);
-      }
+    for (int col = row; col < N; ++col) {
+      rc2Task[{row, col}] = boost::add_vertex(g);
+    }
   }
   for (int row = 0; row < N - 1; ++row) { // N - 1 stage
     for (int col = row; col < N; ++col) { // N - (row + 1) operatrion each stage
       if (col == row) [[unlikely]] {      // main diagonal node.
         for (int i = col + 1; i < N; ++i) {
-          if (rc2Task.contains({row, col}) && 
-              rc2Task.contains({row, i})){
-              g[rc2Task[{row,col}]] = geaDiagonal;
-              g[rc2Task[{row,col}]].name = getCordinateStr(row,col);
-              boost::add_edge(rc2Task[{row, col}], rc2Task[{row, i}], geaTransfer,
-                              g);
-              }
+          if (rc2Task.contains({row, col}) && rc2Task.contains({row, i})) {
+            g[rc2Task[{row, col}]] = geaDiagonal;
+            g[rc2Task[{row, col}]].name = getCordinateStr(row, col);
+            boost::add_edge(rc2Task[{row, col}], rc2Task[{row, i}], geaTransfer,
+                            g);
+          }
         }
       } else [[likely]] { // off-diagonal nodes.
-        if (rc2Task.contains({row, col}) && 
-            rc2Task.contains({row + 1, col})){
-            g[rc2Task[{row,col}]] = geaNode;
-            g[rc2Task[{row,col}]].name = getCordinateStr(row,col);
-            boost::add_edge(rc2Task[{row, col}], rc2Task[{row + 1, col}],
-                            geaTransfer, g);
+        if (rc2Task.contains({row, col}) && rc2Task.contains({row + 1, col})) {
+          g[rc2Task[{row, col}]] = geaNode;
+          g[rc2Task[{row, col}]].name = getCordinateStr(row, col);
+          boost::add_edge(rc2Task[{row, col}], rc2Task[{row + 1, col}],
+                          geaTransfer, g);
         }
       }
     }
   }
-  
+
   return {g, "GEA_" + std::to_string(N)};
 }
 TaskGraph genFFT(int signalLength, size_t batchSize_MiB) {
@@ -75,18 +70,12 @@ TaskGraph genFFT(int signalLength, size_t batchSize_MiB) {
   N++;
   std::uint32_t log2N = std::log2(N);
 
-  TaskProperties startNode = {OperatorTag::LOGIC_START,
-                              OperatorType::Logical,
-                              0,
-                              "yellow", "START"};
-  TaskProperties endNode = {OperatorTag::LOGIC_END,
-                              OperatorType::Logical,
-                              0,
-                              "yellow", "END"};
+  TaskProperties startNode = {OperatorTag::LOGIC_START, OperatorType::Logical,
+                              0, "yellow", "START"};
+  TaskProperties endNode = {OperatorTag::LOGIC_END, OperatorType::Logical, 0,
+                            "yellow", "END"};
 
-  TaskProperties fftNode = {OperatorTag::MAC,
-                            OperatorType::CoumputeBound,
-                            4096,
+  TaskProperties fftNode = {OperatorTag::MAC, OperatorType::CoumputeBound, 4096,
                             "red", "MAC"};
 
   TransferProperties fftTransfer = {1.0f, true};
@@ -127,17 +116,17 @@ TaskGraph genFFT(int signalLength, size_t batchSize_MiB) {
     boost::add_edge(N * log2N + i + 1, N * (log2N + 1) + 1, g);
   }
   g[0] = startNode;
-  g[N * (log2N + 1) + 1]= endNode;
+  g[N * (log2N + 1) + 1] = endNode;
 
   return {g, "FFT_" + std::to_string(N)};
 }
 
-int main(){
-  for(int i = 4; i <= 16; i *=2){
+int main() {
+  for (int i = 4; i <= 16; i *= 2) {
     TaskGraph fft = genFFT(i, 1);
     fft.printGraph("./");
   }
-  for(int i = 5; i < 8; i++){
+  for (int i = 5; i < 8; i++) {
     TaskGraph gea = genGEA(i, 1);
     gea.printGraph("./");
   }

@@ -1,7 +1,7 @@
 #ifndef XFER_HPP
 #define XFER_HPP
-namespace MetaPB{
-namespace Executor{
+namespace MetaPB {
+namespace Executor {
 
 typedef struct TransferProperties {
   double dataSize_Ratio = 1.0f;

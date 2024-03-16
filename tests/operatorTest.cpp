@@ -1,42 +1,56 @@
-#include "Operator/OperatorBase.hpp"
-#include <vector>
+#include "Operator/OperatorRegistry.hpp"
+#include "Operator/OperatorManager.hpp"
 #include <iostream>
+#include <vector>
 
 using namespace MetaPB::Operator;
 
-class Operator : public  OperatorBase {
+class Operator : public OperatorBase {
 public:
-  Operator(){
-    a.resize(1<<30,1);
-    b.resize(1<<30,1);
-  } 
+  Operator() {}
 
-  std::vector<int> a;
-  std::vector<int> b;
-  virtual const std::string get_name(){
+  inline virtual const std::string get_name() const noexcept override {
     return OpName;
   }
 
-  virtual void execCPU(const size_t batchSize_MiB)override{
-    std::cout <<"exec with batch:"<< batchSize_MiB <<std::endl;
-    int item = batchSize_MiB * (1<<20) / sizeof(int);
+  inline virtual void
+  execCPU(const size_t batchSize_MiB, void** memPoolBffrPtrs) const noexcept override {
+    int* a = (int*)memPoolBffrPtrs[0];
+    int* b = (int*)memPoolBffrPtrs[1];
+    int item = batchSize_MiB * (1<<20)/sizeof(int);
     for(int i = 0; i < item; i++){
       a[i] += b[i];
     }
   }
-  virtual void execDPU(const size_t batchSize_MiB)override{
+  inline virtual void
+  execDPU(const size_t batchSize_MiB) const noexcept override {
+    std::cout << "exec DPU with batch" << batchSize_MiB << std::endl;
     return;
+  }
+
+  virtual inline constexpr bool checkIfIsTrainable() const noexcept override {
+    return true;
+  }
+  virtual inline constexpr bool checkIfIsCPUOnly() const noexcept override {
+    return true;
   }
 
 private:
   inline static const std::string OpName = "abb";
 };
 
-int main(){
-  Operator a;
-  a.trainModel(256);
-  std::cout << "deduced perf is : "<<a.deducePerf(0,200).timeCost_Second<<std::endl;
-
+int main() {
+  OperatorCONV_1D a;
+  int* src1 = (int*) malloc((1<<20) * 512);
+  int* src2 = (int*) malloc((1<<20) * 512);
+  int* input[2] = {src1, src2};
+  if (a.checkIfIsTrainable()) {
+    a.trainModel(256, (void**)input);
+    std::cout << "a is " << (a.checkIfIsTrained() ? "trained" : "untrain")
+              << std::endl;
+    std::cout << "deduced perf is : " << a.deducePerf(0, 200).timeCost_Second
+              << std::endl;
+  }
 
   return 0;
 }

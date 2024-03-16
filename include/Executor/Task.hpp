@@ -9,11 +9,11 @@
 
 #ifndef TASK_HPP
 #define TASK_HPP
+#include "Operator/OperatorRegistry.hpp"
+#include <boost/graph/adjacency_list.hpp>
 #include <map>
 #include <string>
 #include <vector>
-#include <boost/graph/adjacency_list.hpp>
-#include "Operator/OperatorRegistry.hpp"
 
 using std::list;
 using std::map;
@@ -24,7 +24,7 @@ using std::vector;
 namespace MetaPB {
 using Operator::OperatorTag;
 using Operator::OperatorType;
-//using Executor::perfStats;
+// using Executor::perfStats;
 namespace Executor {
 
 typedef struct TaskProperties {

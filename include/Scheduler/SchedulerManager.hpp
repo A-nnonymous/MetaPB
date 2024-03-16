@@ -1,22 +1,22 @@
 #ifndef SCHED_MNGR
 #define SCHED_MNGR
 // TODO: finish these
-#include "Scheduler/SchedulerBase.hpp"
 #include "Scheduler/CPUOnlyScheduler.hpp"
 #include "Scheduler/GreedyScheduler.hpp"
+#include "Scheduler/SchedulerBase.hpp"
 // TODO: adapt these
 #include "Scheduler/HEFTScheduler.hpp"
 #include "Scheduler/MetaScheduler.hpp"
 
-namespace MetaPB{
-namespace Scheduler{
+namespace MetaPB {
+namespace Scheduler {
 
 typedef std::vector<double> Schedule;
 
-enum class SchedulerTag{
+enum class SchedulerTag {
   CPUOnly, // Only Schedule tasks to CPU
   Greedy,  // Schedule in a short-sight way, depending only on task suitability
-  HEFT,   // Schedule by Heterogenous Earliest Finished Time algorithm
+  HEFT,    // Schedule by Heterogenous Earliest Finished Time algorithm
   MetaPB_PerfFirst, // Proposed algorithm, in a Performance-first weight
   MetaPB_Hybrid,    // Proposed algorithm, in a pseudo-balanced weight
   MetaPB_EffiFirst  // Proposed algorithm, in a Efficiency-first weight
@@ -38,7 +38,7 @@ struct SchedulerManager{
 }; // struct SchedulerManager
 */
 
-} // namespace MetaPB
 } // namespace Scheduler
+} // namespace MetaPB
 
 #endif

@@ -5,14 +5,13 @@ using std::ifstream;
 using std::max;
 using std::vector, std::string;
 
-
-namespace MetaPB{
-namespace Scheduler{
+namespace MetaPB {
+namespace Scheduler {
 
 void HEFTScheduler::computationAvgCalculate() {
   for (int i = 0; i < taskCount; i++) {
     tasks[i].computeCostAvg = 0;
-    for (int cuIdx  = 0; cuIdx < heteroCUCount; cuIdx++) {
+    for (int cuIdx = 0; cuIdx < heteroCUCount; cuIdx++) {
       tasks[i].computeCostAvg += tasks[i].cuTraits[cuIdx].computeCost;
     }
     tasks[i].computeCostAvg /= heteroCUCount;
@@ -47,8 +46,10 @@ vector<int> HEFTScheduler::sortRank() {
   return index;
 }
 
-int HEFTScheduler::taskInsertion(int search_end, vector<vector<bool>> &processor_state,
-                  int task_index, int processor_index, int search_start) {
+int HEFTScheduler::taskInsertion(int search_end,
+                                 vector<vector<bool>> &processor_state,
+                                 int task_index, int processor_index,
+                                 int search_start) {
   int t = tasks[task_index].cuTraits[processor_index].computeCost;
   int counter = 0;
   for (int i = search_start; i < search_end; i++) {
@@ -96,8 +97,8 @@ void HEFTScheduler::schedule(vector<int> rank_index_sorted) {
       eft_values[j] = est_values[j] + tasks[ii].cuTraits[j].computeCost;
     }
 
-    int best_processor = min_element(eft_values.begin(), eft_values.end()) -
-                         eft_values.begin();
+    int best_processor =
+        min_element(eft_values.begin(), eft_values.end()) - eft_values.begin();
     tasks[ii].heft_actualStartTime = est_values[best_processor];
     tasks[ii].heft_actualFinishTime = eft_values[best_processor];
     tasks[ii].scheduledProcessor = best_processor;
@@ -109,7 +110,6 @@ void HEFTScheduler::schedule(vector<int> rank_index_sorted) {
     }
   }
 }
-
 
 void HEFTScheduler::initializeData(const string &filename) {
   ifstream num(filename);

@@ -98,22 +98,18 @@ int main() {
     cout << k << endl;
   }
   */
-  enum class te{
-    one,
-    two,
-    three
-  };
+  enum class te { one, two, three };
 
   std::vector<te> a(3, te::one);
-  for(const auto & ai : a){
-    if(ai == te::one){
-      cout << 1 <<endl;
+  for (const auto &ai : a) {
+    if (ai == te::one) {
+      cout << 1 << endl;
     }
-    if(ai == te::two){
-      cout << 2 <<endl;
+    if (ai == te::two) {
+      cout << 2 << endl;
     }
-    if(ai == te::three){
-      cout << 3 <<endl;
+    if (ai == te::three) {
+      cout << 3 << endl;
     }
   }
   return 0;

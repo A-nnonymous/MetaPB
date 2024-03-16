@@ -7,7 +7,6 @@
 #include <numeric>
 #include <vector>
 
-
 #include "Scheduler/SchedulerBase.hpp"
 #define MAX_TIME 10000
 
@@ -16,15 +15,16 @@ using std::ifstream;
 using std::max;
 using std::vector, std::string;
 
-namespace MetaPB{
-namespace Scheduler{
+namespace MetaPB {
+namespace Scheduler {
 
 class HEFTScheduler {
 private:
   vector<Task> tasks;
   int taskCount;     // number of tasks
   int heteroCUCount; // number of heterogenous computing units.
-  vector<vector<int>> interTaskCommMatix; // inter-task communication cost matrix.
+  vector<vector<int>>
+      interTaskCommMatix; // inter-task communication cost matrix.
 
   void computationAvgCalculate();
   float rankCalculate(int node);
@@ -34,7 +34,6 @@ private:
   void schedule(vector<int> rank_index_sorted);
 
 public:
-
   HEFTScheduler() : taskCount(0), heteroCUCount(0) {}
   void initializeData(const string &filename);
   void mainSchedule();

@@ -1,12 +1,11 @@
 #ifndef TASK_GRAPH
 #define TASK_GRAPH
-#include "Operator/OperatorRegistry.hpp"
-#include "Executor/graphTraits.hpp"
 #include "Executor/Task.hpp"
+#include "Executor/graphTraits.hpp"
 #include "utils/Stats.hpp"
 
-namespace MetaPB{
-namespace Executor{
+namespace MetaPB {
+namespace Executor {
 
 using OperatorTag = Operator::OperatorTag;
 using Schedule = Scheduler::Schedule;
@@ -14,11 +13,10 @@ using perfStats = utils::perfStats;
 
 typedef std::map<OperatorTag, size_t> regressionTask;
 
-
 class TaskGraph {
 public:
   TaskGraph() = delete;
-  TaskGraph(Graph gIn, const std::string n): g(gIn), name(n){}
+  TaskGraph(Graph gIn, const std::string n) : g(gIn), name(n) {}
 
   void traverse();
   // -----------MetaPB related functions -----------
@@ -26,11 +24,11 @@ public:
   regressionTask genRegressionTask(size_t);
   // Using regression model to predict the performance metrics
   // of a specific schedule, batchSize_MiB.
-  perfStats deduceMetrics(const Schedule&, size_t);
+  perfStats deduceMetrics(const Schedule &, size_t);
   // Execute the whole graph with specific schedule
-  perfStats exec(const Schedule&, size_t);
-  
-  void printGraph(const std::string & filePath)const noexcept;
+  perfStats exec(const Schedule &, size_t);
+
+  void printGraph(const std::string &filePath) const noexcept;
   // -----------MetaPB related functions -----------
 private:
   Graph g;

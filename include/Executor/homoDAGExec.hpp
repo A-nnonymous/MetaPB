@@ -13,10 +13,8 @@
 
 using Task = std::function<void()>;
 using Graph = boost::adjacency_list<boost::vecS, boost::vecS,
-                                    boost::bidirectionalS, 
-                                    boost::no_property,
-                                    boost::property<boost::edge_weight_t, 
-                                    int>>;
+                                    boost::bidirectionalS, boost::no_property,
+                                    boost::property<boost::edge_weight_t, int>>;
 using Vertex = boost::graph_traits<Graph>::vertex_descriptor;
 
 class ThreadPool {

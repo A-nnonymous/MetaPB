@@ -31,7 +31,7 @@ void execute_task(Vertex v, Graph &g,
   std::cout << "Task " << v << " completed after sleeping for " << sleep_time
             << " seconds.\n";
 }
-int main(){
+int main() {
   Graph g;
 
   auto v0 = add_vertex(g);
@@ -55,7 +55,7 @@ int main(){
   // Topological sort before task enqueing
   std::vector<Graph::vertex_descriptor> order;
   boost::topological_sort(g, std::back_inserter(order));
-  ThreadPool pool(2); 
+  ThreadPool pool(2);
 
   for (auto v = order.rbegin(); v != order.rend(); ++v) {
     pool.enqueue([v, &g, &in_degree_counter] {

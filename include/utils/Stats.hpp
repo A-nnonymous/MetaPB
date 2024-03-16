@@ -55,11 +55,11 @@ typedef struct Stats {
   }
 } Stats;
 
-typedef struct{
+typedef struct {
   double energyCost_Joule = 0.0f;
   double timeCost_Second = 0.0f;
   size_t dataMovement_GiB = 0;
-}perfStats;
+} perfStats;
 
 } // namespace utils
 } // namespace MetaPB

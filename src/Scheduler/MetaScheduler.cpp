@@ -49,8 +49,8 @@ Schedule MetaScheduler::scheduleGen(string perfModelPathIn) noexcept {
   task.modelize(modelCachePath);
   // Invariant: To this point, the whole set of operators in given task is fully
   // modelized.
-  auto schedVec =
-      task.randSchedule(batchSize_MiB); // Random init a schedule to be optimized.
+  auto schedVec = task.randSchedule(
+      batchSize_MiB); // Random init a schedule to be optimized.
   schedOptimize(schedVec);
 #endif // DRY_RUN
   return schedVec;

@@ -7,8 +7,7 @@ ThreadPool::ThreadPool(size_t num_threads) {
         Task task;
         { // -------------- Critical Zone --------------------
           std::unique_lock<std::mutex> lock(mutex);
-          cv.wait(lock,
-              [this] { return stop_requested || !tasks.empty(); });
+          cv.wait(lock, [this] { return stop_requested || !tasks.empty(); });
 
           if (stop_requested && tasks.empty()) { // quit execution
             break;
@@ -44,4 +43,3 @@ void ThreadPool::enqueue(Task task) { // enquque task
   }
   cv.notify_one();
 }
-

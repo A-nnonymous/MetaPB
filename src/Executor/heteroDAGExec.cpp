@@ -7,7 +7,7 @@
 #include <vector>
 
 // task itself is a wrapper of function
-// when task executed 
+// when task executed
 using Task = std::function<void()>;
 
 class CPUSlave {
@@ -43,10 +43,7 @@ public:
     cv.notify_one();
   }
 
-  void enqueue_unsafe(Task task){
-    tasks.push(std::move(task));
-  }
-
+  void enqueue_unsafe(Task task) { tasks.push(std::move(task)); }
 
 private:
   std::thread master;
@@ -71,9 +68,9 @@ private:
         tasks.pop();
       }
       const auto [cpuTask, dpuTask] = split(task);
-        cpuSlave.execute(cpuTask);
-        dpuSlave.execute(dpuTask);
-      }
+      cpuSlave.execute(cpuTask);
+      dpuSlave.execute(dpuTask);
     }
-  };
+  }
+};
 #endif

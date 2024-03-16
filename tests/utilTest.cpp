@@ -22,10 +22,12 @@ int main() {
     ct.tock("naive");
   }
   auto report = ct.getReport("naive");
-  auto timeMean = std::get<Stats>(report.reportItems[metricTag::TimeConsume_ns].data).mean;
-  auto energyMeans = std::get<vector<Stats>>(report.reportItems[metricTag::CPUPowerConsumption_Joule].data);
+  auto timeMean =
+      std::get<Stats>(report.reportItems[metricTag::TimeConsume_ns].data).mean;
+  auto energyMeans = std::get<vector<Stats>>(
+      report.reportItems[metricTag::CPUPowerConsumption_Joule].data);
   auto energyMeanSum = energyMeans[0].mean + energyMeans[1].mean;
-  std::cout <<"time mean for 1GiB VA: "<< timeMean / 1e9 <<std::endl;
-  std::cout <<"energy mean for 1GiB VA: "<< energyMeanSum <<std::endl;
+  std::cout << "time mean for 1GiB VA: " << timeMean / 1e9 << std::endl;
+  std::cout << "energy mean for 1GiB VA: " << energyMeanSum << std::endl;
   ct.dumpAllReport("./");
 }

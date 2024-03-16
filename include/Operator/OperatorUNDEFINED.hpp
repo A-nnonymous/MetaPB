@@ -1,14 +1,14 @@
-#ifndef OP_LOGIC_START_HPP
-#define OP_LOGIC_START_HPP
+#ifndef OP_UNDEFINED_HPP
+#define OP_UNDEFINED_HPP
 
 #include "Operator/OperatorBase.hpp"
 
 namespace MetaPB {
 namespace Operator {
 
-class OperatorLOGIC_START : public OperatorBase {
+class OperatorUNDEFINED : public OperatorBase {
 public:
-  OperatorLOGIC_START() {}
+  OperatorUNDEFINED() {}
 
   inline virtual const std::string get_name() const noexcept override {
     return OpName;
@@ -27,7 +27,7 @@ public:
   }
 
 private:
-  inline static const std::string OpName = "LOGIC_START";
+  inline static const std::string OpName = "UNDEFINED";
 };
 } // namespace Operator
 } // namespace MetaPB

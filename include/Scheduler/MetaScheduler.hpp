@@ -14,7 +14,7 @@ using std::string;
 using std::vector;
 
 namespace MetaPB {
-namespace Scheduler{
+namespace Scheduler {
 
 class MetaScheduler {
 public:
