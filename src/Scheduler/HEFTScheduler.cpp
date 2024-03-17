@@ -111,37 +111,44 @@ void HEFTScheduler::schedule(vector<int> rank_index_sorted) {
   }
 }
 
-void HEFTScheduler::initializeData(const string &filename) {
-  ifstream num(filename);
-  int temp;
+Schedule HEFTScheduler::schedule(const TaskGraph& gIn, OperatorManager& om) noexcept{
+  Schedule result; 
+  // initialize compute & communication matrix.
+  size_t taskCount= boost::num_vertices(gIn.g);
 
-  num >> taskCount;
-  num >> heteroCUCount;
   tasks.resize(taskCount);
   for (int i = 0; i < taskCount; i++) {
     tasks[i].cuTraits.resize(heteroCUCount);
   }
 
-  for (int i = 0; i < heteroCUCount; i++) {
-    for (int j = 0; j < taskCount; j++) {
-      num >> temp;
-      tasks[j].cuTraits[i].computeCost = temp;
-    }
+  
+  std::cout <<"Task time consume matrix:  CPU-DPU "<<std::endl;
+  for (int j = 0; j < taskCount; j++) {
+    std::cout << "In "<< gIn.g[j].inputSize_MiB << "MiB, Operator: "<< MetaPB::Operator::tag2Name.at(gIn.g[j].op)<<std::endl;
+    tasks[j].cuTraits[0].computeCost = 10000 * om.deducePerfCPU(gIn.g[j].op, gIn.g[j].inputSize_MiB).timeCost_Second;
+    tasks[j].cuTraits[1].computeCost = 10000 * om.deducePerfDPU(gIn.g[j].op, gIn.g[j].inputSize_MiB).timeCost_Second;
+    std::cout << "CPU: "<< tasks[j].cuTraits[0].computeCost << " DPU: "<< tasks[j].cuTraits[0].computeCost<<std::endl;
   }
 
   interTaskCommMatix.resize(taskCount, vector<int>(taskCount));
+  auto edgePropertyMap = get(boost::edge_bundle, gIn.g);
+  std::cout <<"Interconnection matrix:   "<<std::endl;
   for (int i = 0; i < taskCount; i++) {
     for (int j = 0; j < taskCount; j++) {
-      num >> temp;
-      interTaskCommMatix[i][j] = temp;
-      if (interTaskCommMatix[i][j] > 0) {
+      std::pair<TransferEdge, bool> edgeCheck = boost::edge(i, j, gIn.g);
+      if (edgeCheck.second) { // exist edge
+        const auto& edgeProps = edgePropertyMap[edgeCheck.first];
+        interTaskCommMatix[i][j] = 1000 * om.deducePerfCPU(OperatorTag::MAP,
+                                                    edgeProps.dataSize_Ratio).timeCost_Second;
         tasks[j].predTasks.push_back(i);
+      } else {
+        interTaskCommMatix[i][j] = 0;
       }
+      std::cout << interTaskCommMatix[i][j] <<", "; 
     }
+    std::cout <<std::endl;
   }
-}
-
-void HEFTScheduler::mainSchedule() {
+  // main algorithm
   computationAvgCalculate();
 
   for (int i = 0; i < taskCount; i++) {
@@ -158,6 +165,15 @@ void HEFTScheduler::mainSchedule() {
          << tasks[i].heft_actualStartTime << " to "
          << tasks[i].heft_actualFinishTime << endl;
   }
+  std::sort(tasks.begin(), tasks.end(), [](const heftTask& a, const heftTask& b) {
+    return a.heft_actualStartTime < b.heft_actualStartTime;
+  });
+
+  for (const auto& task : tasks) {
+    result.order.push_back(task.scheduledProcessor); 
+    result.offloadRatio.push_back(static_cast<float>(task.scheduledProcessor)); 
+  }
+  return result;
 }
 
 } // namespace Scheduler

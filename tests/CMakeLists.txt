@@ -18,3 +18,9 @@ target_link_libraries(execTest executorLib)
 
 add_executable(tgTest ./taskGraphTest.cpp)
 target_link_libraries(tgTest executorLib)
+
+add_executable(hcpTest ./HCPTest.cpp)
+target_link_libraries(hcpTest executorLib)
+
+add_executable(schedTest ./schedulerTest.cpp)
+target_link_libraries(schedTest executorLib schedulerLib utilsLib)

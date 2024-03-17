@@ -28,7 +28,7 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
 
   TransferProperties geaTransfer = {1.0f, true};
 
-  std::map<std::pair<int, int>, Task> rc2Task;
+  std::map<std::pair<int, int>, TaskNode> rc2Task;
   for (int row = 0; row < N - 1; ++row) { // N - 1 stage
     for (int col = row; col < N; ++col) {
       rc2Task[{row, col}] = boost::add_vertex(g);
@@ -126,9 +126,12 @@ int main() {
     TaskGraph fft = genFFT(i, 1);
     fft.printGraph("./");
   }
-  for (int i = 5; i < 8; i++) {
-    TaskGraph gea = genGEA(i, 1);
-    gea.printGraph("./");
+  TaskGraph gea = genGEA(5, 1);
+  gea.printGraph("./");
+  auto v = gea.topoSort();
+  std::cout << "TOPO of gea:"<<std::endl;
+  for(const auto& vi : v){
+    std::cout<<"node "<< gea.g[vi].name<<std::endl;
   }
   return 0;
 }

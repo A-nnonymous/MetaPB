@@ -7,14 +7,14 @@
 #include "Executor/Task.hpp"
 #include "Executor/Transfer.hpp"
 #include "Operator/OperatorRegistry.hpp"
-#include "Scheduler/SchedulerManager.hpp"
+#include "utils/typedef.hpp"
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graphviz.hpp>
 
 namespace MetaPB {
 using OperatorTag = Operator::OperatorTag;
 using OperatorType = Operator::OperatorType;
-using Schedule = Scheduler::Schedule;
+using Schedule = utils::Schedule;
 
 namespace Executor {
 
@@ -22,7 +22,9 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS,
                               TaskProperties, TransferProperties>
     Graph;
 
-typedef typename boost::graph_traits<Graph>::vertex_descriptor Task;
+typedef typename boost::graph_traits<Graph>::vertex_descriptor TaskNode;
+typedef typename boost::graph_traits<Graph>::edge_descriptor TransferEdge;
+typedef boost::property_map<Graph, boost::edge_bundle_t>::type TransferPropertyMap;
 
 // --------------------------- Graphviz related ----------------------------
 /// @brief Control the output graph nodes' attributes

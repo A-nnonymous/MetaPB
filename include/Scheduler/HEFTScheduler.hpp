@@ -6,23 +6,42 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
-
 #include "Scheduler/SchedulerBase.hpp"
+
 #define MAX_TIME 10000
 
-using std::cout, std::endl;
-using std::ifstream;
-using std::max;
-using std::vector, std::string;
 
 namespace MetaPB {
 namespace Scheduler {
 
-class HEFTScheduler {
+struct ComputeUnitTraits {
+  int computeCost;
+  int earliestStartTime;
+  int earliestFinishTime;
+};
+
+struct heftTask {
+  float computeCostAvg; // avg. computation cost across all cuTraits
+  float uprank;
+  int scheduledProcessor;    // the processor on which the Task was finally
+                             // scheduled
+  int heft_actualStartTime;  // start time in final schedule
+  int heft_actualFinishTime; // finish time in final schedule
+  vector<ComputeUnitTraits> cuTraits;
+  vector<int> predTasks; // indexes of all the predTasks of a particular node
+};
+
+  using std::cout, std::endl;
+  using std::ifstream;
+  using std::max;
+  using std::vector, std::string;
+  using Executor::TransferEdge;
+  using Executor::TransferPropertyMap;
+class HEFTScheduler : SchedulerBase{
 private:
-  vector<Task> tasks;
-  int taskCount;     // number of tasks
-  int heteroCUCount; // number of heterogenous computing units.
+  vector<heftTask> tasks;
+  const int taskCount ;     // number of tasks
+  const int heteroCUCount = 2; // number of heterogenous computing units.
   vector<vector<int>>
       interTaskCommMatix; // inter-task communication cost matrix.
 
@@ -34,9 +53,8 @@ private:
   void schedule(vector<int> rank_index_sorted);
 
 public:
-  HEFTScheduler() : taskCount(0), heteroCUCount(0) {}
-  void initializeData(const string &filename);
-  void mainSchedule();
+  virtual Schedule schedule(const TaskGraph& gIn, OperatorManager& om)noexcept override;
+  HEFTScheduler(size_t taskCount=0) : SchedulerBase(),taskCount(taskCount) {}
 };
 
 /*

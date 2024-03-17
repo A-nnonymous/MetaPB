@@ -16,7 +16,7 @@ std::string OperatorBase::getDPUBinaryPath() const noexcept {
 
 perfStats OperatorBase::execCPUwithProbe(const size_t batchSize_MiB,
                                          void **memPoolBffrPtrs) noexcept {
-  const float dataSize_MiB = (float)batchSize_MiB * sizeof(int) / (1 << 20);
+  const float dataSize_MiB = (float)batchSize_MiB;
   string taskName = "CPU_" + get_name() + std::to_string(dataSize_MiB) + "MiB";
   cpuExecJob2Name[dataSize_MiB] = taskName;
   for (int rep = 0; rep < PREPROBE_WARMUP_REP + PROBE_REP; rep++) {
@@ -38,7 +38,7 @@ perfStats OperatorBase::execCPUwithProbe(const size_t batchSize_MiB,
 }
 
 perfStats OperatorBase::execDPUwithProbe(const size_t batchSize_MiB) noexcept {
-  const float dataSize_MiB = (float)batchSize_MiB * sizeof(int) / (1 << 20);
+  const float dataSize_MiB = (float)batchSize_MiB;
   string taskName = "DPU_" + get_name() + std::to_string(dataSize_MiB) + "MiB";
   dpuExecJob2Name[dataSize_MiB] = taskName;
 
@@ -61,13 +61,14 @@ perfStats OperatorBase::execDPUwithProbe(const size_t batchSize_MiB) noexcept {
 void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
                               void **memPoolBffrPtrs,
                               const int iterMax) noexcept {
-  if (!loadModelCacheIfExist(batchUpperBound_MiB)) {
+  if (!loadModelCacheIfExist(batchUpperBound_MiB) && checkIfIsTrainable()) {
     std::cout << "loading failed, start training" << std::endl;
     size_t upperBound_MiB = batchUpperBound_MiB;
     size_t step_MiB =
         (upperBound_MiB - BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
     for (size_t batchSize_MiB = BATCH_LOWERBOUND_MB;
-         batchSize_MiB <= batchUpperBound_MiB; batchSize_MiB += step_MiB) {
+         batchSize_MiB < batchUpperBound_MiB; batchSize_MiB += step_MiB) {
+      std::cout << "Training with data batchsize: "<< batchSize_MiB << " MiB\n";
       execCPUwithProbe(batchSize_MiB, memPoolBffrPtrs);
       if (!checkIfIsCPUOnly())
         execDPUwithProbe(batchSize_MiB);
@@ -120,6 +121,57 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
     this->isTrained = true;
   }
   cacheModel(batchUpperBound_MiB);
+  ct.dumpAllReport("./");
+}
+
+void OperatorBase::verifyRegression(const std::string &filePath, const size_t batchUpperBound_MiB){
+  utils::CSVWriter<float> w;
+  std::vector<std::string> header = {"dataSize_MiB", "Time_Second"};
+  std::string reportsPostfix =  "Scatters_" + get_name() + ".csv";
+  std::string regressionPostfix =  "Regression_" + get_name() + ".csv";
+  std::vector<std::vector<float>> cpuPerfReal;
+  std::vector<std::vector<float>> cpuEnergyReal;
+  std::vector<std::vector<float>> cpuPerfRegress;
+  std::vector<std::vector<float>> cpuEnergyRegress;
+  std::vector<std::vector<float>> dpuPerfReal;
+  std::vector<std::vector<float>> dpuPerfRegress;
+  for (const auto &[dataSize_MiB, taskName] : cpuExecJob2Name) {
+    const auto report = ct.getReport(taskName);
+    float cpuTimeCost =
+        std::get<Stats>(report.reportItems[metricTag::TimeConsume_ns].data)
+            .mean /
+        1e9;
+    auto energyMeans = std::get<vector<Stats>>(
+        report.reportItems[metricTag::CPUPowerConsumption_Joule].data);
+    float cpuEnergyCost = energyMeans[0].mean + energyMeans[1].mean;
+    cpuPerfReal.emplace_back(std::vector<float>{dataSize_MiB, cpuTimeCost});
+    cpuEnergyReal.emplace_back(std::vector<float>{dataSize_MiB, cpuEnergyCost});
+    cpuPerfRegress.emplace_back(std::vector<float>{dataSize_MiB, deducePerfCPU(dataSize_MiB).timeCost_Second});
+    cpuEnergyRegress.emplace_back(std::vector<float>{dataSize_MiB, deducePerfCPU(dataSize_MiB).energyCost_Joule});
+  }
+
+  for (const auto &[dataSize_MiB, taskName] : dpuExecJob2Name) {
+    const auto report = ct.getReport(taskName);
+    auto dpuTimeCost =
+        std::get<Stats>(report.reportItems[metricTag::TimeConsume_ns].data)
+            .mean /
+        1e9;
+    dpuPerfReal.emplace_back(std::vector<float>{dataSize_MiB, dpuTimeCost});
+    dpuPerfRegress.emplace_back(std::vector<float>{dataSize_MiB, deducePerfDPU(dataSize_MiB).timeCost_Second});
+  }
+  for(float batch = (float)BATCH_LOWERBOUND_MB; 
+        batch < batchUpperBound_MiB; batch += (BATCH_LOWERBOUND_MB - batchUpperBound_MiB)/100.0){
+    cpuPerfRegress.emplace_back(std::vector<float>{batch, deducePerfCPU(batch).timeCost_Second});
+    cpuEnergyRegress.emplace_back(std::vector<float>{batch, deducePerfCPU(batch).energyCost_Joule});
+    dpuPerfRegress.emplace_back(std::vector<float>{batch, deducePerfDPU(batch).timeCost_Second});
+  }
+  w.writeCSV(cpuPerfReal, header, filePath + "CPU_perf_" + reportsPostfix);
+  w.writeCSV(cpuEnergyReal, header, filePath + "CPU_energy_" + reportsPostfix);
+  w.writeCSV(cpuPerfRegress, header, filePath + "CPU_perf_" + regressionPostfix);
+  w.writeCSV(cpuEnergyRegress, header, filePath + "CPU_energy_" + regressionPostfix);
+
+  w.writeCSV(dpuPerfReal, header, filePath + "DPU_perf_" + reportsPostfix);
+  w.writeCSV(dpuPerfRegress, header, filePath + "DPU_perf_" + regressionPostfix);
 }
 
 void OperatorBase::dumpMetrics(const size_t batchSize_MiB,
@@ -140,33 +192,70 @@ void OperatorBase::dumpMetrics(const size_t batchSize_MiB,
 
 perfStats OperatorBase::deducePerf(const double offloadRatio,
                                    const size_t batchSize_MiB) noexcept {
-  float cpuBatchSize_MiB[1] = {(1 - offloadRatio) * batchSize_MiB};
-  float cpuTimePredict[1];
-  float cpuEnergyPredict[1];
+  if(!isTrained || !checkIfIsTrainable()){
+    return {};
+  }else{
+    float cpuBatchSize_MiB[1] = {(1 - offloadRatio) * batchSize_MiB};
+    float cpuTimePredict[1];
+    float cpuEnergyPredict[1];
 
-  CPUPerfLearner.predict(cpuBatchSize_MiB, 1, cpuTimePredict);
-  CPUEnergyLearner.predict(cpuBatchSize_MiB, 1, cpuEnergyPredict);
+    CPUPerfLearner.predict(cpuBatchSize_MiB, 1, cpuTimePredict);
+    CPUEnergyLearner.predict(cpuBatchSize_MiB, 1, cpuEnergyPredict);
 
-  perfStats result;
+    perfStats result;
 
-  if (checkIfIsCPUOnly()) {
+    if (checkIfIsCPUOnly()) {
+      result.energyCost_Joule = cpuEnergyPredict[0];
+      result.timeCost_Second = cpuTimePredict[0];
+    } else {
+      float dpuBatchSize_MiB[1] = {(offloadRatio)*batchSize_MiB};
+      float dpuTimePredict[1];
+      DPUPerfLearner.predict(dpuBatchSize_MiB, 1, dpuTimePredict);
+      result.timeCost_Second = std::max(cpuTimePredict[0], dpuTimePredict[0]);
+      result.energyCost_Joule =
+          cpuEnergyPredict[0] + dpuTimePredict[0] * DPU_ENERGY_CONSTANT_PER_SEC;
+    }
+
+    return result;
+  }
+}
+perfStats OperatorBase::deducePerfCPU(const size_t batchSize_MiB) noexcept {
+  if(!isTrained || !checkIfIsTrainable()){
+    std::cout << "Operator "<< get_name()<<" is deducing without training"<<std::endl;
+    return {};
+  }else{
+    float cpuBatchSize_MiB[1] = {(float)batchSize_MiB};
+    float cpuTimePredict[1];
+    float cpuEnergyPredict[1];
+
+    CPUPerfLearner.predict(cpuBatchSize_MiB, 1, cpuTimePredict);
+    CPUEnergyLearner.predict(cpuBatchSize_MiB, 1, cpuEnergyPredict);
+
+    perfStats result;
     result.energyCost_Joule = cpuEnergyPredict[0];
     result.timeCost_Second = cpuTimePredict[0];
-  } else {
-    float dpuBatchSize_MiB[1] = {(offloadRatio)*batchSize_MiB};
-    float dpuTimePredict[1];
-    DPUPerfLearner.predict(cpuBatchSize_MiB, 1, dpuTimePredict);
-    result.timeCost_Second = std::max(cpuTimePredict[0], dpuTimePredict[0]);
-    result.energyCost_Joule =
-        cpuEnergyPredict[0] + dpuTimePredict[0] * DPU_ENERGY_CONSTANT_PER_SEC;
+    return result;
   }
+}
 
-  return result;
+perfStats OperatorBase::deducePerfDPU(const size_t batchSize_MiB) noexcept {
+  if(!isTrained || !checkIfIsTrainable()){
+    std::cout << "Operator "<< get_name()<<" is deducing without training"<<std::endl;
+    return {};
+  }else{
+    perfStats result;
+    float dpuBatchSize_MiB[1] = {(float)batchSize_MiB};
+    float dpuTimePredict[1];
+    DPUPerfLearner.predict(dpuBatchSize_MiB, 1, dpuTimePredict);
+    result.timeCost_Second = dpuTimePredict[0];
+    result.energyCost_Joule = dpuTimePredict[0] * DPU_ENERGY_CONSTANT_PER_SEC;
+    return result;
+  }
 }
 
 void OperatorBase::cacheModel(const size_t batchSize_MiB) const noexcept {
   std::string modelTagPostfix =
-      get_name() + "_" + std::to_string(batchSize_MiB) + "_MiB.bin";
+      this->get_name() + "_" + std::to_string(batchSize_MiB) + "_MiB.bin";
   std::string modelPathPrefix = REGRESSION_MODEL_CACHE_PATH;
   std::filesystem::path modelPath{modelPathPrefix};
   if (!std::filesystem::exists(modelPath))

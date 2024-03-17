@@ -43,6 +43,7 @@ private:
 */
 
 int main() {
+  /*
   std::unique_ptr<GLOBAL_DPU_MGR> g_DPU_MGR = std::make_unique<GLOBAL_DPU_MGR>();
   OperatorREDUCE  a(g_DPU_MGR);
   int* src1 = (int*) malloc((1<<20) * 512);
@@ -56,6 +57,10 @@ int main() {
     std::cout << "deduced perf is : " << a.deducePerf(0, 200).timeCost_Second
               << std::endl;
   }
+  */
+  OperatorManager om;
+  om.trainAll(256,100);
+  om.verifyAll("./", 256);
 
   return 0;
 }

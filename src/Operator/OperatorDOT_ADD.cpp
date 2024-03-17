@@ -3,7 +3,7 @@ namespace MetaPB {
 namespace Operator {
 
 inline void OperatorDOT_ADD::execCPU(const size_t batchSize_MiB,
-                            void **memPoolBffrPtrs) const noexcept {
+                                     void **memPoolBffrPtrs) const noexcept {
   size_t inputSize = batchSize_MiB * 1024 * 1024 / sizeof(float);
   float *src1 = static_cast<float *>(memPoolBffrPtrs[0]);
   float *src2 = static_cast<float *>(memPoolBffrPtrs[1]);
@@ -17,7 +17,6 @@ inline void OperatorDOT_ADD::execCPU(const size_t batchSize_MiB,
 inline void
 OperatorDOT_ADD::execDPU(const size_t batchSize_MiB) const noexcept {
   auto DPU_BINARY = getDPUBinaryPath();
-  std::cout << "Loading DPU program " << DPU_BINARY << std::endl;
   DPU_ASSERT(dpu_load(allDPUs, DPU_BINARY.c_str(), NULL));
   uint32_t nr_of_dpus;
   DPU_ASSERT(dpu_get_nr_dpus(allDPUs, &nr_of_dpus));

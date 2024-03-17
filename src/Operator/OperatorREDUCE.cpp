@@ -4,12 +4,11 @@ namespace MetaPB {
 namespace Operator {
 
 inline void OperatorREDUCE::execCPU(const size_t batchSize_MiB,
-                            void **memPoolBffrPtrs) const noexcept {
+                                    void **memPoolBffrPtrs) const noexcept {
   // load a dummy dpu program that do nothing.
   auto DPU_BINARY = getDPUBinaryPath();
-  std::cout << "Loading DPU program " << DPU_BINARY << std::endl;
   DPU_ASSERT(dpu_load(allDPUs, DPU_BINARY.c_str(), NULL));
-  
+
   uint32_t nr_of_dpus;
   DPU_ASSERT(dpu_get_nr_dpus(allDPUs, &nr_of_dpus));
   size_t bytes = batchSize_MiB * (1 << 20);
@@ -24,8 +23,7 @@ inline void OperatorREDUCE::execCPU(const size_t batchSize_MiB,
   int i = 0;
   dpu_set_t dpu;
   DPU_FOREACH(allDPUs, dpu, i) {
-    DPU_ASSERT(
-        dpu_prepare_xfer(dpu, memPoolBffrPtrs[0] + i * input_size_dpu));
+    DPU_ASSERT(dpu_prepare_xfer(dpu, memPoolBffrPtrs[0] + i * input_size_dpu));
   }
   DPU_ASSERT(dpu_push_xfer(allDPUs, DPU_XFER_FROM_DPU,
                            DPU_MRAM_HEAP_POINTER_NAME, input_size_dpu_8bytes,

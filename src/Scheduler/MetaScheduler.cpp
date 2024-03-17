@@ -1,7 +1,5 @@
 #include "Scheduler/MetaScheduler.hpp"
 
-// TODO: 1. Finish the modelLoader logic
-//      2. Instantiate the shcedOptimize logic
 
 /* -------------------- Main Logic of MetaPB --------------------------
 Pseudo Code:
@@ -32,8 +30,9 @@ Pseudo Code:
     Result = sync_wait(scheduler.schedule(sender))
   endif
 */
+/*
 namespace MetaPB {
-namespace MetaScheduler {
+namespace Scheduler{
 
 MetaScheduler::MetaScheduler(const double Arg_Alpha, const double Arg_Beta)
     : Arg_Alpha(Arg_Alpha), Arg_Beta(Arg_Beta) {}
@@ -107,3 +106,4 @@ void MetaScheduler::schedOptimize(const ScheduleVec &schedVec) noexcept {
 
 } // namespace MetaScheduler
 } // namespace MetaPB
+*/

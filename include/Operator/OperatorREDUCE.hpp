@@ -17,7 +17,7 @@ public:
     return 1;
   }
   virtual void execCPU(const size_t batchSize_MiB,
-                              void **memPoolBffrPtrs) const noexcept override;
+                       void **memPoolBffrPtrs) const noexcept override;
   inline virtual void
   execDPU(const size_t batchSize_MiB) const noexcept override {}
 

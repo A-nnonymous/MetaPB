@@ -19,7 +19,7 @@ struct GLOBAL_DPU_MGR {
     if (!isAllocated) {
       std::cout << "###########################################" << std::endl;
       std::cout << "Global UPMEM-PIM DPU manager initialzing..." << std::endl;
-      DPU_ASSERT(dpu_alloc(1265, NULL, &dpu_set));
+      DPU_ASSERT(dpu_alloc(DPU_ALLOCATE_ALL, NULL, &dpu_set));
       std::uint32_t result;
       DPU_ASSERT(dpu_get_nr_dpus(dpu_set, &result));
       std::cout << "Allocated " << result << " DPU(s)\n";

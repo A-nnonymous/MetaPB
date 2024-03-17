@@ -2,7 +2,7 @@
 #define OP_BASE_HPP
 
 #define PREPROBE_WARMUP_REP 3
-#define PROBE_REP 10
+#define PROBE_REP 5
 #define BATCH_LOWERBOUND_MB 128
 #define PERF_SAMPLE_POINT 12
 #define REGRESSION_TRAINING_ITER 200
@@ -17,6 +17,7 @@
 #include "utils/Learner.hpp"
 #include "utils/MetricsGather.hpp"
 #include "utils/Stats.hpp"
+#include "utils/CSVWriter.hpp"
 #include <cmath>
 #include <filesystem>
 #include <iostream>
@@ -47,6 +48,8 @@ public:
                    const std::string dumpPath) noexcept;
   perfStats deducePerf(const double offloadRatio,
                        const size_t batchSize_MiB) noexcept;
+  perfStats deducePerfCPU(const size_t batchSize_MiB) noexcept;
+  perfStats deducePerfDPU(const size_t batchSize_MiB) noexcept;
 
   std::string getDPUBinaryPath() const noexcept;
   inline virtual const std::string get_name() const noexcept = 0;
@@ -56,7 +59,7 @@ public:
   virtual inline const bool checkIfIsTrained() const noexcept {
     return isTrained;
   }
-
+void verifyRegression(const std::string &filePath, const size_t batchUpperBound_MiB);
 private:
   perfStats execCPUwithProbe(const size_t batchSize_MiB,
                              void **memPoolBffrPtrs) noexcept;

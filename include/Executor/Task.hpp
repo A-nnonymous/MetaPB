@@ -24,13 +24,12 @@ using std::vector;
 namespace MetaPB {
 using Operator::OperatorTag;
 using Operator::OperatorType;
-// using Executor::perfStats;
 namespace Executor {
 
 typedef struct TaskProperties {
   OperatorTag op = OperatorTag::UNDEFINED;
   OperatorType opType = OperatorType::Undefined;
-  size_t inputSize = 0;
+  size_t inputSize_MiB = 0;
   std::string color = "blue";
   std::string name = "N/A";
   // ----- Schedule adjust zone ------

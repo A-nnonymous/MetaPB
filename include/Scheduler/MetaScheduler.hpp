@@ -2,6 +2,7 @@
 // 1. Optimizer with:
 //      a. A factory class that generates Optimizer instance
 //      (Optimizer::generate(optType))
+/*
 #ifndef METASCHED_HPP
 #define METASCHED_HPP
 
@@ -57,3 +58,5 @@ private:
 } // namespace Scheduler
 } // namespace MetaPB
 #endif
+
+*/

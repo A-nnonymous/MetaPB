@@ -1,5 +1,6 @@
 #ifndef SCHED_MNGR
 #define SCHED_MNGR
+#include "Executor/TaskGraph.hpp"
 // TODO: finish these
 #include "Scheduler/CPUOnlyScheduler.hpp"
 #include "Scheduler/GreedyScheduler.hpp"
@@ -8,10 +9,11 @@
 #include "Scheduler/HEFTScheduler.hpp"
 #include "Scheduler/MetaScheduler.hpp"
 
+#include <vector>
+using std::vector;
+
 namespace MetaPB {
 namespace Scheduler {
-
-typedef std::vector<double> Schedule;
 
 enum class SchedulerTag {
   CPUOnly, // Only Schedule tasks to CPU
