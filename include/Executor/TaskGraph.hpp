@@ -12,7 +12,6 @@ using Schedule = Scheduler::Schedule;
 using perfStats = utils::perfStats;
 using regressionTask = utils::regressionTask;
 
-
 class TaskGraph {
 public:
   TaskGraph() = delete;

@@ -1,13 +1,13 @@
 #ifndef QUANT_HPP
 #define QUANT_HPP
 
+#include "Operator/OperatorRegistry.hpp"
 #include <cmath>
 #include <cstdint>
 #include <map>
 #include <string>
 #include <variant>
 #include <vector>
-#include "Operator/OperatorRegistry.hpp"
 
 namespace MetaPB {
 namespace utils {

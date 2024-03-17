@@ -33,7 +33,7 @@ struct GLOBAL_DPU_MGR {
   }
   ~GLOBAL_DPU_MGR() noexcept {
     if (!isFreed) {
-      //DPU_ASSERT(dpu_free(dpu_set));
+      // DPU_ASSERT(dpu_free(dpu_set));
       std::cout << "All UPMEM-PIM DPU are safely deallocated." << std::endl;
       std::cout << "###########################################" << std::endl;
       isFreed = true;

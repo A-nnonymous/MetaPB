@@ -44,10 +44,11 @@ private:
 
 int main() {
   std::unique_ptr<GLOBAL_DPU_MGR> g_DPU_MGR = std::make_unique<GLOBAL_DPU_MGR>();
-  OperatorCONV_1D a(g_DPU_MGR);
+  OperatorREDUCE  a(g_DPU_MGR);
   int* src1 = (int*) malloc((1<<20) * 512);
   int* src2 = (int*) malloc((1<<20) * 512);
-  int* input[2] = {src1, src2};
+  int* src3 = (int*) malloc((1<<20) * 512);
+  int* input[3] = {src1, src2, src3};
   if (a.checkIfIsTrainable()) {
     a.trainModel(256, (void**)input);
     std::cout << "a is " << (a.checkIfIsTrained() ? "trained" : "untrain")

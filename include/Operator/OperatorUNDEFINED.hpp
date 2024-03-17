@@ -8,8 +8,8 @@ namespace Operator {
 
 class OperatorUNDEFINED : public OperatorBase {
 public:
-
-  OperatorUNDEFINED(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR) : OperatorBase(g_DPU_MGR) {}
+  OperatorUNDEFINED(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR)
+      : OperatorBase(g_DPU_MGR) {}
   inline virtual const std::string get_name() const noexcept override {
     return OpName;
   }
