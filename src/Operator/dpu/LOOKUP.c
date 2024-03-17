@@ -1,7 +1,3 @@
-/*
- * Vector addition with multiple tasklets
- *
- */
 #include <alloc.h>
 #include <barrier.h>
 #include <defs.h>
@@ -10,31 +6,21 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "../support/common.h"
-#define NR_TASKLETS 12
-__host dpu_arguments_t DPU_INPUT_ARGUMENTS;
+#include "Operator/dpu/LOOKUP.h"
 
-// vector_addition: Computes the vector addition of a cached block
-static void vector_addition(T *bufferB, T *bufferA, unsigned int l_size) {
+__host lookup_args DPU_INPUT_ARGUMENTS;
+
+static void LOOKUP(T *bufferA, T target, unsigned int l_size) {
   for (unsigned int i = 0; i < l_size; i++) {
-    bufferB[i] += bufferA[i];
+    if (bufferA[i] == target)
+      bufferA[i] = i; // mimic lookup, avoid handle transport
   }
 }
 
 // Barrier
 BARRIER_INIT(my_barrier, NR_TASKLETS);
 
-extern int main_kernel1(void);
-
-int (*kernels[nr_kernels])(void) = {main_kernel1};
-
 int main(void) {
-  // Kernel
-  return kernels[DPU_INPUT_ARGUMENTS.kernel]();
-}
-
-// main_kernel1
-int main_kernel1() {
   unsigned int tasklet_id = me();
 #if PRINT
   printf("tasklet_id = %u\n", tasklet_id);
@@ -46,19 +32,17 @@ int main_kernel1() {
   barrier_wait(&my_barrier);
 
   uint32_t input_size_dpu_bytes =
-      DPU_INPUT_ARGUMENTS.size; // Input size per DPU in bytes
+      DPU_INPUT_ARGUMENTS.co.inputSize; // Input size per DPU in bytes
   uint32_t input_size_dpu_bytes_transfer =
-      DPU_INPUT_ARGUMENTS.transfer_size; // Transfer input size per DPU in bytes
+      DPU_INPUT_ARGUMENTS.co.inputSize; // Transfer input size per DPU in bytes
+  float target = DPU_INPUT_ARGUMENTS.target;
 
   // Address of the current processing block in MRAM
   uint32_t base_tasklet = tasklet_id << BLOCK_SIZE_LOG2;
   uint32_t mram_base_addr_A = (uint32_t)DPU_MRAM_HEAP_POINTER;
-  uint32_t mram_base_addr_B =
-      (uint32_t)(DPU_MRAM_HEAP_POINTER + input_size_dpu_bytes_transfer);
 
   // Initialize a local cache to store the MRAM block
   T *cache_A = (T *)mem_alloc(BLOCK_SIZE);
-  T *cache_B = (T *)mem_alloc(BLOCK_SIZE);
 
   for (unsigned int byte_index = base_tasklet;
        byte_index < input_size_dpu_bytes;
@@ -72,14 +56,11 @@ int main_kernel1() {
     // Load cache with current MRAM block
     mram_read((__mram_ptr void const *)(mram_base_addr_A + byte_index), cache_A,
               l_size_bytes);
-    mram_read((__mram_ptr void const *)(mram_base_addr_B + byte_index), cache_B,
-              l_size_bytes);
 
-    // Computer vector addition
-    vector_addition(cache_B, cache_A, l_size_bytes >> DIV);
+    LOOKUP(cache_A, target, l_size_bytes >> DIV);
 
     // Write cache to current MRAM block
-    mram_write(cache_B, (__mram_ptr void *)(mram_base_addr_B + byte_index),
+    mram_write(cache_A, (__mram_ptr void *)(mram_base_addr_A + byte_index),
                l_size_bytes);
   }
 

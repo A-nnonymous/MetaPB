@@ -17,6 +17,7 @@
 #include "utils/Learner.hpp"
 #include "utils/MetricsGather.hpp"
 #include "utils/Stats.hpp"
+#include <memory>
 #include <cmath>
 #include <filesystem>
 #include <iostream>
@@ -33,7 +34,7 @@ using ChronoTrigger = utils::ChronoTrigger;
 /// @brief This class is the uniformed interface of all operator.
 class OperatorBase {
 public:
-  OperatorBase():allDPUs(g_DPU_MGR.dpu_set){}
+  OperatorBase(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR) : allDPUs(g_DPU_MGR->dpu_set) {}
   inline virtual void execCPU(const size_t batchSize_MiB,
                               void **memPoolBffrPtrs) const noexcept = 0;
   inline virtual void execDPU(const size_t batchSize_MiB) const noexcept = 0;
@@ -46,8 +47,9 @@ public:
   perfStats deducePerf(const double offloadRatio,
                        const size_t batchSize_MiB) noexcept;
 
-  inline const string getDPUBinaryPath() const noexcept;
+  std::string getDPUBinaryPath() const noexcept;
   inline virtual const std::string get_name() const noexcept = 0;
+  inline virtual constexpr int getInputTensorNum() const noexcept = 0;
   virtual inline constexpr bool checkIfIsTrainable() const noexcept = 0;
   virtual inline constexpr bool checkIfIsCPUOnly() const noexcept = 0;
   virtual inline const bool checkIfIsTrained() const noexcept {
@@ -71,8 +73,9 @@ private:
   Learner DPUPerfLearner;
   inline static bool isTrained = false;
   ChronoTrigger ct;
+
 protected:
-  dpu_set_t& allDPUs;
+  dpu_set_t &allDPUs;
 };
 
 } // namespace Operator

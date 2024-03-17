@@ -8,12 +8,14 @@ namespace Operator {
 
 class OperatorLOGIC_END : public OperatorBase {
 public:
-  OperatorLOGIC_END() {}
 
+  OperatorLOGIC_END(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR) : OperatorBase(g_DPU_MGR) {}
   inline virtual const std::string get_name() const noexcept override {
     return OpName;
   }
-
+  inline virtual constexpr int getInputTensorNum() const noexcept override {
+    return 0;
+  }
   inline virtual void execCPU(const size_t batchSize_MiB,
                               void **memPoolBffrPtrs) const noexcept override {}
   inline virtual void

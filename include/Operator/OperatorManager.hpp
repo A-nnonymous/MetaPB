@@ -1,16 +1,30 @@
 #ifndef OP_MNGR
 #define OP_MNGR
-#include "Executor/TaskGraph.hpp"
+#include "Operator/OperatorBase.hpp"
+#include "Operator/OperatorCONV_1D.hpp"
+#include "Operator/OperatorDOT_ADD.hpp"
+#include "Operator/OperatorDOT_PROD.hpp"
+#include "Operator/OperatorEUDIST.hpp"
+#include "Operator/OperatorLOGIC_END.hpp"
+#include "Operator/OperatorLOGIC_START.hpp"
+#include "Operator/OperatorLOOKUP.hpp"
+#include "Operator/OperatorMAC.hpp"
+#include "Operator/OperatorMAP.hpp"
+#include "Operator/OperatorREDUCE.hpp"
+#include "Operator/OperatorUNDEFINED.hpp"
 #include "Operator/OperatorRegistry.hpp"
+#include "Executor/TaskGraph.hpp"
+#include "utils/Stats.hpp"
 #include <map>
 #include <memory>
 #include <string>
 
 namespace MetaPB {
-using MetaPB::Executor::perfStats;
-using MetaPB::Executor::regressionTask;
+using perfStats = utils::perfStats;
+using regressionTask = utils::regressionTask;
 namespace Operator {
 
+  /*
 struct OperatorManager {
 
   void instantiateOpSet(const regressionTask &task) {
@@ -20,7 +34,7 @@ struct OperatorManager {
     }
   }
 
-  void trainModel(regressionTask task, void** memoryPoolBffrPtrs) {
+  void trainModel(regressionTask task, void **memoryPoolBffrPtrs) {
     for (auto &[opTag, batchUpBound] : task) {
       opMap[opTag]->trainModel(batchUpBound, memoryPoolBffrPtrs);
     }
@@ -61,6 +75,7 @@ private:
 
   std::map<OperatorTag, std::unique_ptr<OperatorBase>> opMap;
 };
+*/
 } // namespace Operator
 } // namespace MetaPB
 #endif

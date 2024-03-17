@@ -20,7 +20,7 @@ typedef vector<dpuData> rankData;
 
 // TODO: 1. kernel VA.VM inputsize_perf/energy(64core)
 // 2.
-inline const string getDPUBinaryPath() {
+inline const std::string getDPUBinaryPath() {
   std::filesystem::path executablePath =
       std::filesystem::read_symlink("/proc/self/exe");
   const string parentPath = executablePath.parent_path().parent_path();

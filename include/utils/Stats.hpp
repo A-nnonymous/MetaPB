@@ -7,12 +7,14 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include "Operator/OperatorRegistry.hpp"
 
 namespace MetaPB {
 namespace utils {
 
 using std::string;
 using std::vector;
+using OperatorTag = Operator::OperatorTag;
 
 typedef struct Stats {
   size_t rep = 0;
@@ -60,6 +62,8 @@ typedef struct {
   double timeCost_Second = 0.0f;
   size_t dataMovement_GiB = 0;
 } perfStats;
+
+typedef std::map<OperatorTag, size_t> regressionTask;
 
 } // namespace utils
 } // namespace MetaPB

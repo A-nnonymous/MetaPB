@@ -2,9 +2,11 @@
 #include "Operator/OperatorManager.hpp"
 #include <iostream>
 #include <vector>
+#include <memory>
 
 using namespace MetaPB::Operator;
 
+/*
 class Operator : public OperatorBase {
 public:
   Operator() {}
@@ -38,9 +40,11 @@ public:
 private:
   inline static const std::string OpName = "abb";
 };
+*/
 
 int main() {
-  OperatorCONV_1D a;
+  std::unique_ptr<GLOBAL_DPU_MGR> g_DPU_MGR = std::make_unique<GLOBAL_DPU_MGR>();
+  OperatorCONV_1D a(g_DPU_MGR);
   int* src1 = (int*) malloc((1<<20) * 512);
   int* src2 = (int*) malloc((1<<20) * 512);
   int* input[2] = {src1, src2};

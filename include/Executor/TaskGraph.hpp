@@ -10,8 +10,8 @@ namespace Executor {
 using OperatorTag = Operator::OperatorTag;
 using Schedule = Scheduler::Schedule;
 using perfStats = utils::perfStats;
+using regressionTask = utils::regressionTask;
 
-typedef std::map<OperatorTag, size_t> regressionTask;
 
 class TaskGraph {
 public:

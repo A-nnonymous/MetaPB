@@ -1,7 +1,3 @@
-/*
- * Vector addition with multiple tasklets
- *
- */
 #include <alloc.h>
 #include <barrier.h>
 #include <defs.h>
@@ -10,31 +6,32 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "../support/common.h"
-#define NR_TASKLETS 12
-__host dpu_arguments_t DPU_INPUT_ARGUMENTS;
+#include "Operator/dpu/CONV_1D.h"
 
-// vector_addition: Computes the vector addition of a cached block
-static void vector_addition(T *bufferB, T *bufferA, unsigned int l_size) {
-  for (unsigned int i = 0; i < l_size; i++) {
-    bufferB[i] *= bufferA[i];
+__host conv_args DPU_INPUT_ARGUMENTS;
+
+static void CONV_1D(T *bufferB, T *bufferA, T *kernel, int kernelSize,
+                    int stride, unsigned int l_size) {
+  size_t padding = (kernelSize - 1) / 2;
+  // Perform convolution
+  for (size_t i = 0; i < l_size; ++i) {
+    float sum = 0.0f;
+    for (size_t j = 0; j < kernelSize; ++j) {
+      // Compute the input index, considering padding
+      int inputIndex = i - padding + j;
+      // Check if the input index is within bounds
+      if (inputIndex >= 0 && inputIndex < l_size) {
+        sum += bufferA[inputIndex] * kernel[j];
+      }
+    }
+    bufferB[i] = sum;
   }
 }
 
 // Barrier
 BARRIER_INIT(my_barrier, NR_TASKLETS);
 
-extern int main_kernel1(void);
-
-int (*kernels[nr_kernels])(void) = {main_kernel1};
-
 int main(void) {
-  // Kernel
-  return kernels[DPU_INPUT_ARGUMENTS.kernel]();
-}
-
-// main_kernel1
-int main_kernel1() {
   unsigned int tasklet_id = me();
 #if PRINT
   printf("tasklet_id = %u\n", tasklet_id);
@@ -46,9 +43,15 @@ int main_kernel1() {
   barrier_wait(&my_barrier);
 
   uint32_t input_size_dpu_bytes =
-      DPU_INPUT_ARGUMENTS.size; // Input size per DPU in bytes
+      DPU_INPUT_ARGUMENTS.co.inputSize; // Input size per DPU in bytes
   uint32_t input_size_dpu_bytes_transfer =
-      DPU_INPUT_ARGUMENTS.transfer_size; // Transfer input size per DPU in bytes
+      DPU_INPUT_ARGUMENTS.co.inputSize; // Transfer input size per DPU in bytes
+  float kernel[8];
+  int kernelSize = DPU_INPUT_ARGUMENTS.kernelSize;
+  for (int i = 0; i < 8; i++) {
+    kernel[i] = DPU_INPUT_ARGUMENTS.gaussianKernel[i];
+  }
+  int stride = DPU_INPUT_ARGUMENTS.stride;
 
   // Address of the current processing block in MRAM
   uint32_t base_tasklet = tasklet_id << BLOCK_SIZE_LOG2;
@@ -75,8 +78,7 @@ int main_kernel1() {
     mram_read((__mram_ptr void const *)(mram_base_addr_B + byte_index), cache_B,
               l_size_bytes);
 
-    // Computer vector addition
-    vector_addition(cache_B, cache_A, l_size_bytes >> DIV);
+    CONV_1D(cache_B, cache_A, kernel, kernelSize, stride, l_size_bytes >> DIV);
 
     // Write cache to current MRAM block
     mram_write(cache_B, (__mram_ptr void *)(mram_base_addr_B + byte_index),

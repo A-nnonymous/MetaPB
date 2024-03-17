@@ -1,0 +1,7 @@
+set(EXECUTABLE_OUTPUT_PATH ${DPU_EXECUTABLE_OUTPUT_PATH})
+add_executable(CONV_1D ./CONV_1D.c)
+add_executable(DOT_ADD ./DOT_ADD.c)
+add_executable(DOT_PROD ./DOT_PROD.c)
+add_executable(EUDIST ./EUDIST.c)
+add_executable(LOOKUP ./LOOKUP.c)
+add_executable(MAC ./MAC.c)

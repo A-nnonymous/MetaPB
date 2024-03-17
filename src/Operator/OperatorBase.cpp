@@ -6,6 +6,14 @@ namespace Operator {
 using utils::metricTag;
 using utils::Stats;
 
+std::string OperatorBase::getDPUBinaryPath() const noexcept {
+  std::filesystem::path executablePath =
+      std::filesystem::read_symlink("/proc/self/exe");
+  const string parentPath = executablePath.parent_path().parent_path();
+  const string dpuPath = parentPath + "/dpu_bin/" + get_name();
+  return dpuPath;
+}
+
 perfStats OperatorBase::execCPUwithProbe(const size_t batchSize_MiB,
                                          void **memPoolBffrPtrs) noexcept {
   const float dataSize_MiB = (float)batchSize_MiB * sizeof(int) / (1 << 20);
@@ -210,12 +218,5 @@ bool OperatorBase::loadModelCacheIfExist(const size_t batchSize_MiB) noexcept {
   return true;
 }
 
-inline const string OperatorBase::getDPUBinaryPath() const noexcept{
-  std::filesystem::path executablePath =
-      std::filesystem::read_symlink("/proc/self/exe");
-  const string parentPath = executablePath.parent_path().parent_path();
-  const string dpuPath = parentPath + "/dpu_bin/" + get_name();
-  return dpuPath;
-}
 } // namespace Operator
 } // namespace MetaPB

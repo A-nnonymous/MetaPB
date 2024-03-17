@@ -1,3 +1,5 @@
+add_subdirectory(dpu)
+
 file(GLOB SOURCES "./*.cpp")
 
 add_library(operatorLib ${SOURCES})

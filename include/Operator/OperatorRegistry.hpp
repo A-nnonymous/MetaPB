@@ -1,17 +1,5 @@
 #ifndef OP_REGISTRY
 #define OP_REGISTRY
-#include "Operator/OperatorBase.hpp"
-#include "Operator/OperatorCONV_1D.hpp"
-#include "Operator/OperatorDOT_ADD.hpp"
-#include "Operator/OperatorDOT_PROD.hpp"
-#include "Operator/OperatorEUDIST.hpp"
-#include "Operator/OperatorLOGIC_END.hpp"
-#include "Operator/OperatorLOGIC_START.hpp"
-#include "Operator/OperatorLOOKUP.hpp"
-#include "Operator/OperatorMAC.hpp"
-#include "Operator/OperatorMAP.hpp"
-#include "Operator/OperatorREDUCE.hpp"
-#include "Operator/OperatorUNDEFINED.hpp"
 #include <set>
 
 using std::set;
