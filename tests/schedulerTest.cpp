@@ -10,6 +10,7 @@
 #include "Executor/HeteroComputePool.hpp"
 #include "utils/typedef.hpp"
 
+using execType = MetaPB::Executor::execType;
 using TaskGraph = MetaPB::Executor::TaskGraph;
 using TaskNode = MetaPB::Executor::TaskNode ;
 using CPUOnlyScheduler = MetaPB::Scheduler::CPUOnlyScheduler;
@@ -144,17 +145,20 @@ int main(){
   om.trainModel(rt);
   MetaPB::Scheduler::HEFTScheduler he(g,om);
   Schedule scheduleResult = he.schedule();
-  /*
   for(auto &o : scheduleResult.offloadRatio){
     o = 0.42;
   }
-  */
   HeteroComputePool hep(scheduleResult.order.size(), om);
   for(int i =0; i < 5; i++){
-    hep.parseWorkload(g, scheduleResult);
-    hep.start();
+    auto mimic = hep.execWorkload(g, scheduleResult, execType::MIMIC);
+    auto real = hep.execWorkload(g, scheduleResult, execType::DO);
+    std::cout << "Real perf: "<< real.timeCost_Second<< " second, "
+                  "Mimic perf: "<< mimic.timeCost_Second<<" second"std::endl;
+    std::cout << "Real energy: "<< real.energyCost_Joule<< " joule, "
+                  "Mimic energy: "<< mimic.energyCost_Joule<<"joule."<<std::endl;
+    std::cout << "Real xfer: "<< real.dataMovement_MiB<< " MiB."<<std::endl;
   }
-  hep.outputTimingsToCSV("./gea_gantt.csv");
+  //hep.outputTimingsToCSV("./gea_gantt.csv");
 
   // 打印调度结果
   std::cout << "Execution Order: ";

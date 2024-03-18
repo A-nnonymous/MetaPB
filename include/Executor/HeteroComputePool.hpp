@@ -1,5 +1,8 @@
 #include "Operator/OperatorManager.hpp"
 #include "Executor/TaskGraph.hpp"
+#include "utils/Stats.hpp"
+#include "utils/MetricsGather.hpp"
+#include "utils/ChronoTrigger.hpp"
 #include <chrono>
 #include <condition_variable>
 #include <fstream>
@@ -18,6 +21,10 @@
 namespace MetaPB {
 namespace Executor {
   using Operator::OperatorManager;
+  using utils::perfStats;
+  using utils::ChronoTrigger;
+  using utils::metricTag;
+  using utils::Stats;
 // TaskTiming struct to store start and end times for tasks
 typedef struct TaskTiming {
   std::chrono::high_resolution_clock::time_point start;
@@ -31,6 +38,10 @@ typedef struct {
   std::string type; // To distinguish between CPU, DPU, MAP, and REDUCE tasks
 } Task;
 
+enum class execType{
+  MIMIC,
+  DO
+};
 class HeteroComputePool {
 
 public:
@@ -47,10 +58,8 @@ public:
           memPoolPtr[2] = malloc(2 * size_t(1<<30)); // 2GiB
         }
 
-  void parseWorkload(TaskGraph &g, const Schedule &sched) noexcept;
+  perfStats execWorkload(const TaskGraph &g, const Schedule &sched, execType) noexcept;
 
-  // Starts the worker threads to process the tasks.
-  void start() noexcept;
 
   // Print timings for each type of task
   void printTimings() const noexcept;
@@ -83,7 +92,7 @@ private:
   OperatorManager& om;
   std::mutex mutex_;
   std::condition_variable cv_;
-  std::mutex mapReduceMutex_;
+  std::mutex dpuMutex_;
   std::vector<std::vector<int>> dependencies_;
 
   std::vector<bool> cpuCompleted_, dpuCompleted_, mapCompleted_,
@@ -93,7 +102,13 @@ private:
 
   std::unordered_map<int, std::vector<TaskTiming>> cpuTimings_, dpuTimings_,
       mapTimings_, reduceTimings_;
-
+  // ---------- MIMIC mode statistics -------------
+  double earliestCPUIdleTime_ms = 0.0f;
+  double earliestDPUIdleTime_ms = 0.0f;
+  double earliestMAPIdleTime_ms = 0.0f;
+  double earliestREDUCEIdleTime_ms = 0.0f;
+  double totalEnergyCost_joule = 0.0f;
+  double totalTransfer_mb = 0.0f;
   std::random_device rd_;
   std::mt19937 gen_;
   std::uniform_int_distribution<> dis_;

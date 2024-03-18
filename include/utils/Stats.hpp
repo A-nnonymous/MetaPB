@@ -60,7 +60,7 @@ typedef struct Stats {
 typedef struct {
   double energyCost_Joule = 0.0f;
   double timeCost_Second = 0.0f;
-  size_t dataMovement_GiB = 0;
+  double dataMovement_MiB = 0;
 } perfStats;
 
 typedef std::map<OperatorTag, size_t> regressionTask;

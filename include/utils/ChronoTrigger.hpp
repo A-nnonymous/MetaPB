@@ -3,6 +3,7 @@
 
 #include "CSVWriter.hpp"
 #include "MetricsGather.hpp"
+#include "Stats.hpp"
 #include <chrono>
 #include <cmath>
 #include <map>

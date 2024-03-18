@@ -22,6 +22,8 @@ inline void OperatorMAP::execCPU(const size_t batchSize_MiB,
 
   int i = 0;
   dpu_set_t dpu;
+  std::cout <<"Start Map with total size of: "<< batchSize_MiB<<"MiB\n";
+  std::cout <<"\t with  size of each DPU: "<< input_size_dpu_8bytes<<"B\n";
   DPU_FOREACH(allDPUs, dpu, i) {
     DPU_ASSERT(dpu_prepare_xfer(dpu, memPoolBffrPtrs[0] + i * input_size_dpu));
   }

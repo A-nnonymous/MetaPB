@@ -3,3 +3,6 @@ build/
 paperOutput/
 paperArchive/
 .ipynb_checkpoints/
+*.csv
+*.svg
+*.png
