@@ -1,11 +1,11 @@
 #ifndef OP_REGISTRY
 #define OP_REGISTRY
-#include <set>
 #include <map>
+#include <set>
 #include <string>
 
-using std::set;
 using std::map;
+using std::set;
 namespace MetaPB {
 namespace Operator {
 
@@ -24,17 +24,17 @@ enum class OperatorTag {
 };
 
 static const map<OperatorTag, std::string> tag2Name = {
-  { OperatorTag::MAC,           "MAC"},
-  { OperatorTag::EUDIST,        "EUDIST"},
-  { OperatorTag::CONV_1D,       "CONV_1D"},
-  { OperatorTag::LOOKUP,        "LOOKUP"},
-  { OperatorTag::DOT_PROD,      "DOT_PROD"},
-  { OperatorTag::DOT_ADD,       "DOT_ADD"},
-  { OperatorTag::LOGIC_START,   "LOGIC_START"},
-  { OperatorTag::LOGIC_END,     "LOGIC_END"},
-  { OperatorTag::MAP,           "MAP"},
-  { OperatorTag::REDUCE,        "REDUCE"},
-  { OperatorTag::UNDEFINED,      "UNDEFINED"},
+    {OperatorTag::MAC, "MAC"},
+    {OperatorTag::EUDIST, "EUDIST"},
+    {OperatorTag::CONV_1D, "CONV_1D"},
+    {OperatorTag::LOOKUP, "LOOKUP"},
+    {OperatorTag::DOT_PROD, "DOT_PROD"},
+    {OperatorTag::DOT_ADD, "DOT_ADD"},
+    {OperatorTag::LOGIC_START, "LOGIC_START"},
+    {OperatorTag::LOGIC_END, "LOGIC_END"},
+    {OperatorTag::MAP, "MAP"},
+    {OperatorTag::REDUCE, "REDUCE"},
+    {OperatorTag::UNDEFINED, "UNDEFINED"},
 };
 
 static const set<OperatorTag> computeBoundOPSet = {

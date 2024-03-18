@@ -3,8 +3,10 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <cstdlib>
 
 using namespace MetaPB::Operator;
+using MetaPB::Operator::OperatorTag;
 
 /*
 class Operator : public OperatorBase {
@@ -59,8 +61,20 @@ int main() {
   }
   */
   OperatorManager om;
-  om.trainAll(256,100);
-  om.verifyAll("./", 256);
-
+  size_t batchSize_MiB = 4096;
+  /*
+  size_t bytes = batchSize_MiB * (1 <<20);
+  void* src1 = (void*) malloc(bytes);
+  void* src2 = (void*) malloc(bytes);
+  void* dst1 = (void*) malloc(bytes);
+  void* allBffrPtrs[3] = {src1, src2, dst1};
+  auto va = om.getOperator(OperatorTag::DOT_ADD);
+  va->trainModel(batchSize_MiB,allBffrPtrs, 300);
+  va->verifyRegression("./", batchSize_MiB);
+  */
+  for(size_t batch = 128; batch <= batchSize_MiB; batch++){
+    om.trainAll(batch, 200);
+    om.verifyAll("/output/batch_" +std::to_string(batch)+"MiB/", batch);
+  }
   return 0;
 }

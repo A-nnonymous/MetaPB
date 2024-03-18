@@ -16,10 +16,11 @@ regressionTask TaskGraph::genRegressionTask() {
   regressionTask rt;
   Graph::vertex_iterator vi, vi_end;
   for (boost::tie(vi, vi_end) = vertices(g); vi != vi_end; ++vi) {
-    if(!rt.contains(g[*vi].op)){
+    if (!rt.contains(g[*vi].op)) {
       rt[g[*vi].op] = g[*vi].inputSize_MiB;
-    }else{
-      if(g[*vi].inputSize_MiB > rt[g[*vi].op]) rt[g[*vi].op] = g[*vi].inputSize_MiB;
+    } else {
+      if (g[*vi].inputSize_MiB > rt[g[*vi].op])
+        rt[g[*vi].op] = g[*vi].inputSize_MiB;
     }
   }
   return rt;
@@ -37,23 +38,24 @@ void TaskGraph::printGraph(const std::string &filePath) const noexcept {
                         xfer_property_writer(g), graph_property_writer());
 }
 
-std::vector<int> TaskGraph::topoSort()const noexcept{
-      // Create a vector to store the topological sort result
-    std::vector<TaskNode> topo_order;
-    // Perform topological sort
-    try {
-        boost::topological_sort(g, std::back_inserter(topo_order));
-    } catch (const std::exception& e) {
-        std::cerr << "An error occurred during topological sort: " << e.what() << std::endl;
-    }
+std::vector<int> TaskGraph::topoSort() const noexcept {
+  // Create a vector to store the topological sort result
+  std::vector<TaskNode> topo_order;
+  // Perform topological sort
+  try {
+    boost::topological_sort(g, std::back_inserter(topo_order));
+  } catch (const std::exception &e) {
+    std::cerr << "An error occurred during topological sort: " << e.what()
+              << std::endl;
+  }
 
-    // Reverse the vector to get the correct order
-    std::reverse(topo_order.begin(), topo_order.end());
+  // Reverse the vector to get the correct order
+  std::reverse(topo_order.begin(), topo_order.end());
 
-    // Convert the topological order to the desired format
-    std::vector<int> order(topo_order.begin(), topo_order.end());
-    return order;
-} 
+  // Convert the topological order to the desired format
+  std::vector<int> order(topo_order.begin(), topo_order.end());
+  return order;
+}
 // -----------MetaPB related functions -----------
 
 } // namespace Executor

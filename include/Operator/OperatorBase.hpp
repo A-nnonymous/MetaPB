@@ -4,7 +4,7 @@
 #define PREPROBE_WARMUP_REP 3
 #define PROBE_REP 5
 #define BATCH_LOWERBOUND_MB 128
-#define PERF_SAMPLE_POINT 12
+#define PERF_SAMPLE_POINT 16
 #define REGRESSION_TRAINING_ITER 200
 #define REGRESSION_MODEL_CACHE_PATH "/tmp/MetaPB/perfModel/"
 #define DPU_ENERGY_CONSTANT_PER_SEC 280.0
@@ -13,11 +13,11 @@
 #define roundup(n, m) ((n / m) * m + m)
 
 #include "DPU_GLOBAL.hpp"
+#include "utils/CSVWriter.hpp"
 #include "utils/ChronoTrigger.hpp"
 #include "utils/Learner.hpp"
 #include "utils/MetricsGather.hpp"
 #include "utils/Stats.hpp"
-#include "utils/CSVWriter.hpp"
 #include <cmath>
 #include <filesystem>
 #include <iostream>
@@ -59,7 +59,9 @@ public:
   virtual inline const bool checkIfIsTrained() const noexcept {
     return isTrained;
   }
-void verifyRegression(const std::string &filePath, const size_t batchUpperBound_MiB);
+  void verifyRegression(const std::string &filePath,
+                        const size_t batchUpperBound_MiB);
+
 private:
   perfStats execCPUwithProbe(const size_t batchSize_MiB,
                              void **memPoolBffrPtrs) noexcept;

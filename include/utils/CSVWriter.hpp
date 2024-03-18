@@ -1,5 +1,6 @@
 #ifndef UTL_CSVWRITER_HPP
 #define UTL_CSVWRITER_HPP
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iterator>

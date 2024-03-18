@@ -63,9 +63,105 @@ void HeteroComputePool::processTasks(
   }
 }
 
-void HeteroComputePool::parseWorkload(const TaskGraph& g,
-                                      const Schedule& sched) noexcept{
+void HeteroComputePool::parseWorkload(TaskGraph &g, const Schedule &sched) noexcept {
+    // 清除以前的依赖关系
+    for (auto &deps : dependencies_) {
+        deps.clear();
+    }
 
+    TaskProperties& tp1 = g.g[1];
+    size_t wholeSize = tp1.inputSize_MiB; // 假设这是批处理大小
+    void* src1 = malloc((1<<20) * wholeSize);
+    void* src2 = malloc((1<<20) * wholeSize);
+    void* dst1 = malloc((1<<20) * wholeSize);
+    void* bfr[3] = {src1, src2, dst1};
+    memPoolPtr = bfr;
+
+    // 遍历调度中的任务
+    for (size_t i = 0; i < sched.order.size(); ++i) {
+        int taskId = sched.order[i];
+        float offloadRatio = sched.offloadRatio[i];
+
+        // 获取当前任务的后续节点的offloadRatio
+        float omax = 0.0f; // 后续节点的最大offloadRatio
+        float omin = 0.0f; // 后续节点的最小offloadRatio
+        std::vector<int> successors; // 用于存储后续节点的ID
+
+        auto outEdges = boost::out_edges(taskId, g.g);
+        for (auto ei = outEdges.first; ei != outEdges.second; ++ei) {
+            TaskNode succ = boost::target(*ei, g.g);
+            float succOffloadRatio = sched.offloadRatio[succ];
+            omax = std::max(omax, succOffloadRatio);
+            omin = std::min(omin, succOffloadRatio);
+            successors.push_back(succ);
+        }
+
+        // 更新依赖项
+        auto inEdges = boost::in_edges(taskId, g.g);
+        for (auto ei = inEdges.first; ei != inEdges.second; ++ei) {
+            TaskNode pred = boost::source(*ei, g.g);
+            dependencies_[taskId].push_back(pred);
+        }
+
+        // 创建任务并分配到队列
+        TaskProperties& tp = g.g[taskId];
+        float batchSize_MiB = tp.inputSize_MiB; // 假设这是批处理大小
+
+        Task cpuTask{
+            taskId,
+            [this, op=tp.op, batchSize=size_t(batchSize_MiB*(1-offloadRatio))]() {
+                om.execCPU(op, batchSize, this->memPoolPtr);
+            },
+            "CPU"
+        };
+
+        Task dpuTask{
+            taskId,
+            [this, op=tp.op, batchSize = size_t(batchSize_MiB * offloadRatio)]() {
+                om.execDPU(op, batchSize);
+            },
+            "DPU"
+        };
+
+        Task mapTask{
+            taskId,
+            []() {}, // 初始化为空执行函数
+            "MAP"
+        };
+
+        Task reduceTask{
+            taskId,
+            []() {}, // 初始化为空执行函数
+            "REDUCE"
+        };
+
+        if (offloadRatio > omax) {
+            size_t reduce_work=0;
+            reduceTask.execute = [this, reduce_work]() {
+                om.execCPU(OperatorTag::REDUCE, reduce_work, this->memPoolPtr);
+            };
+        } else if (offloadRatio > omin && offloadRatio < omax) {
+            size_t reduce_work=0;
+            reduceTask.execute = [this, reduce_work]() {
+                om.execCPU(OperatorTag::REDUCE, reduce_work,this->memPoolPtr);
+            };
+            size_t map_work =0;
+            mapTask.execute = [this, map_work]() {
+                om.execCPU(OperatorTag::MAP, map_work, this->memPoolPtr);
+            };
+        } else {
+            size_t map_work =0;
+            mapTask.execute = [this, map_work]() {
+                om.execCPU(OperatorTag::MAP, map_work, this->memPoolPtr);
+            };
+        }
+
+        // 将任务添加到队列
+        cpuQueue_.push(cpuTask);
+        dpuQueue_.push(dpuTask);
+        mapQueue_.push(mapTask);
+        reduceQueue_.push(reduceTask);
+    }
 }
 
 /*

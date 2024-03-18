@@ -1,4 +1,5 @@
 #include "Operator/OperatorBase.hpp"
+#include <cstdlib>
 
 namespace MetaPB {
 namespace Operator {
@@ -68,7 +69,8 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
         (upperBound_MiB - BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
     for (size_t batchSize_MiB = BATCH_LOWERBOUND_MB;
          batchSize_MiB < batchUpperBound_MiB; batchSize_MiB += step_MiB) {
-      std::cout << "Training with data batchsize: "<< batchSize_MiB << " MiB\n";
+      std::cout << "Training with data batchsize: " << batchSize_MiB
+                << " MiB\n";
       execCPUwithProbe(batchSize_MiB, memPoolBffrPtrs);
       if (!checkIfIsCPUOnly())
         execDPUwithProbe(batchSize_MiB);
@@ -94,8 +96,8 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
     }
     std::cout << "Training CPU quant regression model for operator "
               << get_name() << std::endl;
-    CPUPerfLearner.train(cpuInputSize, cpuTimeCost, 1, iterMax);
-    CPUEnergyLearner.train(cpuInputSize, cpuEnergyCost, 1, iterMax);
+    CPUPerfLearner.train(cpuInputSize, cpuTimeCost, cpuQuantSize, iterMax);
+    CPUEnergyLearner.train(cpuInputSize, cpuEnergyCost, cpuQuantSize, iterMax);
 
     if (!checkIfIsCPUOnly()) {
       const size_t dpuQuantSize = dpuExecJob2Name.size();
@@ -113,7 +115,7 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
       }
       std::cout << "Training DPU quant regression model for operator "
                 << get_name() << std::endl;
-      DPUPerfLearner.train(dpuInputSize, dpuTimeCost, 1, iterMax);
+      DPUPerfLearner.train(dpuInputSize, dpuTimeCost, dpuQuantSize, iterMax);
     }
 
     std::cout << "Regression model of " << get_name() << " is trained after "
@@ -124,11 +126,15 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
   ct.dumpAllReport("./");
 }
 
-void OperatorBase::verifyRegression(const std::string &filePath, const size_t batchUpperBound_MiB){
+void OperatorBase::verifyRegression(const std::string &filePath,
+                                    const size_t batchUpperBound_MiB) {
+
+  std::string command = "mkdir -p " + filePath;
+  system(command.c_str());
   utils::CSVWriter<float> w;
   std::vector<std::string> header = {"dataSize_MiB", "Time_Second"};
-  std::string reportsPostfix =  "Scatters_" + get_name() + ".csv";
-  std::string regressionPostfix =  "Regression_" + get_name() + ".csv";
+  std::string reportsPostfix = "Scatters_" + get_name() + ".csv";
+  std::string regressionPostfix = "Regression_" + get_name() + ".csv";
   std::vector<std::vector<float>> cpuPerfReal;
   std::vector<std::vector<float>> cpuEnergyReal;
   std::vector<std::vector<float>> cpuPerfRegress;
@@ -146,8 +152,10 @@ void OperatorBase::verifyRegression(const std::string &filePath, const size_t ba
     float cpuEnergyCost = energyMeans[0].mean + energyMeans[1].mean;
     cpuPerfReal.emplace_back(std::vector<float>{dataSize_MiB, cpuTimeCost});
     cpuEnergyReal.emplace_back(std::vector<float>{dataSize_MiB, cpuEnergyCost});
-    cpuPerfRegress.emplace_back(std::vector<float>{dataSize_MiB, deducePerfCPU(dataSize_MiB).timeCost_Second});
-    cpuEnergyRegress.emplace_back(std::vector<float>{dataSize_MiB, deducePerfCPU(dataSize_MiB).energyCost_Joule});
+    cpuPerfRegress.emplace_back(std::vector<float>{
+        dataSize_MiB, deducePerfCPU(dataSize_MiB).timeCost_Second});
+    cpuEnergyRegress.emplace_back(std::vector<float>{
+        dataSize_MiB, deducePerfCPU(dataSize_MiB).energyCost_Joule});
   }
 
   for (const auto &[dataSize_MiB, taskName] : dpuExecJob2Name) {
@@ -157,21 +165,28 @@ void OperatorBase::verifyRegression(const std::string &filePath, const size_t ba
             .mean /
         1e9;
     dpuPerfReal.emplace_back(std::vector<float>{dataSize_MiB, dpuTimeCost});
-    dpuPerfRegress.emplace_back(std::vector<float>{dataSize_MiB, deducePerfDPU(dataSize_MiB).timeCost_Second});
+    dpuPerfRegress.emplace_back(std::vector<float>{
+        dataSize_MiB, deducePerfDPU(dataSize_MiB).timeCost_Second});
   }
-  for(float batch = (float)BATCH_LOWERBOUND_MB; 
-        batch < batchUpperBound_MiB; batch += (BATCH_LOWERBOUND_MB - batchUpperBound_MiB)/100.0){
-    cpuPerfRegress.emplace_back(std::vector<float>{batch, deducePerfCPU(batch).timeCost_Second});
-    cpuEnergyRegress.emplace_back(std::vector<float>{batch, deducePerfCPU(batch).energyCost_Joule});
-    dpuPerfRegress.emplace_back(std::vector<float>{batch, deducePerfDPU(batch).timeCost_Second});
+  for (float batch = (float)BATCH_LOWERBOUND_MB; batch < batchUpperBound_MiB;
+       batch += (batchUpperBound_MiB - BATCH_LOWERBOUND_MB) / 100.0) {
+    cpuPerfRegress.emplace_back(
+        std::vector<float>{batch, deducePerfCPU(batch).timeCost_Second});
+    cpuEnergyRegress.emplace_back(
+        std::vector<float>{batch, deducePerfCPU(batch).energyCost_Joule});
+    dpuPerfRegress.emplace_back(
+        std::vector<float>{batch, deducePerfDPU(batch).timeCost_Second});
   }
   w.writeCSV(cpuPerfReal, header, filePath + "CPU_perf_" + reportsPostfix);
   w.writeCSV(cpuEnergyReal, header, filePath + "CPU_energy_" + reportsPostfix);
-  w.writeCSV(cpuPerfRegress, header, filePath + "CPU_perf_" + regressionPostfix);
-  w.writeCSV(cpuEnergyRegress, header, filePath + "CPU_energy_" + regressionPostfix);
+  w.writeCSV(cpuPerfRegress, header,
+             filePath + "CPU_perf_" + regressionPostfix);
+  w.writeCSV(cpuEnergyRegress, header,
+             filePath + "CPU_energy_" + regressionPostfix);
 
   w.writeCSV(dpuPerfReal, header, filePath + "DPU_perf_" + reportsPostfix);
-  w.writeCSV(dpuPerfRegress, header, filePath + "DPU_perf_" + regressionPostfix);
+  w.writeCSV(dpuPerfRegress, header,
+             filePath + "DPU_perf_" + regressionPostfix);
 }
 
 void OperatorBase::dumpMetrics(const size_t batchSize_MiB,
@@ -192,9 +207,9 @@ void OperatorBase::dumpMetrics(const size_t batchSize_MiB,
 
 perfStats OperatorBase::deducePerf(const double offloadRatio,
                                    const size_t batchSize_MiB) noexcept {
-  if(!isTrained || !checkIfIsTrainable()){
+  if (!isTrained || !checkIfIsTrainable()) {
     return {};
-  }else{
+  } else {
     float cpuBatchSize_MiB[1] = {(1 - offloadRatio) * batchSize_MiB};
     float cpuTimePredict[1];
     float cpuEnergyPredict[1];
@@ -220,10 +235,11 @@ perfStats OperatorBase::deducePerf(const double offloadRatio,
   }
 }
 perfStats OperatorBase::deducePerfCPU(const size_t batchSize_MiB) noexcept {
-  if(!isTrained || !checkIfIsTrainable()){
-    std::cout << "Operator "<< get_name()<<" is deducing without training"<<std::endl;
+  if (!isTrained || !checkIfIsTrainable()) {
+    std::cout << "Operator " << get_name() << " is deducing without training"
+              << std::endl;
     return {};
-  }else{
+  } else {
     float cpuBatchSize_MiB[1] = {(float)batchSize_MiB};
     float cpuTimePredict[1];
     float cpuEnergyPredict[1];
@@ -239,10 +255,11 @@ perfStats OperatorBase::deducePerfCPU(const size_t batchSize_MiB) noexcept {
 }
 
 perfStats OperatorBase::deducePerfDPU(const size_t batchSize_MiB) noexcept {
-  if(!isTrained || !checkIfIsTrainable()){
-    std::cout << "Operator "<< get_name()<<" is deducing without training"<<std::endl;
+  if (!isTrained || !checkIfIsTrainable()) {
+    std::cout << "Operator " << get_name() << " is deducing without training"
+              << std::endl;
     return {};
-  }else{
+  } else {
     perfStats result;
     float dpuBatchSize_MiB[1] = {(float)batchSize_MiB};
     float dpuTimePredict[1];

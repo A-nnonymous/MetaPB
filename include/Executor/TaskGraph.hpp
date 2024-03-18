@@ -2,9 +2,9 @@
 #define TASK_GRAPH
 #include "Executor/Task.hpp"
 #include "Executor/graphTraits.hpp"
-#include "utils/typedef.hpp"
-#include "utils/Stats.hpp"
 #include "boost/graph/topological_sort.hpp"
+#include "utils/Stats.hpp"
+#include "utils/typedef.hpp"
 
 namespace MetaPB {
 namespace Executor {
@@ -31,10 +31,10 @@ public:
 
   // -----------MetaPB related functions -----------
   void printGraph(const std::string &filePath) const noexcept;
-  std::vector<int> topoSort()const noexcept;
-
+  std::vector<int> topoSort() const noexcept;
 
   Graph g;
+
 private:
   const std::string name;
 }; // class TaskGraph

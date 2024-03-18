@@ -24,7 +24,8 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS,
 
 typedef typename boost::graph_traits<Graph>::vertex_descriptor TaskNode;
 typedef typename boost::graph_traits<Graph>::edge_descriptor TransferEdge;
-typedef boost::property_map<Graph, boost::edge_bundle_t>::type TransferPropertyMap;
+typedef boost::property_map<Graph, boost::edge_bundle_t>::type
+    TransferPropertyMap;
 
 // --------------------------- Graphviz related ----------------------------
 /// @brief Control the output graph nodes' attributes

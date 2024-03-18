@@ -13,7 +13,7 @@ __host mac_args DPU_INPUT_ARGUMENTS;
 
 static void MAC(T *bufferB, T *bufferA, T weight, unsigned int l_size) {
   for (unsigned int i = 0; i < l_size; i++) {
-    bufferB[i] = (bufferB[i] * weight) + bufferA[i];
+    bufferB[i] += weight * bufferA[i];
   }
 }
 

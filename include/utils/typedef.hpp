@@ -6,11 +6,11 @@ using std::vector;
 namespace MetaPB {
 namespace utils {
 
-typedef struct{
+typedef struct {
   bool isCoarseGrain = true;
   vector<int> order;
   vector<float> offloadRatio;
-}Schedule;
+} Schedule;
 } // namespace utils
 } // namespace MetaPB
 #endif

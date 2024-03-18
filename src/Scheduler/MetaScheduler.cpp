@@ -1,6 +1,5 @@
 #include "Scheduler/MetaScheduler.hpp"
 
-
 /* -------------------- Main Logic of MetaPB --------------------------
 Pseudo Code:
   load_operator_model(this_machine, perf_model_path)

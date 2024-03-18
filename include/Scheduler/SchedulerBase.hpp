@@ -2,8 +2,8 @@
 #define SCHED_BASE_HPP
 #include "Executor/TaskGraph.hpp"
 #include "Operator/OperatorManager.hpp"
-#include "utils/typedef.hpp"
 #include "utils/Stats.hpp"
+#include "utils/typedef.hpp"
 
 namespace MetaPB {
 namespace Scheduler {
@@ -14,8 +14,9 @@ using perfStats = utils::Stats;
 
 class SchedulerBase {
 public:
-  SchedulerBase()=default;
-  virtual Schedule schedule(const TaskGraph& gIn, OperatorManager& om)noexcept = 0;
+  SchedulerBase() = default;
+  virtual Schedule schedule(const TaskGraph &gIn,
+                            OperatorManager &om) noexcept = 0;
 };
 
 } // namespace Scheduler

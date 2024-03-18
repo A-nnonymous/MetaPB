@@ -18,11 +18,31 @@ class Learner {
 private:
   BoosterHandle h_booster;
   int cols;
+  int x_norm;
+  int y_norm;
 
 public:
   Learner(int cols = 1) : cols(cols), h_booster(nullptr) {}
 
   void train(float *train_data, float *train_labels, int rows, int iterMax) {
+    /*
+    float iMax = -10000.0f; float iMin = 10000.0f;
+    float lMax = -10000.0f; float lMin = 10000.0f;
+    for(int i = 0; i < rows; i++){
+      if(train_data[i] > iMax) iMax = train_data[i];
+      if(train_labels[i] > lMax) lMax = train_labels[i];
+      if(train_labels[i] < lMin) lMin = train_labels[i];
+      if(train_data[i] < iMin) iMin = train_data[i];
+    }
+    x_norm = iMax - iMin;
+    y_norm = lMax - lMin;
+    std::cout << "x_norm: "<<x_norm<<std::endl;
+    std::cout << "y_norm: "<<y_norm<<std::endl;
+    for(int i = 0; i < rows; i++){
+      train_data[i] /= x_norm;
+      train_labels[i] /= y_norm;
+    }
+    */
     // convert to DMatrix
     DMatrixHandle h_train;
     safe_xgboost(XGDMatrixCreateFromMat(train_data, rows, cols, -1, &h_train));
@@ -36,6 +56,7 @@ public:
     safe_xgboost(XGBoosterSetParam(h_booster, "objective", "reg:squarederror"));
     safe_xgboost(XGBoosterSetParam(h_booster, "max_depth", "5"));
     safe_xgboost(XGBoosterSetParam(h_booster, "eta", "0.1"));
+    safe_xgboost(XGBoosterSetParam(h_booster, "lambda", "1"));
     safe_xgboost(XGBoosterSetParam(h_booster, "min_child_weight", "1"));
     safe_xgboost(XGBoosterSetParam(h_booster, "subsample", "0.5"));
     safe_xgboost(XGBoosterSetParam(h_booster, "colsample_bytree", "1"));
