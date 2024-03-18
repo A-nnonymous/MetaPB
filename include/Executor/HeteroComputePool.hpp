@@ -40,7 +40,12 @@ public:
         dpuCompleted_(maxTaskId + 1, false),
         mapCompleted_(maxTaskId + 1, false),
         reduceCompleted_(maxTaskId + 1, false), dependencies_(maxTaskId + 1),
-        gen_(rd_()), dis_(100, 500),om(om){}
+        gen_(rd_()), dis_(100, 500),om(om){
+          memPoolPtr = (void**)malloc(3);
+          memPoolPtr[0] = malloc(2 * size_t(1<<30)); // 2GiB
+          memPoolPtr[1] = malloc(2 * size_t(1<<30)); // 2GiB
+          memPoolPtr[2] = malloc(2 * size_t(1<<30)); // 2GiB
+        }
 
   void parseWorkload(TaskGraph &g, const Schedule &sched) noexcept;
 
@@ -74,7 +79,7 @@ private:
 
 private:
   void** memPoolPtr;
-  int memPoolNum = 0;
+  int memPoolNum = 3;
   OperatorManager& om;
   std::mutex mutex_;
   std::condition_variable cv_;

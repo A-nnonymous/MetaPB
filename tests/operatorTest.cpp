@@ -72,7 +72,7 @@ int main() {
   va->trainModel(batchSize_MiB,allBffrPtrs, 300);
   va->verifyRegression("./", batchSize_MiB);
   */
-  for(size_t batch = 128; batch <= batchSize_MiB; batch++){
+  for(size_t batch = 256; batch <= batchSize_MiB; batch*=2){
     om.trainAll(batch, 200);
     om.verifyAll("/output/batch_" +std::to_string(batch)+"MiB/", batch);
   }

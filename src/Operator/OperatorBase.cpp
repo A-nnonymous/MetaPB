@@ -1,5 +1,6 @@
 #include "Operator/OperatorBase.hpp"
 #include <cstdlib>
+#include <algorithm>
 
 namespace MetaPB {
 namespace Operator {
@@ -63,7 +64,7 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
                               void **memPoolBffrPtrs,
                               const int iterMax) noexcept {
   if (!loadModelCacheIfExist(batchUpperBound_MiB) && checkIfIsTrainable()) {
-    std::cout << "loading failed, start training" << std::endl;
+    std::cout << "Model cache not exist, start training" << std::endl;
     size_t upperBound_MiB = batchUpperBound_MiB;
     size_t step_MiB =
         (upperBound_MiB - BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
@@ -121,9 +122,10 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
     std::cout << "Regression model of " << get_name() << " is trained after "
               << REGRESSION_TRAINING_ITER << " iteration." << std::endl;
     this->isTrained = true;
+    cacheModel(batchUpperBound_MiB);
+  }else{
+    std::cout << "Operator "<<get_name()<<"'s Model cache hits sucessfully\n";
   }
-  cacheModel(batchUpperBound_MiB);
-  ct.dumpAllReport("./");
 }
 
 void OperatorBase::verifyRegression(const std::string &filePath,
@@ -177,6 +179,17 @@ void OperatorBase::verifyRegression(const std::string &filePath,
     dpuPerfRegress.emplace_back(
         std::vector<float>{batch, deducePerfDPU(batch).timeCost_Second});
   }
+  auto sortByFirst = 
+        [](const std::vector<float>& a, const std::vector<float>& b) {
+            return a.front() < b.front(); // 根据每一行的第一个元素进行比较
+        };
+    std::sort(cpuPerfReal.begin(), cpuPerfReal.end(), sortByFirst);
+    std::sort(cpuPerfRegress.begin(), cpuPerfRegress.end(), sortByFirst);
+    std::sort(cpuEnergyReal.begin(), cpuEnergyReal.end(), sortByFirst);
+    std::sort(cpuEnergyRegress.begin(), cpuEnergyRegress.end(), sortByFirst);
+    std::sort(dpuPerfReal.begin(), dpuPerfReal.end(), sortByFirst);
+    std::sort(dpuPerfRegress.begin(), dpuPerfRegress.end(), sortByFirst);
+
   w.writeCSV(cpuPerfReal, header, filePath + "CPU_perf_" + reportsPostfix);
   w.writeCSV(cpuEnergyReal, header, filePath + "CPU_energy_" + reportsPostfix);
   w.writeCSV(cpuPerfRegress, header,
@@ -272,7 +285,7 @@ perfStats OperatorBase::deducePerfDPU(const size_t batchSize_MiB) noexcept {
 
 void OperatorBase::cacheModel(const size_t batchSize_MiB) const noexcept {
   std::string modelTagPostfix =
-      this->get_name() + "_" + std::to_string(batchSize_MiB) + "_MiB.bin";
+      this->get_name() + "_" + std::to_string(batchSize_MiB) + "_MiB.json";
   std::string modelPathPrefix = REGRESSION_MODEL_CACHE_PATH;
   std::filesystem::path modelPath{modelPathPrefix};
   if (!std::filesystem::exists(modelPath))
@@ -292,7 +305,7 @@ void OperatorBase::cacheModel(const size_t batchSize_MiB) const noexcept {
 
 bool OperatorBase::loadModelCacheIfExist(const size_t batchSize_MiB) noexcept {
   std::string modelTagPostfix =
-      get_name() + "_" + std::to_string(batchSize_MiB) + "_MiB.bin";
+      get_name() + "_" + std::to_string(batchSize_MiB) + "_MiB.json";
   std::string modelPathPrefix = REGRESSION_MODEL_CACHE_PATH;
   std::cout << "loading " << modelPathPrefix << "*" << modelTagPostfix
             << std::endl;

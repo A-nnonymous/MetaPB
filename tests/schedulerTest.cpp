@@ -86,6 +86,11 @@ TaskGraph genFFT(int signalLength, size_t batchSize_MiB) {
   }
   g[0] = startNode;
   g[N * (log2N + 1) + 1] = endNode;
+  /*
+ g[0] = fftNode;
+  g[N * (log2N + 1) + 1] = fftNode;
+  */
+
 
   return {g, "FFT_" + std::to_string(N)};
 }
@@ -133,16 +138,23 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
 }
 
 int main(){
-  auto g = genGEA(8,256);
+  auto g = genFFT(8,1024);
   regressionTask rt = g.genRegressionTask();
   OperatorManager om;
   om.trainModel(rt);
   MetaPB::Scheduler::HEFTScheduler he(g,om);
   Schedule scheduleResult = he.schedule();
+  /*
+  for(auto &o : scheduleResult.offloadRatio){
+    o = 0.42;
+  }
+  */
   HeteroComputePool hep(scheduleResult.order.size(), om);
-  hep.parseWorkload(g, scheduleResult);
-  hep.start();
-  hep.outputTimingsToCSV("./");
+  for(int i =0; i < 5; i++){
+    hep.parseWorkload(g, scheduleResult);
+    hep.start();
+  }
+  hep.outputTimingsToCSV("./gea_gantt.csv");
 
   // 打印调度结果
   std::cout << "Execution Order: ";

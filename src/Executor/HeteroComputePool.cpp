@@ -64,29 +64,30 @@ void HeteroComputePool::processTasks(
 }
 
 void HeteroComputePool::parseWorkload(TaskGraph &g, const Schedule &sched) noexcept {
-    // 清除以前的依赖关系
-    for (auto &deps : dependencies_) {
-        deps.clear();
-    }
 
-    TaskProperties& tp1 = g.g[1];
-    size_t wholeSize = tp1.inputSize_MiB; // 假设这是批处理大小
-    void* src1 = malloc((1<<20) * wholeSize);
-    void* src2 = malloc((1<<20) * wholeSize);
-    void* dst1 = malloc((1<<20) * wholeSize);
-    void* bfr[3] = {src1, src2, dst1};
-    memPoolPtr = bfr;
 
     // 遍历调度中的任务
     for (size_t i = 0; i < sched.order.size(); ++i) {
         int taskId = sched.order[i];
+        TaskProperties& tp = g.g[taskId];
+
+        if(tp.op==OperatorTag::LOGIC_START){
+          cpuCompleted_[taskId] = true;
+          dpuCompleted_[taskId] = true;
+          mapCompleted_[taskId] = true;
+          reduceCompleted_[taskId] = true;
+          continue;
+        }
+        auto inEdges = boost::in_edges(taskId, g.g);
+        for (auto ei = inEdges.first; ei != inEdges.second; ++ei) {
+            TaskNode pred = boost::source(*ei, g.g);
+            dependencies_[taskId].push_back(pred);
+        }
+        
         float offloadRatio = sched.offloadRatio[i];
-
-        // 获取当前任务的后续节点的offloadRatio
-        float omax = 0.0f; // 后续节点的最大offloadRatio
-        float omin = 0.0f; // 后续节点的最小offloadRatio
-        std::vector<int> successors; // 用于存储后续节点的ID
-
+        float omax = 0.0f; 
+        float omin = 1.0f; 
+        std::vector<int> successors; 
         auto outEdges = boost::out_edges(taskId, g.g);
         for (auto ei = outEdges.first; ei != outEdges.second; ++ei) {
             TaskNode succ = boost::target(*ei, g.g);
@@ -97,14 +98,8 @@ void HeteroComputePool::parseWorkload(TaskGraph &g, const Schedule &sched) noexc
         }
 
         // 更新依赖项
-        auto inEdges = boost::in_edges(taskId, g.g);
-        for (auto ei = inEdges.first; ei != inEdges.second; ++ei) {
-            TaskNode pred = boost::source(*ei, g.g);
-            dependencies_[taskId].push_back(pred);
-        }
 
         // 创建任务并分配到队列
-        TaskProperties& tp = g.g[taskId];
         float batchSize_MiB = tp.inputSize_MiB; // 假设这是批处理大小
 
         Task cpuTask{
@@ -135,6 +130,7 @@ void HeteroComputePool::parseWorkload(TaskGraph &g, const Schedule &sched) noexc
             "REDUCE"
         };
 
+        /*
         if (offloadRatio > omax) {
             size_t reduce_work=0;
             reduceTask.execute = [this, reduce_work]() {
@@ -155,6 +151,7 @@ void HeteroComputePool::parseWorkload(TaskGraph &g, const Schedule &sched) noexc
                 om.execCPU(OperatorTag::MAP, map_work, this->memPoolPtr);
             };
         }
+        */
 
         // 将任务添加到队列
         cpuQueue_.push(cpuTask);
@@ -189,6 +186,11 @@ void archive::addTask(int id, std::vector<int> deps) noexcept {
 
 // Starts the worker threads to process the tasks.
 void HeteroComputePool::start() noexcept {
+  cpuTimings_.clear();
+  dpuTimings_.clear();
+  mapTimings_.clear();
+  reduceTimings_.clear();
+  
   std::thread cpuThread(
       &HeteroComputePool::processTasks, this, std::ref(cpuQueue_),
       std::ref(cpuCompleted_),
@@ -218,13 +220,23 @@ void HeteroComputePool::start() noexcept {
   std::thread reduceThread(
       &HeteroComputePool::processTasks, this, std::ref(reduceQueue_),
       std::ref(reduceCompleted_),
-      [this](int taskId) noexcept { return dpuCompleted_[taskId]; },
+      [this](int taskId) noexcept { 
+        return dpuCompleted_[taskId]; },
       std::ref(reduceTimings_), "REDUCE");
 
   cpuThread.join();
   dpuThread.join();
   mapThread.join();
   reduceThread.join();
+
+  // State cleaning
+  for (auto &deps : dependencies_) {
+      deps.clear();
+  }
+  std::fill(cpuCompleted_.begin(),cpuCompleted_.end(),false);
+  std::fill(dpuCompleted_.begin(),dpuCompleted_.end(),false);
+  std::fill(mapCompleted_.begin(),mapCompleted_.end(),false);
+  std::fill(reduceCompleted_.begin(),reduceCompleted_.end(),false);
 }
 
 // Print timings for each type of task
@@ -267,15 +279,13 @@ void HeteroComputePool::outputTimingsToCSV(
           for (const auto &timing : pair.second) {
             auto start = std::chrono::duration_cast<std::chrono::milliseconds>(
                              timing.start - minStart)
-                             .count() /
-                         1000.0;
+                             .count();
             auto end = std::chrono::duration_cast<std::chrono::milliseconds>(
                            timing.end - minStart)
-                           .count() /
-                       1000.0;
+                           .count();
             csvFile << pair.first << "," << type << "," << std::fixed
-                    << std::setprecision(3) << start << "," << std::fixed
-                    << std::setprecision(3) << end << "\n";
+                    << std::setprecision(4) << start << "," << std::fixed
+                    << std::setprecision(4) << end << "\n";
           }
         }
       };

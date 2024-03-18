@@ -10,7 +10,7 @@
 #endif
 
 typedef struct {
-  int inputSize;
-  int operandNum;
+  unsigned long long  inputSize;
+  unsigned long long operandNum;
 } common_args;
 #endif
