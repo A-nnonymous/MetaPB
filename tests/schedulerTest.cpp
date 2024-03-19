@@ -1,8 +1,9 @@
 #include "Executor/HeteroComputePool.hpp"
 #include "Executor/TaskGraph.hpp"
+#include "Scheduler/MetaScheduler.hpp"
+#include "Scheduler/HEFTScheduler.hpp"
 #include "Operator/OperatorManager.hpp"
 #include "Operator/OperatorRegistry.hpp"
-#include "Scheduler/SchedulerManager.hpp"
 #include "omp.h"
 #include "utils/Stats.hpp"
 #include "utils/typedef.hpp"
@@ -15,7 +16,6 @@
 using execType = MetaPB::Executor::execType;
 using TaskGraph = MetaPB::Executor::TaskGraph;
 using TaskNode = MetaPB::Executor::TaskNode;
-using CPUOnlyScheduler = MetaPB::Scheduler::CPUOnlyScheduler;
 using Graph = MetaPB::Executor::Graph;
 using TaskProperties = MetaPB::Executor::TaskProperties;
 using TransferProperties = MetaPB::Executor::TransferProperties;
@@ -48,7 +48,7 @@ TaskGraph genFFT(int signalLength, size_t batchSize_MiB) {
   TaskProperties endNode = {OperatorTag::LOGIC_END, OperatorType::Logical, 0,
                             "yellow", "END"};
 
-  TaskProperties fftNode = {OperatorTag::MAC, OperatorType::CoumputeBound,
+  TaskProperties fftNode = {OperatorTag::MAC, OperatorType::ComputeBound,
                             batchSize_MiB, "red", "MAC"};
 
   TransferProperties fftTransfer = {1.0f, true};
@@ -101,7 +101,7 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
   int N = matrixSize;
   Graph g;
 
-  TaskProperties geaNode = {OperatorTag::MAC, OperatorType::CoumputeBound,
+  TaskProperties geaNode = {OperatorTag::MAC, OperatorType::ComputeBound,
                             batchSize_MiB, "blue", "MAC"};
   TaskProperties geaDiagonal = {OperatorTag::DOT_PROD,
                                 OperatorType::MemoryBound, batchSize_MiB,
@@ -146,7 +146,11 @@ int main() {
   OperatorManager om;
   om.trainModel(rt);
   MetaPB::Scheduler::HEFTScheduler he(g, om);
+  MetaPB::Scheduler::MetaScheduler ms(1.0, 0.0, 50, g, om);
+  std::cout <<"HEFT Scheduling\n";
   Schedule scheduleResult = he.schedule();
+  std::cout <<"MetaScheduler Scheduling\n";
+  Schedule comparison = ms.schedule();
 
   void **memPoolPtr = (void **)malloc(3);
 #pragma omp parallel for
@@ -165,9 +169,10 @@ int main() {
   }
 
   perfStats real;
-  for (int i = 0; i < 5; i++) {
-    real = pools[4].execWorkload(g, scheduleResult, execType::DO);
-  }
+  real = pools[4].execWorkload(g, scheduleResult, execType::DO);
+  pools[4].outputTimingsToCSV("./HEFT.csv");
+  pools[4].execWorkload(g, comparison, execType::DO);
+  pools[4].outputTimingsToCSV("./META.csv");
   std::cout << "Real perf: " << real.timeCost_Second
             << " second, "
                "Mimic perf: "

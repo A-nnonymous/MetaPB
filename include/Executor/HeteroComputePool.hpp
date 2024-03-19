@@ -1,3 +1,5 @@
+#ifndef HCP_HPP
+#define HCP_HPP
 #include "Executor/TaskGraph.hpp"
 #include "Operator/OperatorManager.hpp"
 #include "utils/ChronoTrigger.hpp"
@@ -23,6 +25,7 @@ namespace MetaPB {
 namespace Executor {
 using Operator::OperatorManager;
 using Operator::OperatorTag;
+using Operator::opType2Name;
 using utils::ChronoTrigger;
 using utils::metricTag;
 using utils::perfStats;
@@ -31,13 +34,15 @@ using utils::Stats;
 typedef struct TaskTiming {
   std::chrono::high_resolution_clock::time_point start;
   std::chrono::high_resolution_clock::time_point end;
+  std::string taskType;
 } TaskTiming;
 
 // Task struct to store task ID and execution function
 typedef struct {
   int id;
   std::function<void()> execute;
-  std::string type; // To distinguish between CPU, DPU, MAP, and REDUCE tasks
+  std::string worker;
+  std::string opType;
 } Task;
 
 enum class execType { MIMIC, DO };
@@ -49,7 +54,7 @@ typedef std::tuple<EUType, OperatorTag, size_t> perfTag;
 class HeteroComputePool {
 public:
   // Constructor initializes the pool with the expected maximum task ID.
-  HeteroComputePool(size_t maxTaskId, OperatorManager &om,
+  HeteroComputePool(size_t maxTaskId, const OperatorManager &om,
                     void **memPoolPtr) noexcept
       : cpuCompleted_(maxTaskId + 1, false),
         dpuCompleted_(maxTaskId + 1, false),
@@ -97,8 +102,8 @@ private:
   // Helper function to print timings for a specific type of task
   void
   printTimingsForType(const std::string &type,
-                      const std::unordered_map<int,
-                      std::vector<TaskTiming>> &timings) const noexcept;
+                      const std::unordered_map<int, std::vector<TaskTiming>>
+                          &timings) const noexcept;
   // Check if all dependencies for a task are met
   bool allDependenciesMet(const std::vector<bool> &completedVector,
                           const std::vector<int> &deps) const noexcept;
@@ -112,7 +117,7 @@ private:
 private:
   void **memPoolPtr;
   int memPoolNum = 3;
-  OperatorManager &om;
+  const OperatorManager &om;
   std::mutex mutex_;
   std::condition_variable cv_;
   std::mutex dpuMutex_;
@@ -141,3 +146,4 @@ private:
 
 } // namespace Executor
 } // namespace MetaPB
+#endif

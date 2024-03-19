@@ -14,7 +14,7 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
   Graph g;
 
   TaskProperties geaNode = {OperatorTag::MAC,
-                            OperatorType::CoumputeBound, 
+                            OperatorType::ComputeBound, 
                             4096,
                             "blue", "MAC"};
 
@@ -34,7 +34,7 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
         auto frProp = geaNode;
         frProp.name = getCordinateStr(row,col);
         rootProp.op = OperatorTag::VM;
-        rootProp.opType = OperatorType::CoumputeBound;
+        rootProp.opType = OperatorType::ComputeBound;
         rc2Task[{row, col}] = boost::add_vertex(frProp, g);
       }
     } else {

@@ -14,7 +14,7 @@ Schedule HEFTScheduler::schedule() {
   auto vertices = boost::vertices(graw);
   for (auto vi = vertices.first; vi != vertices.second; ++vi) {
     TaskNode tn = *vi;
-    TaskProperties &tp = graw[tn];
+    const TaskProperties &tp = graw[tn];
     TaskSchedulingInfo &info = schedulingInfo[tn];
     info.computationCostCPU =
         om.deducePerfCPU(tp.op, tp.inputSize_MiB).timeCost_Second;
@@ -42,7 +42,7 @@ Schedule HEFTScheduler::schedule() {
   // Schedule tasks and populate the Schedule instance
   for (TaskNode tn : sortedTasks) {
     scheduleTask(tn, schedulingInfo);
-    TaskProperties &tp = graw[tn];
+    const TaskProperties &tp = graw[tn];
     TaskSchedulingInfo &info = schedulingInfo[tn];
 
     // Add the task id to the execution order
@@ -89,8 +89,8 @@ void HEFTScheduler::scheduleTask(
     auto inEdges = boost::in_edges(tn, graw);
     for (auto ei = inEdges.first; ei != inEdges.second; ++ei) {
       TaskNode pred = boost::source(*ei, graw);
-      TransferProperties &edgeProps = graw[*ei];
-      TaskProperties &sourceNodeProps = graw[pred];
+      const TransferProperties &edgeProps = graw[*ei];
+      const TaskProperties &sourceNodeProps = graw[pred];
       TaskSchedulingInfo &predInfo = schedulingInfo[pred];
       if (predInfo.assignedProcessor != processor.id) {
         double transferCost =

@@ -12,6 +12,7 @@ inline void OperatorCONV_1D::execCPU(const size_t batchSize_MiB,
   float *outputBuffer = static_cast<float *>(memPoolBffrPtrs[1]);
 
   // Perform convolution
+  #pragma omp parallel for
   for (size_t i = 0; i < inputSize; ++i) {
     float sum = 0.0f;
     for (size_t j = 0; j < kernelSize; ++j) {

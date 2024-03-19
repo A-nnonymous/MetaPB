@@ -1,6 +1,7 @@
 #ifndef HEFT_SCHED_HPP
 #define HEFT_SCHED_HPP
-#include "Scheduler/SchedulerBase.hpp"
+#include "Executor/TaskGraph.hpp"
+#include "Operator/OperatorManager.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
@@ -14,6 +15,8 @@ using Executor::Graph;
 using Executor::TaskNode;
 using Executor::TaskProperties;
 using Executor::TransferProperties;
+using Executor::TaskGraph;
+using Operator::OperatorManager;
 struct Processor {
   int id;                   // Processor identifier
   double nextAvailableTime; // Time when the processor is ready for a new task
@@ -34,14 +37,14 @@ struct TaskSchedulingInfo {
 
 class HEFTScheduler {
 public:
-  HEFTScheduler(TaskGraph &g, OperatorManager &om)
+  HEFTScheduler(const TaskGraph &g, const OperatorManager &om)
       : graw(g.g), om(om), processors({{0, 0.0f}, {1, 0.0f}}) {}
 
   Schedule schedule();
 
 private:
-  Graph &graw;
-  OperatorManager &om;
+  const Graph &graw;
+  const OperatorManager &om;
   std::vector<Processor> processors;
 
   double calculateUpwardRank(

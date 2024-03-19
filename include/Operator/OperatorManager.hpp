@@ -107,10 +107,10 @@ struct OperatorManager {
                        size_t batchSize_MiB) {
     return opMap.at(opTag)->deducePerf(offloadRatio, batchSize_MiB);
   }
-  perfStats deducePerfCPU(OperatorTag opTag, size_t batchSize_MiB) {
+  perfStats deducePerfCPU(OperatorTag opTag, size_t batchSize_MiB) const {
     return opMap.at(opTag)->deducePerfCPU(batchSize_MiB);
   }
-  perfStats deducePerfDPU(OperatorTag opTag, size_t batchSize_MiB) {
+  perfStats deducePerfDPU(OperatorTag opTag, size_t batchSize_MiB) const{
     return opMap.at(opTag)->deducePerfDPU(batchSize_MiB);
   }
 

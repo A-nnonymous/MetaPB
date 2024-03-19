@@ -131,7 +131,7 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
 
 void OperatorBase::verifyRegression(const std::string &filePath,
                                     const size_t batchUpperBound_MiB) {
-
+  loadModelCacheIfExist(batchUpperBound_MiB);
   std::string command = "mkdir -p " + filePath;
   system(command.c_str());
   utils::CSVWriter<float> w;
@@ -161,15 +161,17 @@ void OperatorBase::verifyRegression(const std::string &filePath,
         dataSize_MiB, deducePerfCPU(dataSize_MiB).energyCost_Joule});
   }
 
-  for (const auto &[dataSize_MiB, taskName] : dpuExecJob2Name) {
-    const auto report = ct.getReport(taskName);
-    auto dpuTimeCost =
-        std::get<Stats>(report.reportItems[metricTag::TimeConsume_ns].data)
-            .mean /
-        1e9;
-    dpuPerfReal.emplace_back(std::vector<float>{dataSize_MiB, dpuTimeCost});
-    dpuPerfRegress.emplace_back(std::vector<float>{
-        dataSize_MiB, deducePerfDPU(dataSize_MiB).timeCost_Second});
+  if(!checkIfIsCPUOnly()){
+    for (const auto &[dataSize_MiB, taskName] : dpuExecJob2Name) {
+      const auto report = ct.getReport(taskName);
+      auto dpuTimeCost =
+          std::get<Stats>(report.reportItems[metricTag::TimeConsume_ns].data)
+              .mean /
+          1e9;
+      dpuPerfReal.emplace_back(std::vector<float>{dataSize_MiB, dpuTimeCost});
+      dpuPerfRegress.emplace_back(std::vector<float>{
+          dataSize_MiB, deducePerfDPU(dataSize_MiB).timeCost_Second});
+    }
   }
   for (float batch = (float)BATCH_LOWERBOUND_MB; batch < batchUpperBound_MiB;
        batch += (batchUpperBound_MiB - BATCH_LOWERBOUND_MB) / 100.0) {
@@ -177,9 +179,11 @@ void OperatorBase::verifyRegression(const std::string &filePath,
         std::vector<float>{batch, deducePerfCPU(batch).timeCost_Second});
     cpuEnergyRegress.emplace_back(
         std::vector<float>{batch, deducePerfCPU(batch).energyCost_Joule});
-    dpuPerfRegress.emplace_back(
-        std::vector<float>{batch, deducePerfDPU(batch).timeCost_Second});
-  }
+    if(!checkIfIsCPUOnly()){
+      dpuPerfRegress.emplace_back(
+          std::vector<float>{batch, deducePerfDPU(batch).timeCost_Second});
+    }
+       }
   auto sortByFirst = [](const std::vector<float> &a,
                         const std::vector<float> &b) {
     return a.front() < b.front(); // 根据每一行的第一个元素进行比较
@@ -188,8 +192,10 @@ void OperatorBase::verifyRegression(const std::string &filePath,
   std::sort(cpuPerfRegress.begin(), cpuPerfRegress.end(), sortByFirst);
   std::sort(cpuEnergyReal.begin(), cpuEnergyReal.end(), sortByFirst);
   std::sort(cpuEnergyRegress.begin(), cpuEnergyRegress.end(), sortByFirst);
-  std::sort(dpuPerfReal.begin(), dpuPerfReal.end(), sortByFirst);
-  std::sort(dpuPerfRegress.begin(), dpuPerfRegress.end(), sortByFirst);
+  if(!checkIfIsCPUOnly()){
+    std::sort(dpuPerfReal.begin(), dpuPerfReal.end(), sortByFirst);
+    std::sort(dpuPerfRegress.begin(), dpuPerfRegress.end(), sortByFirst);
+  }
 
   w.writeCSV(cpuPerfReal, header, filePath + "CPU_perf_" + reportsPostfix);
   w.writeCSV(cpuEnergyReal, header, filePath + "CPU_energy_" + reportsPostfix);
@@ -198,9 +204,11 @@ void OperatorBase::verifyRegression(const std::string &filePath,
   w.writeCSV(cpuEnergyRegress, header,
              filePath + "CPU_energy_" + regressionPostfix);
 
+  if(!checkIfIsCPUOnly()){
   w.writeCSV(dpuPerfReal, header, filePath + "DPU_perf_" + reportsPostfix);
   w.writeCSV(dpuPerfRegress, header,
              filePath + "DPU_perf_" + regressionPostfix);
+  }
 }
 
 void OperatorBase::dumpMetrics(const size_t batchSize_MiB,
@@ -250,8 +258,6 @@ perfStats OperatorBase::deducePerf(const double offloadRatio,
 }
 perfStats OperatorBase::deducePerfCPU(const size_t batchSize_MiB) noexcept {
   if (!isTrained || !checkIfIsTrainable()) {
-    std::cout << "Operator " << get_name() << " is deducing without training"
-              << std::endl;
     return {};
   } else {
     float cpuBatchSize_MiB[1] = {(float)batchSize_MiB};
@@ -270,8 +276,6 @@ perfStats OperatorBase::deducePerfCPU(const size_t batchSize_MiB) noexcept {
 
 perfStats OperatorBase::deducePerfDPU(const size_t batchSize_MiB) noexcept {
   if (!isTrained || !checkIfIsTrainable()) {
-    std::cout << "Operator " << get_name() << " is deducing without training"
-              << std::endl;
     return {};
   } else {
     perfStats result;

@@ -1,108 +1,95 @@
 #include "Scheduler/MetaScheduler.hpp"
 
-/* -------------------- Main Logic of MetaPB --------------------------
-Pseudo Code:
-  load_operator_model(this_machine, perf_model_path)
-  for all operator:
-    if(!modelized(operator))
-      warmup_and_modelize(operator)
-    endif
-  endfor
-
-  proposed_schedule = random()
-  do:
-    perf_expectations = regression_perf_model(Task, proposed_schedule)
-    prev_propose_value = eval_func(Alpha, Beta, perf_expectations)
-    prev_schedule = proposed_schedule
-    proposed_schedule = metaOptimizer(prev_schedule, prev_val)
-  while(!converge_or_iterEnd(prev_proposed_val)):
-  endwhile
-  schedule_vector = best(proposed_schedules)
-  perf_expectations = regression_perf_model(schedule_vector)
-
-  if(run_sync):
-    Result = Task.exec(SYNCHRONOUS, Args, schedule_vector)
-  else
-    pool = static_thread_pool(max_thread - 1) + DPU_proxy(1)
-    scheduler = pool.get_scheduler()
-    sender = Task.exec(ASYNCHRONOUS, Args, schedule_vector)
-    Result = sync_wait(scheduler.schedule(sender))
-  endif
-*/
-/*
 namespace MetaPB {
 namespace Scheduler{
 
-MetaScheduler::MetaScheduler(const double Arg_Alpha, const double Arg_Beta)
-    : Arg_Alpha(Arg_Alpha), Arg_Beta(Arg_Beta) {}
-
-/// @brief Main schedule generator function
-/// @param perfModelPathIn User given cached performance model path, default in
-/// /tmp/MetaPB_PerfModels/
-/// @return An optimized schedule vector.
-Schedule MetaScheduler::scheduleGen(string perfModelPathIn) noexcept {
-#ifdef DRY_RUN
-#else
-  // modelizeIfNotLoad(perfModelPath);
-  task.modelize(modelCachePath);
-  // Invariant: To this point, the whole set of operators in given task is fully
-  // modelized.
-  auto schedVec = task.randSchedule(
-      batchSize_MiB); // Random init a schedule to be optimized.
-  schedOptimize(schedVec);
-#endif // DRY_RUN
-  return schedVec;
-}
-
-/// @brief Try to load correct model of all operator presented in work object in
-/// given path, if not existed,
-//  warmup and train them.
-void MetaScheduler::modelizeIfNotLoaded() noexcept {
-#ifdef DRY_RUN
-#else
-  // for each operator in task, if given path don't exist such model,
-  for (const auto &opTag : task.getOpTagSet()) {
-    if (...) { // finder & verification logic
-      Operator::modelize(opTag);
+  std::vector<float> MetaScheduler::evalSchedules(const vector<vector<float>> &ratioVecs){
+    const int agentNum = ratioVecs.size();
+    std::vector<perfStats> stats(agentNum);
+    std::vector<HeteroComputePool> pools;
+    std::vector<Schedule> proposedSchedule(ratioVecs.size());
+    for(auto& schedule: proposedSchedule){
+      schedule.offloadRatio.resize(ratioVecs[0].size(),0.0f);
     }
+    std::vector<float> evalResult(ratioVecs.size(), 0.0f);
+    for(size_t i = 0; i < ratioVecs.size(); i++){
+      proposedSchedule[i].order = this->HEFTorder;
+      proposedSchedule[i].isCoarseGrain = false;
+      for(size_t j = 0; j < ratioVecs[i].size(); j++){
+        proposedSchedule[i].offloadRatio[j] = ratioVecs[i][j]/2.0f + 0.5f;
+      }
+    }
+    for (int i = 0; i < agentNum; i++) {
+      pools.emplace_back(std::move(
+          HeteroComputePool{ratioVecs[0].size(), this->om, this->dummyPool}));
+    }
+
+    #pragma omp parallel for
+    for (int i = 0; i < agentNum; i++) {
+      stats[i] = pools[i].execWorkload(tg, proposedSchedule[i], execType::MIMIC);
+    }
+    for(int i = 0; i< stats.size(); i++){
+      float scheduleEval = (Arg_Alpha * stats[i].timeCost_Second + Arg_Beta * stats[i].energyCost_Joule);
+      evalResult[i] = scheduleEval;
+    }
+    return evalResult;
   }
-#endif // DRY_RUN
-}
 
-/// @brief Evaluate performance metric deduced by regression model using
-/// weighted combination.
-/// @return Velues of given schedule vector.
-vector<double>
-MetaScheduler::perfEval(const ScheduleVec &schedVec) const noexcept {
-#ifdef DRY_RUN
-#else
-  // The true implementaion of final evaluation function
-  vector<double> result();
-  result.reserve(batchSize_MiB);
-  for (const auto &schedule : schedVec) {
-    double timeCost_Second = task.deduceTime_ns(schedVec) / 1e9;
-    double energyCost_Joule = task.deduceEnergy_joule(schedVec);
-    result.emplace_back(Arg_Alpha * timeCost_second +
-                        Arg_Beta * energyCost_Joule);
+  Schedule MetaScheduler::schedule() noexcept{
+    size_t nTask = boost::num_vertices(tg.g);
+
+    const double dt = 0.1;
+    const double ego = 0.2;
+    const double omega = 0.7;
+    const double vMax = 2 * (200.0 / (OptIterMax * dt));
+
+    const std::vector<float> lowerLimit(nTask, -1.0f);
+    const std::vector<float> upperLimit(nTask, 1.0f);
+    const size_t dimNum = nTask;
+    const int pointNum = 10;
+    const int iterNum = OptIterMax;
+
+std::vector<std::unique_ptr<OptimizerBase>> oVec;
+oVec.push_back(std::make_unique<Optimizer::OptimizerPSO<float, float>>(
+    vMax, omega, dt, ego, lowerLimit, upperLimit, dimNum, pointNum, iterNum,
+    [this](const std::vector<std::vector<float>>& ratioVecs) {
+        return this->evalSchedules(ratioVecs);
+    }));
+
+oVec.push_back(std::make_unique<Optimizer::OptimizerAOA<float, float>>(
+    lowerLimit, upperLimit, dimNum, pointNum, iterNum,
+    [this](const std::vector<std::vector<float>>& ratioVecs) {
+        return this->evalSchedules(ratioVecs);
+    }));
+
+oVec.push_back(std::make_unique<Optimizer::OptimizerRSA<float, float>>(
+    lowerLimit, upperLimit, dimNum, pointNum, iterNum,
+    [this](const std::vector<std::vector<float>>& ratioVecs) {
+        return this->evalSchedules(ratioVecs);
+    }));
+    
+    #pragma omp parallel for 
+    for(int i = 0; i < oVec.size(); i++){
+      #pragma omp task untied
+      oVec[i]->exec();
+    }
+    float bestVal = 666666666.6f;
+    std::vector<float> ratio(nTask,0.0f);
+    for(const auto& opt : oVec){
+      if(opt->getGlobalOptimaValue() < bestVal){
+        ratio = opt->getGlobalOptimaPoint();
+        bestVal = opt->getGlobalOptimaValue();
+      }
+    }
+      std::cout <<"META Schedule result: \n";
+    std::vector<float> actualRatio(nTask,0.0f);
+    for(int i = 0; i< nTask; i++){
+      std::cout << ratio[i]/2.0f + 0.5f<<",";
+      actualRatio[i] = ratio[i]/2.0f + 0.5f;
+    }
+    std::cout <<std::endl;
+    return {false, this->HEFTorder, actualRatio};
   }
-  return result;
-#endif // DRY_RUN
-}
 
-/// @brief Using metaheuristic optimizer to perform schedule vector exploration.
-void MetaScheduler::schedOptimize(const ScheduleVec &schedVec) noexcept {
-#ifdef DRY_RUN
-#else
-  // Plug in the metaheuristic optimizer.
-  auto optimizer = Optimizer::generate(optType);
-  optimizer.optimize(schedVec, perfEval); // perform optimization.
-
-#ifdef DUMP_OPT_HISTORY
-  optimizer.dumpAllReport();
-#endif // DUMP_OPT_HISTORY
-#endif // DRY_RUN
-}
-
-} // namespace MetaScheduler
-} // namespace MetaPB
-*/
+} // Scheduler
+} // MetaPB

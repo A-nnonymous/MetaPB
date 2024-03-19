@@ -41,7 +41,7 @@ public:
 private:
   const Graph &g_;
   inline static std::map<OperatorType, std::string> opType2Color = {
-      {OperatorType::CoumputeBound, "green"},
+      {OperatorType::ComputeBound, "green"},
       {OperatorType::MemoryBound, "red"},
       {OperatorType::Logical, "blue"},
       {OperatorType::Map, "purple"},

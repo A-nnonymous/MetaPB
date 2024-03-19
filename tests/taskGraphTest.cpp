@@ -20,7 +20,7 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
   int N = matrixSize;
   Graph g;
 
-  TaskProperties geaNode = {OperatorTag::MAC, OperatorType::CoumputeBound,
+  TaskProperties geaNode = {OperatorTag::MAC, OperatorType::ComputeBound,
                             batchSize_MiB, "blue", "MAC"};
   TaskProperties geaDiagonal = {OperatorTag::DOT_PROD,
                                 OperatorType::MemoryBound, batchSize_MiB,
@@ -75,7 +75,7 @@ TaskGraph genFFT(int signalLength, size_t batchSize_MiB) {
   TaskProperties endNode = {OperatorTag::LOGIC_END, OperatorType::Logical, 0,
                             "yellow", "END"};
 
-  TaskProperties fftNode = {OperatorTag::MAC, OperatorType::CoumputeBound, 4096,
+  TaskProperties fftNode = {OperatorTag::MAC, OperatorType::ComputeBound, 4096,
                             "red", "MAC"};
 
   TransferProperties fftTransfer = {1.0f, true};

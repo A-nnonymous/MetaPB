@@ -3,9 +3,7 @@ archive:
 	mkdir -p ./paperArchive && mv ./paperOutput/Thesis.pdf ./paperArchive/Thesis_$(date +%m_%d_%Hh_%Mm).pdf
 
 rebuild:
-	cd build && rm -rf CMakeCache.txt CMakeFiles/ && cmake ../ -DCMAKE_BUILD_TYPE=Release && make -j
-
-visualize:
+	cd build && rm -rf ./ && cmake ../ -DCMAKE_BUILD_TYPE=Release && make -j
 
 
 paper:

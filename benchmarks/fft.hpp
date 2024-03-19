@@ -21,7 +21,7 @@ TaskGraph genFFT(int signalLength, size_t batchSize_MiB) {
                               "orange", "START"};
 
   TaskProperties fftNode = {OperatorTag::MAC,
-                            OperatorType::CoumputeBound,
+                            OperatorType::ComputeBound,
                             4096,
                             "red", "MAC"};
 

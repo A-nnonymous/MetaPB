@@ -56,7 +56,7 @@ static const set<set<OperatorTag>> allPerfRelOPSet = {
     computeBoundOPSet, memoryBoundOPSet, xferOPSet};
 
 enum class OperatorType {
-  CoumputeBound,
+  ComputeBound,
   MemoryBound,
   // ------- CPU Only ----------
   Logical,
@@ -64,6 +64,15 @@ enum class OperatorType {
   Reduce,
   Undefined
   // ------- CPU Only ----------
+};
+
+static const map<OperatorType, std::string> opType2Name = {
+    {OperatorType::ComputeBound, "ComputeBound"},
+    {OperatorType::MemoryBound, "MemoryBound"},
+    {OperatorType::Logical, "Logical"},
+    {OperatorType::Map, "Map"},
+    {OperatorType::Reduce, "Reduce"},
+    {OperatorType::Undefined,"Undefined"}
 };
 
 } // namespace Operator

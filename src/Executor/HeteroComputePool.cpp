@@ -51,7 +51,7 @@ void HeteroComputePool::processTasks(
     {
       std::lock_guard<std::mutex> lock(mutex_);
       completedVector[task.id] = true;
-      timings[task.id].push_back({start, end});
+      timings[task.id].push_back({start, end, task.opType});
     }
 
     cv_.notify_all();
@@ -81,6 +81,7 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
   totalEnergyCost_joule = 0.0f;
   totalTransfer_mb = 0.0f;
 
+  //std::cout <<"workload executing..."<<std::endl;
   // iterate through task order
   for (size_t i = 0; i < sched.order.size(); ++i) {
     int taskId = sched.order[i];
@@ -120,20 +121,20 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                   batchSize = size_t(batchSize_MiB * (1 - offloadRatio))]() {
                    om.execCPU(op, batchSize, this->memPoolPtr);
                  },
-                 "CPU"};
+                 "CPU", opType2Name.at(tp.opType)};
 
       dpuTask = {taskId,
                  [this, op = tp.op,
                   batchSize = size_t(batchSize_MiB * offloadRatio)]() {
                    om.execDPU(op, batchSize);
                  },
-                 "DPU"};
+                 "DPU", opType2Name.at(tp.opType)};
 
       mapTask = {taskId, []() {}, // 初始化为空执行函数
-                 "MAP"};
+                 "MAP", "MAP"};
 
       reduceTask = {taskId, []() {}, // 初始化为空执行函数
-                    "REDUCE"};
+                    "REDUCE", "REDUCE"};
       if (offloadRatio > omax) {
         size_t reduce_work = (offloadRatio - omin) * batchSize_MiB;
         reduceTask.execute = [this, reduce_work]() {
@@ -181,7 +182,7 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                      totalEnergyCost_joule += perf.energyCost_Joule;
                    }
                  },
-                 "CPU"};
+                 "CPU", opType2Name.at(tp.opType)};
 
       batchSize = size_t(batchSize_MiB * offloadRatio);
       thisTag = {EUType::DPU, tp.op, batchSize};
@@ -202,10 +203,10 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                      totalEnergyCost_joule += perf.energyCost_Joule;
                    }
                  },
-                 "DPU"};
+                 "DPU", opType2Name.at(tp.opType)};
 
       mapTask = {taskId, []() {}, // 初始化为空执行函数
-                 "MAP"};
+                 "MAP", "MAP"};
 
       reduceTask = {taskId, []() {}, // 初始化为空执行函数
                     "REDUCE"};
@@ -309,9 +310,10 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
 
   // -------------------- Entering unsafe multithread zone ------------------
   // Thread workers definition
-  std::cout << "HCP running ...\n";
-  ChronoTrigger ct;
-  ct.tick("HCP");
+    ChronoTrigger ct;
+  if(eT == execType::DO){
+    ct.tick("HCP");
+  }
   std::thread cpuThread(
       &HeteroComputePool::processTasks, this, std::ref(cpuQueue_),
       std::ref(cpuCompleted_),
@@ -348,9 +350,10 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
   dpuThread.join();
   mapThread.join();
   reduceThread.join();
-  ct.tock("HCP");
+  if(eT == execType::DO){
+    ct.tock("HCP");
+  }
 
-  std::cout << "HCP running completed\n";
   perfStats result;
   if (eT == execType::MIMIC) {
     result.timeCost_Second = std::max(
@@ -404,12 +407,12 @@ void HeteroComputePool::outputTimingsToCSV(
   }
 
   // Write the headers to the CSV file
-  csvFile << "TaskID,Type,Start(ms),End(ms)\n";
+  csvFile << "TaskID,Worker,OpType,Start(ms),End(ms)\n";
 
   // Helper lambda to write timings for a specific type of task
   auto writeTimings =
       [&csvFile, minStart](
-          const std::string &type,
+          const std::string &worker,
           const std::unordered_map<int, std::vector<TaskTiming>> &timings) {
         for (const auto &pair : timings) {
           for (const auto &timing : pair.second) {
@@ -419,7 +422,8 @@ void HeteroComputePool::outputTimingsToCSV(
             auto end = std::chrono::duration_cast<std::chrono::milliseconds>(
                            timing.end - minStart)
                            .count();
-            csvFile << pair.first << "," << type << "," << std::fixed
+            auto type = timing.taskType;
+            csvFile << pair.first << "," << worker<< "," <<type << ","<<std::fixed
                     << std::setprecision(4) << start << "," << std::fixed
                     << std::setprecision(4) << end << "\n";
           }
