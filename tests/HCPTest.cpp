@@ -1,6 +1,4 @@
 #include "Executor/HeteroComputePool.hpp"
 using hp = MetaPB::Executor::HeteroComputePool;
 
-int main(){
-  return 0;
-}
+int main() { return 0; }

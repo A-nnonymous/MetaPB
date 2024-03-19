@@ -36,7 +36,8 @@ int main(void) {
   uint32_t input_size_dpu_bytes_transfer =
       DPU_INPUT_ARGUMENTS.co.inputSize /
       2; // Transfer input size per DPU in bytes
-      if(input_size_dpu_bytes ==0)return 0;
+  if (input_size_dpu_bytes == 0)
+    return 0;
   float weight = DPU_INPUT_ARGUMENTS.weight;
 
   // Address of the current processing block in MRAM

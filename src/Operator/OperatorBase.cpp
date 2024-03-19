@@ -1,6 +1,6 @@
 #include "Operator/OperatorBase.hpp"
-#include <cstdlib>
 #include <algorithm>
+#include <cstdlib>
 
 namespace MetaPB {
 namespace Operator {
@@ -69,7 +69,7 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
     size_t step_MiB =
         (upperBound_MiB - BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
     for (size_t batchSize_MiB = BATCH_LOWERBOUND_MB;
-         batchSize_MiB < batchUpperBound_MiB; batchSize_MiB += step_MiB) {
+         batchSize_MiB <= batchUpperBound_MiB; batchSize_MiB += step_MiB) {
       std::cout << "Training with data batchsize: " << batchSize_MiB
                 << " MiB\n";
       execCPUwithProbe(batchSize_MiB, memPoolBffrPtrs);
@@ -123,8 +123,9 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
               << REGRESSION_TRAINING_ITER << " iteration." << std::endl;
     this->isTrained = true;
     cacheModel(batchUpperBound_MiB);
-  }else{
-    std::cout << "Operator "<<get_name()<<"'s Model cache hits sucessfully\n";
+  } else {
+    std::cout << "Operator " << get_name()
+              << "'s Model cache hits sucessfully\n";
   }
 }
 
@@ -179,16 +180,16 @@ void OperatorBase::verifyRegression(const std::string &filePath,
     dpuPerfRegress.emplace_back(
         std::vector<float>{batch, deducePerfDPU(batch).timeCost_Second});
   }
-  auto sortByFirst = 
-        [](const std::vector<float>& a, const std::vector<float>& b) {
-            return a.front() < b.front(); // 根据每一行的第一个元素进行比较
-        };
-    std::sort(cpuPerfReal.begin(), cpuPerfReal.end(), sortByFirst);
-    std::sort(cpuPerfRegress.begin(), cpuPerfRegress.end(), sortByFirst);
-    std::sort(cpuEnergyReal.begin(), cpuEnergyReal.end(), sortByFirst);
-    std::sort(cpuEnergyRegress.begin(), cpuEnergyRegress.end(), sortByFirst);
-    std::sort(dpuPerfReal.begin(), dpuPerfReal.end(), sortByFirst);
-    std::sort(dpuPerfRegress.begin(), dpuPerfRegress.end(), sortByFirst);
+  auto sortByFirst = [](const std::vector<float> &a,
+                        const std::vector<float> &b) {
+    return a.front() < b.front(); // 根据每一行的第一个元素进行比较
+  };
+  std::sort(cpuPerfReal.begin(), cpuPerfReal.end(), sortByFirst);
+  std::sort(cpuPerfRegress.begin(), cpuPerfRegress.end(), sortByFirst);
+  std::sort(cpuEnergyReal.begin(), cpuEnergyReal.end(), sortByFirst);
+  std::sort(cpuEnergyRegress.begin(), cpuEnergyRegress.end(), sortByFirst);
+  std::sort(dpuPerfReal.begin(), dpuPerfReal.end(), sortByFirst);
+  std::sort(dpuPerfRegress.begin(), dpuPerfRegress.end(), sortByFirst);
 
   w.writeCSV(cpuPerfReal, header, filePath + "CPU_perf_" + reportsPostfix);
   w.writeCSV(cpuEnergyReal, header, filePath + "CPU_energy_" + reportsPostfix);

@@ -35,12 +35,12 @@ struct OperatorManager {
   }
 
   void trainModel(regressionTask task) {
-    int maxMiB = 0;
+    size_t maxMiB = 0;
     for (auto &[opTag, batchUpBound_MiB] : task) {
       if (batchUpBound_MiB > maxMiB)
         maxMiB = batchUpBound_MiB;
     }
-    size_t bytes = maxMiB * (1 << 20);
+    size_t bytes = maxMiB * size_t(1 << 20);
     void *src1 = (void *)malloc(bytes);
     void *src2 = (void *)malloc(bytes);
     void *dst1 = (void *)malloc(bytes);
@@ -65,7 +65,7 @@ struct OperatorManager {
   }
 
   void trainAll(size_t batchSize_MiB, int iter) {
-    size_t bytes = batchSize_MiB * (1 << 20);
+    size_t bytes = batchSize_MiB * size_t(1 << 20);
     void *src1 = (void *)malloc(bytes);
     void *src2 = (void *)malloc(bytes);
     void *dst1 = (void *)malloc(bytes);
@@ -79,6 +79,9 @@ struct OperatorManager {
         opMap[opTag]->trainModel(batchSize_MiB, allBffrPtrs, iter);
       }
     }
+    free(dst1);
+    free(src2);
+    free(src1);
   }
 
   void verifyAll(const std::string &filePath,

@@ -12,7 +12,8 @@ inline void OperatorMAP::execCPU(const size_t batchSize_MiB,
   uint32_t nr_of_dpus;
   DPU_ASSERT(dpu_get_nr_dpus(allDPUs, &nr_of_dpus));
   size_t bytes = batchSize_MiB * (1 << 20);
-  if(bytes == 0)return; //essential for not being overflowed
+  if (bytes == 0)
+    return; // essential for not being overflowed
   const size_t input_size_dpu =
       divceil(bytes, nr_of_dpus); // Input size per DPU (max.)
   const size_t input_size_dpu_8bytes =
@@ -22,8 +23,6 @@ inline void OperatorMAP::execCPU(const size_t batchSize_MiB,
 
   int i = 0;
   dpu_set_t dpu;
-  std::cout <<"Start Map with total size of: "<< batchSize_MiB<<"MiB\n";
-  std::cout <<"\t with  size of each DPU: "<< input_size_dpu_8bytes<<"B\n";
   DPU_FOREACH(allDPUs, dpu, i) {
     DPU_ASSERT(dpu_prepare_xfer(dpu, memPoolBffrPtrs[0] + i * input_size_dpu));
   }

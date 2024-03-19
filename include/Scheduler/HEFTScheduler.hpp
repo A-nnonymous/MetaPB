@@ -10,25 +10,26 @@
 
 namespace MetaPB {
 namespace Scheduler {
-using Executor::TaskNode;
-using Executor::TransferProperties;
-using Executor::TaskProperties;
 using Executor::Graph;
+using Executor::TaskNode;
+using Executor::TaskProperties;
+using Executor::TransferProperties;
 struct Processor {
-    int id; // Processor identifier
-    double nextAvailableTime; // Time when the processor is ready for a new task
+  int id;                   // Processor identifier
+  double nextAvailableTime; // Time when the processor is ready for a new task
 };
 
 // Structure to hold scheduling information for tasks
 struct TaskSchedulingInfo {
-    double computationCostCPU;
-    double computationCostDPU;
-    double upwardRank;
-    int assignedProcessor;
-    double startTime;
-    double endTime;
+  double computationCostCPU;
+  double computationCostDPU;
+  double upwardRank;
+  int assignedProcessor;
+  double startTime;
+  double endTime;
 
-    TaskSchedulingInfo() : upwardRank(-1), assignedProcessor(-1), startTime(0), endTime(0) {}
+  TaskSchedulingInfo()
+      : upwardRank(-1), assignedProcessor(-1), startTime(0), endTime(0) {}
 };
 
 class HEFTScheduler {

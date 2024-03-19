@@ -1,9 +1,9 @@
-#include "Operator/OperatorRegistry.hpp"
 #include "Operator/OperatorManager.hpp"
-#include <iostream>
-#include <vector>
-#include <memory>
+#include "Operator/OperatorRegistry.hpp"
 #include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <vector>
 
 using namespace MetaPB::Operator;
 using MetaPB::Operator::OperatorTag;
@@ -18,9 +18,8 @@ public:
   }
 
   inline virtual void
-  execCPU(const size_t batchSize_MiB, void** memPoolBffrPtrs) const noexcept override {
-    int* a = (int*)memPoolBffrPtrs[0];
-    int* b = (int*)memPoolBffrPtrs[1];
+  execCPU(const size_t batchSize_MiB, void** memPoolBffrPtrs) const noexcept
+override { int* a = (int*)memPoolBffrPtrs[0]; int* b = (int*)memPoolBffrPtrs[1];
     int item = batchSize_MiB * (1<<20)/sizeof(int);
     for(int i = 0; i < item; i++){
       a[i] += b[i];
@@ -46,15 +45,12 @@ private:
 
 int main() {
   /*
-  std::unique_ptr<GLOBAL_DPU_MGR> g_DPU_MGR = std::make_unique<GLOBAL_DPU_MGR>();
-  OperatorREDUCE  a(g_DPU_MGR);
-  int* src1 = (int*) malloc((1<<20) * 512);
-  int* src2 = (int*) malloc((1<<20) * 512);
-  int* src3 = (int*) malloc((1<<20) * 512);
-  int* input[3] = {src1, src2, src3};
-  if (a.checkIfIsTrainable()) {
-    a.trainModel(256, (void**)input);
-    std::cout << "a is " << (a.checkIfIsTrained() ? "trained" : "untrain")
+  std::unique_ptr<GLOBAL_DPU_MGR> g_DPU_MGR =
+  std::make_unique<GLOBAL_DPU_MGR>(); OperatorREDUCE  a(g_DPU_MGR); int* src1 =
+  (int*) malloc((1<<20) * 512); int* src2 = (int*) malloc((1<<20) * 512); int*
+  src3 = (int*) malloc((1<<20) * 512); int* input[3] = {src1, src2, src3}; if
+  (a.checkIfIsTrainable()) { a.trainModel(256, (void**)input); std::cout << "a
+  is " << (a.checkIfIsTrained() ? "trained" : "untrain")
               << std::endl;
     std::cout << "deduced perf is : " << a.deducePerf(0, 200).timeCost_Second
               << std::endl;
@@ -72,9 +68,9 @@ int main() {
   va->trainModel(batchSize_MiB,allBffrPtrs, 300);
   va->verifyRegression("./", batchSize_MiB);
   */
-  for(size_t batch = 256; batch <= batchSize_MiB; batch*=2){
+  for (size_t batch = 256; batch <= batchSize_MiB; batch *= 2) {
     om.trainAll(batch, 200);
-    om.verifyAll("/output/batch_" +std::to_string(batch)+"MiB/", batch);
+    om.verifyAll("/output/batch_" + std::to_string(batch) + "MiB/", batch);
   }
   return 0;
 }

@@ -96,8 +96,9 @@ void HEFTScheduler::scheduleTask(
         double transferCost =
             om.deducePerfCPU(OperatorTag::MAP,
                              edgeProps.dataSize_Ratio *
-                              (sourceNodeProps.op!=OperatorTag::LOGIC_START?
-                                 sourceNodeProps.inputSize_MiB : 0))
+                                 (sourceNodeProps.op != OperatorTag::LOGIC_START
+                                      ? sourceNodeProps.inputSize_MiB
+                                      : 0))
                 .timeCost_Second;
         earliestStartTime =
             std::max(earliestStartTime, predInfo.endTime + transferCost);

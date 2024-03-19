@@ -129,9 +129,9 @@ int main() {
   TaskGraph gea = genGEA(5, 1);
   gea.printGraph("./");
   auto v = gea.topoSort();
-  std::cout << "TOPO of gea:"<<std::endl;
-  for(const auto& vi : v){
-    std::cout<<"node "<< gea.g[vi].name<<std::endl;
+  std::cout << "TOPO of gea:" << std::endl;
+  for (const auto &vi : v) {
+    std::cout << "node " << gea.g[vi].name << std::endl;
   }
   return 0;
 }

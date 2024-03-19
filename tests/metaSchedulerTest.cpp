@@ -40,7 +40,7 @@ void scheduleAndCheck(const Task &task, const scheduleType sType) noexcept {
     [ schedule, estimateCost ] = scheduler.scheduleAllDPU(task);
     break;
   case scheduleType::energy_sensitive:
-    [ schedule, estimateCost ] = scheduler.schedule(task.0.0f, 1.0f);
+    [ schedule, estimateCost ] = scheduler.schedule(task .0.0f, 1.0f);
     break;
   case scheduleType::time_sensitive:
     [ schedule, estimateCost ] = scheduler.schedule(task, 1.0f, 0.0f);

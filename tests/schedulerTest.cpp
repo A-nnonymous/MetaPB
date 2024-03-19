@@ -1,18 +1,20 @@
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <limits>
-#include <unordered_map>
+#include "Executor/HeteroComputePool.hpp"
+#include "Executor/TaskGraph.hpp"
 #include "Operator/OperatorManager.hpp"
 #include "Operator/OperatorRegistry.hpp"
-#include "Executor/TaskGraph.hpp"
 #include "Scheduler/SchedulerManager.hpp"
-#include "Executor/HeteroComputePool.hpp"
+#include "omp.h"
+#include "utils/Stats.hpp"
 #include "utils/typedef.hpp"
+#include <algorithm>
+#include <iostream>
+#include <limits>
+#include <unordered_map>
+#include <vector>
 
 using execType = MetaPB::Executor::execType;
 using TaskGraph = MetaPB::Executor::TaskGraph;
-using TaskNode = MetaPB::Executor::TaskNode ;
+using TaskNode = MetaPB::Executor::TaskNode;
 using CPUOnlyScheduler = MetaPB::Scheduler::CPUOnlyScheduler;
 using Graph = MetaPB::Executor::Graph;
 using TaskProperties = MetaPB::Executor::TaskProperties;
@@ -20,10 +22,11 @@ using TransferProperties = MetaPB::Executor::TransferProperties;
 using OperatorType = MetaPB::Operator::OperatorType;
 using OperatorTag = MetaPB::Operator::OperatorTag;
 using OperatorManager = MetaPB::Operator::OperatorManager;
+using MetaPB::Executor::HeteroComputePool;
 using MetaPB::Operator::tag2Name;
 using MetaPB::utils::regressionTask;
 using MetaPB::utils::Schedule;
-using MetaPB::Executor::HeteroComputePool;
+using perfStats = MetaPB::utils::perfStats;
 
 inline const std::string getCordinateStr(int row, int col) noexcept {
   return "[" + std::to_string(row) + "," + std::to_string(col) + "]";
@@ -45,8 +48,8 @@ TaskGraph genFFT(int signalLength, size_t batchSize_MiB) {
   TaskProperties endNode = {OperatorTag::LOGIC_END, OperatorType::Logical, 0,
                             "yellow", "END"};
 
-  TaskProperties fftNode = {OperatorTag::MAC, OperatorType::CoumputeBound, batchSize_MiB,
-                            "red", "MAC"};
+  TaskProperties fftNode = {OperatorTag::MAC, OperatorType::CoumputeBound,
+                            batchSize_MiB, "red", "MAC"};
 
   TransferProperties fftTransfer = {1.0f, true};
 
@@ -91,7 +94,6 @@ TaskGraph genFFT(int signalLength, size_t batchSize_MiB) {
  g[0] = fftNode;
   g[N * (log2N + 1) + 1] = fftNode;
   */
-
 
   return {g, "FFT_" + std::to_string(N)};
 }
@@ -138,37 +140,62 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
   return {g, "GEA_" + std::to_string(N)};
 }
 
-int main(){
-  auto g = genFFT(8,1024);
+int main() {
+  auto g = genFFT(8, 4096);
   regressionTask rt = g.genRegressionTask();
   OperatorManager om;
   om.trainModel(rt);
-  MetaPB::Scheduler::HEFTScheduler he(g,om);
+  MetaPB::Scheduler::HEFTScheduler he(g, om);
   Schedule scheduleResult = he.schedule();
-  for(auto &o : scheduleResult.offloadRatio){
-    o = 0.42;
-  }
-  HeteroComputePool hep(scheduleResult.order.size(), om);
-  for(int i =0; i < 5; i++){
-    auto mimic = hep.execWorkload(g, scheduleResult, execType::MIMIC);
-    auto real = hep.execWorkload(g, scheduleResult, execType::DO);
-    std::cout << "Real perf: "<< real.timeCost_Second<< " second, "
-                  "Mimic perf: "<< mimic.timeCost_Second<<" second"std::endl;
-    std::cout << "Real energy: "<< real.energyCost_Joule<< " joule, "
-                  "Mimic energy: "<< mimic.energyCost_Joule<<"joule."<<std::endl;
-    std::cout << "Real xfer: "<< real.dataMovement_MiB<< " MiB."<<std::endl;
-  }
-  //hep.outputTimingsToCSV("./gea_gantt.csv");
 
-  // 打印调度结果
-  std::cout << "Execution Order: ";
-  for (int id : scheduleResult.order) {
-      std::cout << id << " ";
+  void **memPoolPtr = (void **)malloc(3);
+#pragma omp parallel for
+  for (int i = 0; i < 3; i++) {
+    memPoolPtr[i] = malloc(4 * size_t(1 << 30)); // 2GiB
   }
-  std::cout << "\nOffload Ratios: ";
-  for (float ratio : scheduleResult.offloadRatio) {
-      std::cout << ratio << " ";
+  std::vector<perfStats> result(5);
+  std::vector<HeteroComputePool> pools;
+  for (int i = 0; i < 5; i++) {
+    pools.emplace_back(std::move(
+        HeteroComputePool{scheduleResult.order.size(), om, memPoolPtr}));
   }
-  std::cout << std::endl;
+#pragma omp parallel for
+  for (int i = 0; i < 5; i++) {
+    result[i] = pools[i].execWorkload(g, scheduleResult, execType::MIMIC);
+  }
+
+  perfStats real;
+  for (int i = 0; i < 5; i++) {
+    real = pools[4].execWorkload(g, scheduleResult, execType::DO);
+  }
+  std::cout << "Real perf: " << real.timeCost_Second
+            << " second, "
+               "Mimic perf: "
+            << result[4].timeCost_Second << " second" << std::endl;
+  std::cout << "Real energy: " << real.energyCost_Joule
+            << " joule, "
+               "Mimic energy: "
+            << result[4].energyCost_Joule << "joule." << std::endl;
+  std::cout << "Real xfer: " << real.dataMovement_MiB
+            << " MiB,"
+               "Mimic xfer: "
+            << result[4].dataMovement_MiB << "MiB" << std::endl;
+#pragma omp parallel for
+  for (int i = 0; i < 3; i++) {
+    free(memPoolPtr[i]);
+  }
+  // hep.outputTimingsToCSV("./gea_gantt.csv");
+
+  /*
+std::cout << "Execution Order: ";
+for (int id : scheduleResult.order) {
+    std::cout << id << " ";
+}
+std::cout << "\nOffload Ratios: ";
+for (float ratio : scheduleResult.offloadRatio) {
+    std::cout << ratio << " ";
+}
+std::cout << std::endl;
+  */
   return 0;
 }
