@@ -27,16 +27,9 @@ namespace Operator {
 
 struct OperatorManager {
 
-  void instantiateOpSet(const regressionTask &task) {
-    for (const auto &[opTag, _] : task) {
-      auto op = this->getOperator(opTag);
-      opMap[opTag] = std::move(op);
-    }
-  }
-
-  void trainModel(regressionTask task) {
+  void trainModel(const regressionTask& task) {
     size_t maxMiB = 0;
-    for (auto &[opTag, batchUpBound_MiB] : task) {
+    for (const auto &[opTag, batchUpBound_MiB] : task) {
       if (batchUpBound_MiB > maxMiB)
         maxMiB = batchUpBound_MiB;
     }

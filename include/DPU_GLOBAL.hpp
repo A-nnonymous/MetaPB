@@ -15,11 +15,11 @@ struct GLOBAL_DPU_MGR {
   inline static bool isFreed = false;
   GLOBAL_DPU_MGR(const GLOBAL_DPU_MGR &) = delete;
 
-  GLOBAL_DPU_MGR() {
+  GLOBAL_DPU_MGR(std::uint32_t DPU_NUM=2530) {
     if (!isAllocated) {
       std::cout << "###########################################" << std::endl;
       std::cout << "Global UPMEM-PIM DPU manager initialzing..." << std::endl;
-      DPU_ASSERT(dpu_alloc(DPU_ALLOCATE_ALL, NULL, &dpu_set));
+      DPU_ASSERT(dpu_alloc(DPU_NUM, NULL, &dpu_set));
       std::uint32_t result;
       DPU_ASSERT(dpu_get_nr_dpus(dpu_set, &result));
       std::cout << "Allocated " << result << " DPU(s)\n";

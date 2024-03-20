@@ -1,2 +1,0 @@
-add_subdirectory(src_cpu)
-add_subdirectory(src_dpu)

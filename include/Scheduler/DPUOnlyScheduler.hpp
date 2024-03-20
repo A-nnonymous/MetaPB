@@ -1,12 +1,12 @@
-#ifndef CPU_ONLY_SCHED_HPP
-#define CPU_ONLY_SCHED_HPP
+#ifndef DPU_ONLY_SCHED_HPP
+#define DPU_ONLY_SCHED_HPP
 #include "Executor/TaskGraph.hpp"
 
 namespace MetaPB {
 namespace Scheduler {
 using TaskGraph = Executor::TaskGraph;
 
-class CPUOnlyScheduler{
+class DPUOnlyScheduler{
 public:
   Schedule schedule(const TaskGraph &gIn,
                             OperatorManager &om) noexcept {

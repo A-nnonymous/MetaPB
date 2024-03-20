@@ -67,13 +67,15 @@ plt.title(f'Gantt Chart of {task_name} Execution by Worker and OpType')
 # Add a legend
 handles, labels = plt.gca().get_legend_handles_labels()
 by_label = dict(zip(labels, handles))  # Remove duplicates
-plt.legend(by_label.values(), by_label.keys(), title='OpTypes')
+# Add a legend and place it below the x-axis
+legend_num_col = len(by_label)  # Number of columns in legend
+plt.legend(by_label.values(), by_label.keys(), loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=legend_num_col)
 
 # Save the figure as SVG and PNG
 output_svg = os.path.join(output_path, f'{task_name}_gantt_chart.svg')
 output_png = os.path.join(output_path, f'{task_name}_gantt_chart.png')
-plt.savefig(output_svg, format='svg')
-plt.savefig(output_png, format='png')
+plt.savefig(output_svg, format='svg', bbox_inches='tight')
+plt.savefig(output_png, format='png', bbox_inches='tight')
 
 # Show the plot
 plt.tight_layout()

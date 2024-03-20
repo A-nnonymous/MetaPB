@@ -1,14 +1,6 @@
-#include "Executor/HeteroComputePool.hpp"
-#include "utils/Stats.hpp"
-#include "Executor/TaskGraph.hpp"
-#include "Operator/OperatorManager.hpp"
-#include <cstdlib>
+#include "enviroment.hpp"
 
-using MetaPB::Executor::HeteroComputePool;
-using MetaPB::Operator::OperatorManager;
-using MetaPB::Operator::allPerfRelOPSet;
-using MetaPB::Operator::OperatorTag;
-using MetaPB::utils::perfStats;
+using namespace benchmarks;
 
 void* memPools{
   malloc(4 * size_t(1<<30)),
@@ -72,5 +64,4 @@ void testSchedules_VAMAC(size_t batchSize_MiB， const std::string &dumpPath){
 }
 int main(){
   om.trainAll()
-
 }
