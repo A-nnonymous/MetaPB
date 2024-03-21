@@ -6,3 +6,4 @@ paperArchive/
 *.csv
 *.svg
 *.png
+.ipynb

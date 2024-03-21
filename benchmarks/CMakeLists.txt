@@ -1,3 +1,5 @@
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/benchmarks)
 
-#target_link_libraries(schedTest executorLib schedulerLib utilsLib OpenMP::OpenMP_CXX)
+add_executable(benchmarks ./benchmarks.cpp)
+target_link_libraries(benchmarks dpu executorLib operatorLib schedulerLib utilsLib OpenMP::OpenMP_CXX)

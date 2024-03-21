@@ -1,6 +1,10 @@
 #ifndef REAL_WORKLOADS
 #define REAL_WORKLOADS
-#include "../enviroment.hpp"
+#include "environment.hpp"
+using MetaPB::Executor::TaskProperties;
+using MetaPB::Executor::TransferProperties;
+using MetaPB::Executor::TaskNode;
+using MetaPB::Operator::OperatorType;
 
 namespace benchmarks{
 inline const std::string getCordinateStr(int row, int col) noexcept {

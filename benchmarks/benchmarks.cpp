@@ -1,31 +1,35 @@
-#include "enviroment.hpp"
+#include "environment.hpp"
+#include "helper.hpp"
+#include "workloads.hpp"
+#include "defs.hpp"
 
-using namespace benchmarks;
+using execType = MetaPB::Executor::execType;
+using TaskGraph = MetaPB::Executor::TaskGraph;
+using TaskNode = MetaPB::Executor::TaskNode;
+using Graph = MetaPB::Executor::Graph;
+using TaskProperties = MetaPB::Executor::TaskProperties;
+using TransferProperties = MetaPB::Executor::TransferProperties;
+using OperatorType = MetaPB::Operator::OperatorType;
+using OperatorTag = MetaPB::Operator::OperatorTag;
+using OperatorManager = MetaPB::Operator::OperatorManager;
+using MetaPB::Executor::HeteroComputePool;
+using MetaPB::Operator::tag2Name;
+using MetaPB::utils::regressionTask;
+using MetaPB::utils::Schedule;
+using perfStats = MetaPB::utils::perfStats;
+using MetaPB::Operator::allPerfRelOPSet;
 
-void* memPools{
-  malloc(4 * size_t(1<<30)),
-  malloc(4 * size_t(1<<30)),
-  malloc(4 * size_t(1<<30)),
+void* memPools[3]{
+  malloc(24 * size_t(1<<30)),
+  malloc(24 * size_t(1<<30)),
+  malloc(24 * size_t(1<<30)),
 };
 
 static OperatorManager om;
-static HeteroComputePool hcp(10,om,memPools);
+static HeteroComputePool hcp(50,om,memPools);
 
-TaskGraph genSingleOp_wo_xfer(OperatorTag opTag, size_t batchSize_MiB){
 
-}
-
-TaskGraph genSingleOp_w_map(OperatorTag opTag, size_t batchSize_MiB){
-
-}
-
-TaskGraph genSingleOp_w_mapreduce(OperatorTag opTag, size_t batchSize_MiB){
-
-}
-
-TaskGraph genVAMAC_string(size_t length, size_t batchSize_MiB){
-
-}
+/*
 
 void testAllSingleOp_wo_xfer(size_t batchSize_MiB, const std::string& dumpPath){
   for(const auto& op: allPerfRelOPSet){
@@ -58,10 +62,17 @@ void testAllSingleOp_w_mapreduce(size_t batchSize_MiB, const std::string& dumpPa
     dumpAllRatioStats(result, dumpPath + "");
   }
 }
-void testSchedules_VAMAC(size_t batchSize_MiB， const std::string &dumpPath){
+void testSchedules_VAMAC(size_t batchSize_MiB, const std::string &dumpPath){
   const auto tg = genVAMAC_string(10, batchSize_MiB);
   // test all Scheduler's result and performace, dump the actual schedule
 }
+*/
+
+namespace benchmarks{
+struct benchmarks{
+  
+};
+}
 int main(){
-  om.trainAll()
+  return 0;
 }
