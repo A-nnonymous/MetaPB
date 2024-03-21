@@ -1,12 +1,12 @@
-#ifndef BENCH
-#define BENCH
+#ifndef BENCH_ENV
+#define BENCH_ENV
 
 #include "Executor/HeteroComputePool.hpp"
 #include "Executor/TaskGraph.hpp"
-#include "Scheduler/MetaScheduler.hpp"
-#include "Scheduler/HEFTScheduler.hpp"
 #include "Operator/OperatorManager.hpp"
 #include "Operator/OperatorRegistry.hpp"
+#include "Scheduler/HEFTScheduler.hpp"
+#include "Scheduler/MetaScheduler.hpp"
 #include "omp.h"
 #include "utils/Stats.hpp"
 #include "utils/typedef.hpp"
@@ -16,7 +16,6 @@
 #include <unordered_map>
 #include <vector>
 
-namespace benchmarks{
-} // namespace benchmarks
+namespace benchmarks {} // namespace benchmarks
 
 #endif

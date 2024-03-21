@@ -8,9 +8,9 @@ This work is build and tested in real world commercial PIM computing system **UP
 |Category|Model|Count|Performance Metrics|Energy Consumption Metrics|
 |-------|-----|-----|-------------------|--------------------------|
 |CPU|Intel(R) Xeon(R) Silver 4216 (16 cores, 32 threads each)|2|2.2-3.2GHz w 22MB LLC|100W * 2|
-|DRAM|Samsung M393A8G40AB2-CWE (64GB each)|4|3200 MHz|?|
+|DRAM|Samsung M393A8G40AB2-CWE (64GB each)|4|3200 MHz|30W|
 |PIM-DPU|UPMEM RISC-V DPU|2530|343-350Mhz w 64KB WRAM|100-150mW * 2530|
-|PIM-DRAM|UPMEM BC021B (8GB each)|20|2400MHz|5.7-?W * 40 (include DPU)|
+|PIM-DRAM|UPMEM BC021B (8GB each)|20|2400MHz|280W(include DPU)|
 ### 2.2. Software environment specifications
 |Category|Name|Version|
 |--------|----|-------|
@@ -21,7 +21,10 @@ This work is build and tested in real world commercial PIM computing system **UP
 |Toolchains|GCC|12.3.0|
 |Toolchains|G++|12.3.0|
 |Toolchains|CMake|3.28.0|
-|Submodules|stdexec|commit 4da440447|  
+|Toolchains|Python3|3.10.0|
+|Libraries|boost|1.74.0.3 ubuntu7 amd64|  
+|Libraries|xgboost|1.5.2-1 amd64|  
+
 
 Be ware that the repository stdexec requires compiler that **support C++20 standard**, in order to configurate correctly, it is adviced that the CMake version is **not less than 3.27.0** and with network access.
 ## 3. Overall architecture
@@ -41,13 +44,8 @@ Be ware that the repository stdexec requires compiler that **support C++20 stand
 ### 4.3. Run demos
 
   ```bash
-  ./bin/foo
+  ./build/benchmraks/foo
   ```
-## 5. Work to be done
-  1.Finish the refractoring and testing of Optimizer class.  
-  2.Refractor SimplePIM and finish the developing of Operator class.  
-  3.Test and verify the Sender & Receiver execution model in UPMEM.  
 
-  
-## 6. References
+## 5. References
 [1] upmem

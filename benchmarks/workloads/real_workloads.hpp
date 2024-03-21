@@ -1,12 +1,13 @@
 #ifndef REAL_WORKLOADS
 #define REAL_WORKLOADS
-#include "environment.hpp"
+#include "helpers/helper.hpp"
+using MetaPB::Executor::TaskNode;
 using MetaPB::Executor::TaskProperties;
 using MetaPB::Executor::TransferProperties;
-using MetaPB::Executor::TaskNode;
+using MetaPB::Operator::OperatorTag;
 using MetaPB::Operator::OperatorType;
 
-namespace benchmarks{
+namespace benchmarks {
 inline const std::string getCordinateStr(int row, int col) noexcept {
   return "[" + std::to_string(row) + "," + std::to_string(col) + "]";
 }
@@ -111,11 +112,11 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
           g[rc2Task[{row, col}]].name = getCordinateStr(row, col);
           boost::add_edge(rc2Task[{row, col}], rc2Task[{row + 1, col}],
                           geaTransfer, g);
-        }else if(row == (N - 2) && col == (N - 1)){
+        } else if (row == (N - 2) && col == (N - 1)) {
           g[rc2Task[{row, col}]] = geaNode;
           g[rc2Task[{row, col}]].name = getCordinateStr(row, col);
           auto end = boost::add_vertex(endNode, g);
-          boost::add_edge(rc2Task[{N-2, N-1}], end, geaTransfer, g);
+          boost::add_edge(rc2Task[{N - 2, N - 1}], end, geaTransfer, g);
         }
       }
     }
@@ -124,6 +125,6 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
   return {g, "GEA_" + std::to_string(N)};
 }
 
-}
+} // namespace benchmarks
 
 #endif

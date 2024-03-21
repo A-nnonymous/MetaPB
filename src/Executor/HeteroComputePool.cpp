@@ -161,7 +161,6 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
       totalTransfer_mb += totalOutputSize_MiB;
       if(eT ==execType::DO){
         reduceTask.execute = [this, totalOutputSize_MiB]() {
-          std::cout << "end node starting reduce with size: "<< totalOutputSize_MiB << "MiB" <<std::endl;
           om.execCPU(OperatorTag::REDUCE, totalOutputSize_MiB, this->memPoolPtr);
         };
       }else{ //MIMIC

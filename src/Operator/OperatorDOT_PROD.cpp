@@ -22,7 +22,7 @@ OperatorDOT_PROD::execDPU(const size_t batchSize_MiB) const noexcept {
   uint32_t nr_of_dpus;
   DPU_ASSERT(dpu_get_nr_dpus(allDPUs, &nr_of_dpus));
   size_t bytes = batchSize_MiB * (1 << 20);
-  if (bytes == 0)
+  if (bytes == 0 || bytes > 67108864)
     return; // essential for not being overflowed
   const size_t input_size_dpu =
       divceil(bytes, nr_of_dpus); // Input size per DPU (max.)

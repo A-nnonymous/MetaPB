@@ -126,13 +126,17 @@ def generate_plots(data_directory, output_directory):
     plot_data(ax1, data_summary, 'Perf', 'Time_Second', 'CPU and DPU Performance Comparison', format_ticks)
     performance_image_filename = os.path.join(output_directory, 'CPU_DPU_Performance_Comparison_log_scale.png')
     plt.savefig(performance_image_filename, bbox_inches='tight')
+    svg_filename = os.path.join(output_directory, 'CPU_DPU_Performance_Comparison_log_scale.svg')
+    plt.savefig(svg_filename, format='svg',bbox_inches='tight')
     plt.close()
 
     # Plot energy consumption comparison
     fig, ax2 = plt.subplots(figsize=(14, 8))
     plot_data(ax2, data_summary, 'Energy', 'Energy_Joule', 'CPU and DPU Energy Consumption Comparison', lambda x, pos: '{:,.0f}'.format(x))
     energy_image_filename = os.path.join(output_directory, 'CPU_DPU_Energy_Consumption_Comparison_log_scale.png')
+    svg_filename = os.path.join(output_directory, 'CPU_DPU_Energy_Consumption_Comparison_log_scale.svg')
     plt.savefig(energy_image_filename, bbox_inches='tight')
+    plt.savefig(svg_filename, format='svg',bbox_inches='tight')
     plt.close()
 
 # Check if the required arguments are provided
