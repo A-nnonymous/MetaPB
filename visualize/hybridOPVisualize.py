@@ -8,14 +8,15 @@ def plot_performance_energy(data_file_w, data_file_wo, output_path):
     wo_reduce_data = pd.read_csv(data_file_wo)
 
     # 计算性能（GiB/s）
-    w_reduce_data['performance'] = (w_reduce_data['dataTransfer_MiB'] / 1024) / w_reduce_data['timeConsume_Seconds']
-    wo_reduce_data['performance'] = (wo_reduce_data['dataTransfer_MiB'] / 1024) / wo_reduce_data['timeConsume_Seconds']
+    w_reduce_data['performance'] = 4 / w_reduce_data['timeConsume_Seconds']
+    wo_reduce_data['performance'] = 4 / wo_reduce_data['timeConsume_Seconds']
 
     # 获取运算符名称列表
     operators = pd.concat([w_reduce_data['OperatorName'], wo_reduce_data['OperatorName']]).unique()
 
     # 创建子图
     fig, axs = plt.subplots(1, len(operators), figsize=(5 * len(operators), 5))
+    #fig, axs = plt.subplots(2, 3, figsize=(3  , 2))
 
     # 如果只有一个运算符，将axs转换为列表
     if len(operators) == 1:

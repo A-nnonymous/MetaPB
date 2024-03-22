@@ -7,6 +7,10 @@
 #include "Operator/OperatorRegistry.hpp"
 #include "Scheduler/HEFTScheduler.hpp"
 #include "Scheduler/MetaScheduler.hpp"
+#include "Scheduler/CPUOnlyScheduler.hpp"
+#include "Scheduler/DPUOnlyScheduler.hpp"
+#include "Scheduler/GreedyScheduler.hpp"
+
 #include "omp.h"
 #include "utils/Stats.hpp"
 #include "utils/typedef.hpp"

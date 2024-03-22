@@ -27,19 +27,21 @@ public:
                        "perf.csv");
     file << "OperatorName,offloadRatio,timeConsume_Seconds,energyConsume_"
             "Joules,dataTransfer_MiB\n";
-             for (const auto &[perfPair, stats] :
-                                           result) {
-      file << tag2Name.at(perfPair.first) << "," << std::to_string(perfPair.second)
-           << "," << std::to_string(stats.timeCost_Second) << ","
+    for (const auto &[perfPair, stats] : result) {
+      file << tag2Name.at(perfPair.first) << ","
+           << std::to_string(perfPair.second) << ","
+           << std::to_string(stats.timeCost_Second) << ","
            << std::to_string(stats.energyCost_Joule) << ","
            << std::to_string(stats.dataMovement_MiB) << "\n";
     }
   }
   void exec() override {
     size_t loadSize_MiB = std::stoul(myArgs["loadSize_MiB"]);
-    void **memPool= (void **)malloc(3);
+    void **memPool = (void **)malloc(3);
+
+#pragma omp parallel for
     for (int i = 0; i < 3; i++) {
-      memPool[i] = malloc(loadSize_MiB * size_t(1 << 20)); 
+      memPool[i] = malloc(loadSize_MiB * size_t(1 << 20));
     }
     OperatorManager om;
     om.instantiateAll();
@@ -49,31 +51,43 @@ public:
 
     for (const auto &opSet : hybridOPSet) {
       for (const auto &opTag : opSet) {
-        std::cout << "Hybridizing Operator "<< tag2Name.at(opTag) << std::endl;
+        std::cout << "Hybridizing Operator " << tag2Name.at(opTag) << std::endl;
         for (int i = 0; i <= 10; i++) {
           float offloadRatio = i / 10.0f;
           if (isConsideringReduce) {
-            Schedule sched {false, {0,1}, {offloadRatio, 0.0f}};
+            Schedule sched{false, {0, 1}, {offloadRatio, 0.0f}};
             TaskGraph tg = genSingleOp_w_reduce(opTag, loadSize_MiB);
-            for(int i = 0; i < WARMUP_REP + REP; i++){
-              perfStats stat = hcp.execWorkload(tg, sched, execType::DO);
-              if(i >= REP)result[{opTag, offloadRatio}] = stat;
+            perfStats stat{0, 0, 0};
+            for (int i = 0; i < WARMUP_REP + REP; i++) {
+              perfStats thisStat = hcp.execWorkload(tg, sched, execType::DO);
+              if (i >= WARMUP_REP) {
+                stat.timeCost_Second += thisStat.timeCost_Second / REP;
+                stat.energyCost_Joule += thisStat.energyCost_Joule / REP;
+                stat.dataMovement_MiB += thisStat.dataMovement_MiB / REP;
+              }
             }
+            result[{opTag, offloadRatio}] = stat;
           } else {
-            Schedule sched {false, {0}, {offloadRatio}};
+            Schedule sched{false, {0}, {offloadRatio}};
             TaskGraph tg = genSingleOp_wo_reduce(opTag, loadSize_MiB);
-            for(int i = 0; i < WARMUP_REP + REP; i++){
-              perfStats stat = hcp.execWorkload(tg, sched, execType::DO);
-              if(i >= REP)result[{opTag, offloadRatio}] = stat;
+            perfStats stat{0, 0, 0};
+            for (int i = 0; i < WARMUP_REP + REP; i++) {
+              perfStats thisStat = hcp.execWorkload(tg, sched, execType::DO);
+              if (i >= WARMUP_REP) {
+                stat.timeCost_Second += thisStat.timeCost_Second / REP;
+                stat.energyCost_Joule += thisStat.energyCost_Joule / REP;
+                stat.dataMovement_MiB += thisStat.dataMovement_MiB / REP;
+              }
             }
+            result[{opTag, offloadRatio}] = stat;
           }
         }
       }
     }
-    for(int i = 0; i < 3; i++){
+    for (int i = 0; i < 3; i++) {
       free(memPool[i]);
     }
-    free((void*) memPool);
+    free((void *)memPool);
   }
 
 private:

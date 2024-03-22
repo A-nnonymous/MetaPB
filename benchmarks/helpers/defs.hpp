@@ -5,12 +5,12 @@
 #define RESULT_DUMP_DIR "/output/MetaPB_Results/"
 #endif
 
-#ifndef WARMUP_REP 
+#ifndef WARMUP_REP
 #define WARMUP_REP 2
 #endif
 
 #ifndef REP
-#define REP 3
+#define REP 5
 #endif
 
 #endif

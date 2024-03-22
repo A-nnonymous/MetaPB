@@ -62,7 +62,7 @@ public:
   }
 
   /// @brief Flatten and cumulate all points arguments history and output
-  /// @return A 2-dimensional aType vector shaped in (pointNum * iterNum,
+  /// @return A N-dimensional aType vector shaped in (pointNum * iterNum,
   /// dimNum)
   ptFrm_t getCumulatePointsHistory() const noexcept;
 

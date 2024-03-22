@@ -117,6 +117,7 @@ private:
 private:
   void **memPoolPtr;
   int memPoolNum = 3;
+  double totalDPUTime_Second = 0.0f;
   const OperatorManager &om;
   std::mutex mutex_;
   std::condition_variable cv_;

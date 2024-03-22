@@ -16,9 +16,18 @@ using regressionTask = utils::regressionTask;
 
 class TaskGraph {
 public:
-  TaskGraph() = delete;
+  TaskGraph(){}
   TaskGraph(Graph gIn, const std::string n) : g(gIn), name(n) {}
-
+    TaskGraph(const TaskGraph& other) noexcept
+    : g(std::move(other.g)), 
+      name(std::move(other.name)) {}
+  TaskGraph& operator=(TaskGraph&& other) noexcept {
+    if (this != &other) { // 防止自赋值
+      g = std::move(other.g); // 移动Graph对象
+      this->name = other.name;
+    }
+    return *this; // 返回当前对象的引用
+  }
   void traverse();
   // -----------MetaPB related functions -----------
   // Generate regression task according to op set and batch size.
@@ -36,7 +45,7 @@ public:
   Graph g;
 
 private:
-  const std::string name;
+  std::string name;
 }; // class TaskGraph
 
 } // namespace Executor

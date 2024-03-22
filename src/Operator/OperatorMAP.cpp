@@ -12,7 +12,7 @@ inline void OperatorMAP::execCPU(const size_t batchSize_MiB,
   uint32_t nr_of_dpus;
   DPU_ASSERT(dpu_get_nr_dpus(allDPUs, &nr_of_dpus));
   size_t bytes = batchSize_MiB * (1 << 20);
-  if (bytes == 0 || bytes > 67108864)
+  if (bytes == 0)
     return; // essential for not being overflowed
   const size_t input_size_dpu =
       divceil(bytes, nr_of_dpus); // Input size per DPU (max.)
@@ -20,6 +20,7 @@ inline void OperatorMAP::execCPU(const size_t batchSize_MiB,
       (input_size_dpu % 8) != 0
           ? roundup(input_size_dpu, 8)
           : input_size_dpu; // Input size per DPU (max.), 8-byte aligned
+if(input_size_dpu_8bytes > 67108864)return;
 
   int i = 0;
   dpu_set_t dpu;

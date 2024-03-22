@@ -4,6 +4,8 @@ using namespace benchmarks;
 int main() {
   BenchmarkManager bm;
   // ------------ Hybridize OP benchmarks --------------
+
+  /*
   bm.addBenchmark<HybridOP_Benchmark>(
     {"singleOP"},
     {
@@ -11,6 +13,7 @@ int main() {
       {"isConsideringReduce", "false"},
     }
   );
+
   bm.addBenchmark<HybridOP_Benchmark>(
     {"singleOP"},
     {
@@ -18,6 +21,17 @@ int main() {
       {"isConsideringReduce", "true"},
     }
   );
+  bm.addBenchmark<DetailShowOff>({"string_workload"},
+                                 {
+                                     {"loadSize_MiB", "4096"},
+                                     {"opNum", "10"},
+                                 });
+  */
+  bm.addBenchmark<Graph_benchmark>(
+      {"All_Graphloads"},
+      {
+        {"loadSize_MiB", "4096"}
+      });
   bm.exec();
   return 0;
 }

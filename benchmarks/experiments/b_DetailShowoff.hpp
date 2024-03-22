@@ -13,68 +13,177 @@ using Operator::hybridOPSet;
 using Operator::OperatorManager;
 using Operator::OperatorTag;
 using Operator::tag2Name;
+
+using Scheduler::MetaScheduler;
+using OptimizerInfos = Scheduler::MetaScheduler::OptimizerInfos;
+
+using utils::perfStats;
 using utils::Schedule;
 
+using pt_t = Optimizer::OptimizerBase<float, float>::pt_t;
+using valFrm_t = Optimizer::OptimizerBase<float, float>::valFrm_t;
+using ptFrm_t = Optimizer::OptimizerBase<float, float>::ptFrm_t;
+using ptHist_t = Optimizer::OptimizerBase<float, float>::ptHist_t;
+using valHist_t = Optimizer::OptimizerBase<float, float>::valHist_t;
+
 namespace benchmarks {
-class DetailShowOff: public Benchmark {
+class DetailShowOff : public Benchmark {
 public:
   using Benchmark::Benchmark;
   void writeCSV(const std::string &dumpPath) const noexcept override {
-    std::ofstream file(dumpPath + myArgs.at("loadSize_MiB") + "MiB_" +
-                       (myArgs.at("isConsideringReduce") == "true"
-                            ? "w_reduce_"
-                            : "wo_reduce_") +
-                       "perf.csv");
-    file << "OperatorName,offloadRatio,timeConsume_Seconds,energyConsume_"
-            "Joules,dataTransfer_MiB\n";
-             for (const auto &[perfPair, stats] :
-                                           result) {
-      file << tag2Name.at(perfPair.first) << "," << std::to_string(perfPair.second)
-           << "," << std::to_string(stats.timeCost_Second) << ","
+    for (const auto &[schedName, stats] : perfs) {
+      std::ofstream file(dumpPath + myArgs.at("loadSize_MiB") + "MiB_" +
+                         schedName + "_perf.csv");
+      file << "timeConsume_Seconds,energyConsume_Joules,dataTransfer_MiB\n";
+      file << std::to_string(stats.timeCost_Second) << ","
            << std::to_string(stats.energyCost_Joule) << ","
            << std::to_string(stats.dataMovement_MiB) << "\n";
+    }
+    for (const auto &[schedName, optInfos] : metaData) {
+      std::uint32_t opNum = std::stoi(myArgs.at("opNum"));
+      std::uint32_t pointNum = optInfos.totalValHist[0].size();
+      std::uint32_t iterNum = optInfos.totalValHist.size();
+      std::ofstream tphfile(dumpPath + myArgs.at("loadSize_MiB") + "MiB_" +
+                            myArgs.at("opNum") + "_" + optInfos.optimizerName+ "_" +
+                            +"totalPtHist.csv");
+      // headers
+      for (int i = 0; i < opNum; i++) {
+        tphfile << "Load" << std::to_string(i);
+        if (i != opNum - 1) {
+          tphfile << ",";
+        } else {
+          tphfile << "\n";
+        }
+      }
+      // data
+      for (const auto &pt : optInfos.totalPtFrm) {
+        for (int i = 0; i < opNum; i++) {
+          tphfile << std::to_string(pt[i] / 2.0 + 0.5f);
+          if (i != opNum - 1) {
+            tphfile << ",";
+          } else {
+            tphfile << "\n";
+          }
+        }
+      }
+      std::ofstream tvhfile(dumpPath + myArgs.at("loadSize_MiB") + "MiB_" +
+                            myArgs.at("opNum") + "_" + optInfos.optimizerName+ "_" +
+                            +"totalValHist.csv");
+      // headers
+      for (int i = 0; i < pointNum; i++) {
+        tvhfile << "Point" << std::to_string(i);
+        if (i != pointNum - 1) {
+          tvhfile << ",";
+        } else {
+          tvhfile << "\n";
+        }
+      }
+      // data
+      for (const auto &ptvals : optInfos.totalValHist) {
+        for (int i = 0; i < pointNum; i++) {
+          tvhfile << std::to_string(ptvals[i]);
+          if (i != pointNum - 1) {
+            tvhfile << ",";
+          } else {
+            tvhfile << "\n";
+          }
+        }
+      }
+
+      std::ofstream cpffile(dumpPath + myArgs.at("loadSize_MiB") + "MiB_" +
+                            myArgs.at("opNum") + "_" + optInfos.optimizerName+ "_" +
+                            +"convergePtFrm.csv");
+      // headers
+      for (int i = 0; i < opNum; i++) {
+        cpffile << "Load" << std::to_string(i);
+        if (i != opNum - 1) {
+          cpffile << ",";
+        } else {
+          cpffile << "\n";
+        }
+      }
+      // data
+      for (const auto &pt : optInfos.convergePtFrm) {
+        for (int i = 0; i < opNum; i++) {
+          cpffile << std::to_string(pt[i] / 2.0 + 0.5f);
+          if (i != opNum - 1) {
+            cpffile << ",";
+          } else {
+            cpffile << "\n";
+          }
+        }
+      }
+      std::ofstream cvffile(dumpPath + myArgs.at("loadSize_MiB") + "MiB_" +
+                            myArgs.at("opNum") + "_" + optInfos.optimizerName+ "_" +
+                            +"convergeValFrm.csv");
+      cvffile << "global_fitness\n";
+      for (int i = 0; i < iterNum; i++) {
+        cvffile << std::to_string(optInfos.convergeValFrm[i]);
+        cvffile << "\n";
+      }
+    }
+    for (const auto &[schedName, schedule] : schedules) {
+      std::uint32_t opNum = std::stoi(myArgs.at("opNum"));
+      std::ofstream sfile(dumpPath + myArgs.at("loadSize_MiB") + "MiB_" +
+                          myArgs.at("opNum") + "_"  +
+                          +"schedule.csv");
+      for (int i = 0; i < opNum; i++) {
+        sfile << "Load" << std::to_string(i);
+        if (i != opNum - 1) {
+          sfile << ",";
+        } else {
+          sfile << "\n";
+        }
+      }
+      // data
+      for (int i = 0; i < opNum; i++) {
+        sfile << std::to_string(schedule.offloadRatio[i]);
+        if (i != opNum - 1) {
+          sfile << ",";
+        } else {
+          sfile << "\n";
+        }
+      }
     }
   }
   void exec() override {
     size_t loadSize_MiB = std::stoul(myArgs["loadSize_MiB"]);
     size_t opNum = std::stoul(myArgs["opNum"]);
-    void **memPool= (void **)malloc(3);
+    void **memPool = (void **)malloc(3);
     for (int i = 0; i < 3; i++) {
-      memPool[i] = malloc(loadSize_MiB * size_t(1 << 20)); 
+      memPool[i] = malloc(loadSize_MiB * size_t(1 << 20));
     }
     OperatorManager om;
-    om.instantiateAll();
     HeteroComputePool hcp(opNum, om, memPool);
+    TaskGraph tg = genInterleavedWorkload(loadSize_MiB, opNum);
+    om.trainModel(tg.genRegressionTask());
+    MetaScheduler msPF(1.0f, 0.0f, 100, tg, om);
+    MetaScheduler msHy(0.5f, 0.5f, 100, tg, om);
+    MetaScheduler msEF(0.0f, 1.0f, 100, tg, om);
 
-    for (const auto &opSet : hybridOPSet) {
-      for (const auto &opTag : opSet) {
-        std::cout << "Hybridizing Operator "<< tag2Name.at(opTag) << std::endl;
-        for (int i = 0; i <= 10; i++) {
-          float offloadRatio = i / 10.0f;
-          if (isConsideringReduce) {
-            Schedule sched {false, {0,1}, {offloadRatio, 1.0f}};
-            TaskGraph tg = genSingleOp_w_reduce(opTag, loadSize_MiB);
-            for(int i = 0; i < WARMUP_REP + REP; i++){
-              perfStats stat = hcp.execWorkload(tg, sched, execType::DO);
-              if(i >= REP)result[{opTag, offloadRatio}] = stat;
-            }
-          } else {
-            Schedule sched {false, {0}, {offloadRatio}};
-            TaskGraph tg = genSingleOp_wo_reduce(opTag, loadSize_MiB);
-            for(int i = 0; i < WARMUP_REP + REP; i++){
-              perfStats stat = hcp.execWorkload(tg, sched, execType::DO);
-              if(i >= REP)result[{opTag, offloadRatio}] = stat;
-            }
-          }
-        }
-      }
-    }
-    for(int i = 0; i < 3; i++){
+    schedules["MetaPB_PerfFirst"] = msPF.schedule();
+    schedules["MetaPB_Hybrid"] = msHy.schedule();
+    schedules["MetaPB_EnergyFirst"] = msEF.schedule();
+    perfs["MetaPB_PerfFirst"] =
+        hcp.execWorkload(tg, schedules.at("MetaPB_PerfFirst"), execType::DO);
+    perfs["MetaPB_Hybrid"] =
+        hcp.execWorkload(tg, schedules.at("MetaPB_Hybrid"), execType::DO);
+    perfs["MetaPB_EnergyFirst"] =
+        hcp.execWorkload(tg, schedules.at("MetaPB_EnergyFirst"), execType::DO);
+
+    metaData["MetaPB_PerfFirst"] = msPF.getOptInfo();
+    metaData["MetaPB_Hybrid"] = msHy.getOptInfo();
+    metaData["MetaPB_EnergyFirst"] = msEF.getOptInfo();
+
+    for (int i = 0; i < 3; i++) {
       free(memPool[i]);
     }
-    free((void*) memPool);
+    free((void *)memPool);
   }
 
 private:
+  std::map<std::string, OptimizerInfos> metaData;
+  std::map<std::string, Schedule> schedules;
+  std::map<std::string, perfStats> perfs;
 };
 } // namespace benchmarks

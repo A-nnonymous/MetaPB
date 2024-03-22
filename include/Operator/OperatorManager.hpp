@@ -26,12 +26,12 @@ using regressionTask = utils::regressionTask;
 namespace Operator {
 
 struct OperatorManager {
-  void instantiateAll(){
-    for(const auto& opTag : allOPSet){
+  void instantiateAll() {
+    for (const auto &opTag : allOPSet) {
       opMap[opTag] = getOperator(opTag);
     }
   }
-  void trainModel(const regressionTask& task) {
+  void trainModel(const regressionTask &task) {
     size_t maxMiB = 0;
     for (const auto &[opTag, batchUpBound_MiB] : task) {
       if (batchUpBound_MiB > maxMiB)
@@ -107,7 +107,7 @@ struct OperatorManager {
   perfStats deducePerfCPU(OperatorTag opTag, size_t batchSize_MiB) const {
     return opMap.at(opTag)->deducePerfCPU(batchSize_MiB);
   }
-  perfStats deducePerfDPU(OperatorTag opTag, size_t batchSize_MiB) const{
+  perfStats deducePerfDPU(OperatorTag opTag, size_t batchSize_MiB) const {
     return opMap.at(opTag)->deducePerfDPU(batchSize_MiB);
   }
 
@@ -137,7 +137,7 @@ struct OperatorManager {
       return std::make_unique<OperatorUNDEFINED>(g_DPU_MGR);
     }
   }
-  OperatorManager(std::uint32_t dpuNum=DPU_ALLOCATE_ALL): dpuNum(dpuNum){
+  OperatorManager(std::uint32_t dpuNum = DPU_ALLOCATE_ALL) : dpuNum(dpuNum) {
     g_DPU_MGR = std::make_unique<GLOBAL_DPU_MGR>(dpuNum);
   }
   std::map<OperatorTag, std::unique_ptr<OperatorBase>> opMap;

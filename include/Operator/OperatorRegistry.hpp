@@ -39,41 +39,30 @@ static const map<OperatorTag, std::string> tag2Name = {
 
 static const set<OperatorTag> computeBoundOPSet = {
     OperatorTag::MAC,
-    OperatorTag::EUDIST,
     OperatorTag::CONV_1D,
 };
 static const set<OperatorTag> memoryBoundOPSet = {
+    OperatorTag::EUDIST,
     OperatorTag::LOOKUP,
     OperatorTag::DOT_PROD,
     OperatorTag::DOT_ADD,
 };
 
-
 static const set<OperatorTag> xferOPSet = {OperatorTag::MAP,
                                            OperatorTag::REDUCE};
 
-static const set<set<OperatorTag>> hybridOPSet = {
-    computeBoundOPSet,
-    memoryBoundOPSet
-};
+static const set<set<OperatorTag>> hybridOPSet = {computeBoundOPSet,
+                                                  memoryBoundOPSet};
 
 /// @brief Set of all performance related Operator set.
 static const set<set<OperatorTag>> allPerfRelOPSet = {
     computeBoundOPSet, memoryBoundOPSet, xferOPSet};
 
 static const set<OperatorTag> allOPSet = {
-  OperatorTag::MAC,         
-  OperatorTag::EUDIST,      
-  OperatorTag::CONV_1D,     
-  OperatorTag::LOOKUP,      
-  OperatorTag::DOT_PROD,    
-  OperatorTag::DOT_ADD,     
-  OperatorTag::LOGIC_START, 
-  OperatorTag::LOGIC_END,   
-  OperatorTag::MAP,         
-  OperatorTag::REDUCE,      
-  OperatorTag::UNDEFINED    
-};
+    OperatorTag::MAC,         OperatorTag::EUDIST,    OperatorTag::CONV_1D,
+    OperatorTag::LOOKUP,      OperatorTag::DOT_PROD,  OperatorTag::DOT_ADD,
+    OperatorTag::LOGIC_START, OperatorTag::LOGIC_END, OperatorTag::MAP,
+    OperatorTag::REDUCE,      OperatorTag::UNDEFINED};
 
 enum class OperatorType {
   ComputeBound,
@@ -92,8 +81,7 @@ static const map<OperatorType, std::string> opType2Name = {
     {OperatorType::Logical, "Logical"},
     {OperatorType::Map, "Map"},
     {OperatorType::Reduce, "Reduce"},
-    {OperatorType::Undefined,"Undefined"}
-};
+    {OperatorType::Undefined, "Undefined"}};
 
 } // namespace Operator
 } // namespace MetaPB

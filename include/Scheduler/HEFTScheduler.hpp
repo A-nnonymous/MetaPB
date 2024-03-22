@@ -12,10 +12,10 @@
 namespace MetaPB {
 namespace Scheduler {
 using Executor::Graph;
+using Executor::TaskGraph;
 using Executor::TaskNode;
 using Executor::TaskProperties;
 using Executor::TransferProperties;
-using Executor::TaskGraph;
 using Operator::OperatorManager;
 struct Processor {
   int id;                   // Processor identifier

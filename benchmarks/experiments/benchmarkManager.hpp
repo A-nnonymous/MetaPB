@@ -4,7 +4,10 @@
 #include "helpers/helper.hpp"
 #include "workloads/workloads.hpp"
 
+#include "experiments/b_DetailShowoff.hpp"
 #include "experiments/b_HybridOP.hpp"
+#include "experiments/b_graphBench.hpp"
+
 #include "experiments/dummy_template.hpp"
 #include "experiments/e_reallocDPU.hpp"
 #include <string>

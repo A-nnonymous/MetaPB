@@ -6,10 +6,9 @@ namespace MetaPB {
 namespace Scheduler {
 using TaskGraph = Executor::TaskGraph;
 
-class CPUOnlyScheduler{
+class CPUOnlyScheduler {
 public:
-  Schedule schedule(const TaskGraph &gIn,
-                            OperatorManager &om) noexcept {
+  Schedule schedule(const TaskGraph &gIn, OperatorManager &om) noexcept {
     Schedule s;
     s.order = gIn.topoSort();
     s.offloadRatio = std::vector<float>(s.order.size(), 0.0f);
