@@ -43,15 +43,15 @@ public:
       graphLoads[("H-" + std::to_string(i))] = randomizeHO(i/100.0f, loadSize_MiB);
       graphLoads[("M-" + std::to_string(i))] = randomizeMO(i/100.0f, loadSize_MiB);
     }
-    for(int i = 4; i <=16; i*=2){
+    for(int i = 4; i <=8; i*=2){
       graphLoads["FFT-" + std::to_string(i)] = genFFT(i, loadSize_MiB);
       graphLoads["GEA-" + std::to_string(i)] = genGEA(i, loadSize_MiB);
     }
+
     void **memPool = (void **)malloc(3);
-    #pragma omp parallel for
-    for (int i = 0; i < 3; i++) {
-      memPool[i] = malloc(16 * size_t(1 << 30));
-    }
+    memPool[0] = malloc(72 * size_t(1<<30));
+    memPool[1] = memPool[0] + 1 * size_t(1<<30);
+    memPool[2] = memPool[1] + 1 * size_t(1<<30);
     OperatorManager om;
     for(auto& [_, tg]: graphLoads){
       om.trainModel(tg.genRegressionTask());
@@ -59,9 +59,9 @@ public:
     HeteroComputePool hcp(200, om, memPool);
     for(const auto& [loadName, loadGraph] : graphLoads){
       HEFTScheduler    heft(loadGraph, om);
-      MetaScheduler    metaPF(1.0f, 0.0f, 50, loadGraph, om);
-      MetaScheduler    metaHY(0.5f, 0.5f, 50, loadGraph, om);
-      MetaScheduler    metaEF(0.0f, 1.0f, 50, loadGraph, om);
+      MetaScheduler    metaPF(0.9f, 0.1f, 100, loadGraph, om);
+      MetaScheduler    metaHY(0.5f, 0.5f, 100, loadGraph, om);
+      MetaScheduler    metaEF(0.1f, 0.9f, 100, loadGraph, om);
       GreedyScheduler  greedy;
       CPUOnlyScheduler cpuOnly;
       DPUOnlyScheduler dpuOnly;
@@ -91,15 +91,12 @@ public:
               hcp.outputTimingsToCSV("/output/MetaPB_Results/All_Graphloads/Timings_" + loadName + "_" + schedName + ".csv");
             }
           }
-
         }
         testResults[{loadName, schedName}] = stat;
       }
     }
 
-    for (int i = 0; i < 3; i++) {
-      free(memPool[i]);
-    }
+    free(memPool[0]);
     free((void *)memPool);
   }
 

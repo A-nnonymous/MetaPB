@@ -24,13 +24,13 @@ namespace Scheduler{
       pools.emplace_back(std::move(
           HeteroComputePool{ratioVecs[0].size(), this->om, this->dummyPool}));
     }
-
-    #pragma omp parallel for
+    omp_set_num_threads(agentNum);
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < agentNum; i++) {
       stats[i] = pools[i].execWorkload(tg, proposedSchedule[i], execType::MIMIC);
     }
     for(int i = 0; i< stats.size(); i++){
-      float scheduleEval = (Arg_Alpha *380* stats[i].timeCost_Second + Arg_Beta * stats[i].energyCost_Joule);
+      float scheduleEval = (Arg_Alpha * 200 * stats[i].timeCost_Second + Arg_Beta * stats[i].energyCost_Joule);
       evalResult[i] = scheduleEval;
     }
     return evalResult;
@@ -39,15 +39,15 @@ namespace Scheduler{
   Schedule MetaScheduler::schedule() noexcept{
     size_t nTask = boost::num_vertices(tg.g);
 
-    const double dt = 0.1;
-    const double ego = 0.5;
+    const double dt = 0.05;
+    const double ego = 0.6;
     const double omega = 0.7;
     const double vMax = 2 * (200.0 / (OptIterMax * dt));
 
     const std::vector<float> lowerLimit(nTask, -100.0f);
     const std::vector<float> upperLimit(nTask, 100.0f);
     const size_t dimNum = nTask;
-    const int pointNum = 10;
+    const int pointNum = 20;
     const int iterNum = OptIterMax;
 
 std::vector<std::unique_ptr<OptimizerBase>> oVec;
@@ -69,22 +69,39 @@ oVec.push_back(std::make_unique<Optimizer::OptimizerRSA<float, float>>(
         return this->evalSchedules(ratioVecs);
     }));
     
-    #pragma omp parallel for 
-    for(int i = 0; i < oVec.size(); i++){
-      #pragma omp task untied
-      oVec[i]->exec();
-    }
     float bestVal = 666666666.6f;
     std::vector<float> ratio(nTask,0.0f);
+        #pragma omp parallel
+    {
+        #pragma omp single
+        {
+          for(int i = 0; i < oVec.size(); i++){
+                // 创建untied任务
+                #pragma omp task untied
+                {
+                  oVec[i]->exec();
+                }
+            }
+        }
+    }
     int bestOptimizerIdx = -1; // init illegal value
     for(int i = 0; i < oVec.size();i++){
+      std::cout << "score "<< i << "=" << oVec[i]->getGlobalOptimaValue()<<"\n";
       if(oVec[i]->getGlobalOptimaValue() < bestVal){
         bestOptimizerIdx = i;
+        bestVal = oVec[i]->getGlobalOptimaValue();
       }
     }
     ratio = oVec[bestOptimizerIdx]->getGlobalOptimaPoint();
     bestVal = oVec[bestOptimizerIdx]->getGlobalOptimaValue();
     
+    /*
+    int bestOptimizerIdx = 2; 
+    oVec[bestOptimizerIdx]->exec();
+    ratio = oVec[bestOptimizerIdx]->getGlobalOptimaPoint();
+    bestVal = oVec[bestOptimizerIdx]->getGlobalOptimaValue();
+    */
+
     // ---------- showoff use --------------
     switch(bestOptimizerIdx){
       case 0:
