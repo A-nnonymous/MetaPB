@@ -8,7 +8,7 @@ def create_plots(total_val_file, converge_val_file, experiment_name, output_file
 
     # Create a line plot for each column in the total dataframe
     for column in total_df.columns:
-        plt.plot(total_df.index, total_df[column])
+        plt.plot(total_df.index, total_df[column], linewidth=1.0)
 
     # Read the 'convergeVal' csv file into a DataFrame
     converge_df = pd.read_csv(converge_val_file)

@@ -41,7 +41,7 @@ namespace Scheduler{
 
     const double dt = 0.05;
     const double ego = 0.6;
-    const double omega = 0.7;
+    const double omega = 0.8;
     const double vMax = 2 * (200.0 / (OptIterMax * dt));
 
     const std::vector<float> lowerLimit(nTask, -100.0f);

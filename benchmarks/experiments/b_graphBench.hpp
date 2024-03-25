@@ -59,9 +59,9 @@ public:
     HeteroComputePool hcp(200, om, memPool);
     for(const auto& [loadName, loadGraph] : graphLoads){
       HEFTScheduler    heft(loadGraph, om);
-      MetaScheduler    metaPF(0.9f, 0.1f, 100, loadGraph, om);
+      MetaScheduler    metaPF(0.6f, 0.4f, 100, loadGraph, om);
       MetaScheduler    metaHY(0.5f, 0.5f, 100, loadGraph, om);
-      MetaScheduler    metaEF(0.1f, 0.9f, 100, loadGraph, om);
+      MetaScheduler    metaEF(0.4f, 0.6f, 100, loadGraph, om);
       GreedyScheduler  greedy;
       CPUOnlyScheduler cpuOnly;
       DPUOnlyScheduler dpuOnly;

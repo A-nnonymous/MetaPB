@@ -173,9 +173,9 @@ public:
     HeteroComputePool hcp(opNum, om, memPool);
     TaskGraph tg = genInterleavedWorkload(loadSize_MiB, opNum);
     om.trainModel(tg.genRegressionTask());
-    MetaScheduler msPF(0.4f, 0.6f, 100, tg, om);
+    MetaScheduler msPF(0.3f, 0.7f, 100, tg, om);
     MetaScheduler msHy(0.5f, 0.5f, 100, tg, om);
-    MetaScheduler msEF(0.6f, 0.4f, 100, tg, om);
+    MetaScheduler msEF(0.7f, 0.3f, 100, tg, om);
     ///////// adding /////////
     HEFTScheduler    heft(tg, om);
     GreedyScheduler  greedy;
@@ -210,7 +210,7 @@ public:
             stat.energyCost_Joule += thisStat.energyCost_Joule / REP;
             stat.dataMovement_MiB += thisStat.dataMovement_MiB / REP;
             if(i == WARMUP_REP + REP - 1){
-              hcp.outputTimingsToCSV("/output/MetaPB_Results/string_workload/Timings_" + schedName + ".csv");
+              hcp.outputTimingsToCSV("/output/MetaPB_Results/string_workload/"+ std::to_string(loadSize_MiB) + "MiB_Timings_" + schedName +".csv");
             }
           }
 
