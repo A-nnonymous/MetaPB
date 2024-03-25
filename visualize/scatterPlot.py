@@ -32,7 +32,7 @@ y_converge = df_converge.iloc[:, dim2]
 plt.scatter(x_total, y_total, s=1, label='Total Points')  # s is the size of the points
 
 # Create a scatter plot for the converge points
-plt.scatter(x_converge, y_converge, color='red', s=10, label='Converge Points')  # s is the size of the points
+plt.scatter(x_converge, y_converge, color='red', s=10, label='Transient Local Optimas')  # s is the size of the points
 
 # Connect the converge points with lines
 plt.plot(x_converge, y_converge, color='red')

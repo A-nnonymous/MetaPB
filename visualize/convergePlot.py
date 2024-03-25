@@ -14,7 +14,7 @@ def create_plots(total_val_file, converge_val_file, experiment_name, output_file
     converge_df = pd.read_csv(converge_val_file)
 
     # Create a line plot for the converge values, with emphasis
-    converge_line, = plt.plot(converge_df.index, converge_df.iloc[:, 0], label='Converge Value', linewidth=2.5, color='red', zorder=5)
+    converge_line, = plt.plot(converge_df.index, converge_df.iloc[:, 0], label='Transient Optima Balue', linewidth=2.5, color='red', zorder=5)
 
     # Add labels and title
     plt.xlabel('Iteration')
