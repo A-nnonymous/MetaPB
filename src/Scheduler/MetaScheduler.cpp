@@ -39,7 +39,7 @@ namespace Scheduler{
   Schedule MetaScheduler::schedule() noexcept{
     size_t nTask = boost::num_vertices(tg.g);
 
-    const double dt = 0.05;
+    const double dt = 0.07;
     const double ego = 0.6;
     const double omega = 0.8;
     const double vMax = 2 * (200.0 / (OptIterMax * dt));
@@ -75,7 +75,8 @@ oVec.push_back(std::make_unique<Optimizer::OptimizerRSA<float, float>>(
     {
         #pragma omp single
         {
-          for(int i = 0; i < oVec.size(); i++){
+          //for(int i = 0; i < oVec.size(); i++){
+          for(int i = 0; i < 2;i++){
                 // 创建untied任务
                 #pragma omp task untied
                 {
@@ -85,7 +86,8 @@ oVec.push_back(std::make_unique<Optimizer::OptimizerRSA<float, float>>(
         }
     }
     int bestOptimizerIdx = -1; // init illegal value
-    for(int i = 0; i < oVec.size();i++){
+    //for(int i = 0; i < oVec.size();i++){
+    for(int i = 0; i < 2;i++){
       std::cout << "score "<< i << "=" << oVec[i]->getGlobalOptimaValue()<<"\n";
       if(oVec[i]->getGlobalOptimaValue() < bestVal){
         bestOptimizerIdx = i;

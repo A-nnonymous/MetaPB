@@ -11,7 +11,10 @@ set(CMAKE_CXX_COMPILER /usr/bin/g++-12 )
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -mavx512f -march=native -g -I/usr/include/dpu -ldpu  -Wno-pointer-arith ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -mavx512f 
+                      -march=native -g 
+                      -I/usr/include/dpu -ldpu 
+                      -Wno-pointer-arith ")
 
 execute_process(
   COMMAND dpu-pkg-config --libs --cflags dpu
@@ -27,14 +30,6 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/cpu_bin)
 set(DPU_EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/dpu_bin)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
-#------------------- External library -----------------------
-# Adding nvidia stdexec directory, but disabling all tests to save compiling time.
-#option(STDEXEC_BUILD_EXAMPLES "Build stdexec examples" OFF)
-#option(STDEXEC_BUILD_TESTS "Build stdexec tests" OFF)
-#add_subdirectory(submodules/stdexec)
-
-#------------------- Indexing directories -------------------
-#include_directories(${CMAKE_SOURCE_DIR}/submodules/stdexec/include) 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(/usr/include/dpu)
 

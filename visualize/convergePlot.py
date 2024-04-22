@@ -18,7 +18,7 @@ def create_plots(total_val_file, converge_val_file, experiment_name, output_file
 
     # Add labels and title
     plt.xlabel('Iteration')
-    plt.ylabel('Value')
+    plt.ylabel('Cost')
     plt.title(f'{experiment_name} - Value Change Over Iterations')
     plt.yscale('log')
 

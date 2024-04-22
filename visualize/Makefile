@@ -1,9 +1,9 @@
 pfBest=PSO
-efBest=RSA
-hyBest=RSA
-DataSize=4096
+efBest=PSO
+hyBest=PSO
+DataSize=2048
 stringLen=6
-dataFilePath=../dataOutput/string_workload/
+dataFilePath=/output/MetaPB_Results/string_workload/
 outputPath=../dataOutput/images/metaVisual/
 string_visualize:
 	mkdir -p ${outputPath}${DataSize}

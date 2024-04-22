@@ -258,10 +258,10 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                  },
                  "DPU", opType2Name.at(tp.opType)};
 
-      mapTask = {taskId, []() {}, // 初始化为空执行函数
+      mapTask = {taskId, []() {}, 
                  "MAP", "MAP"};
 
-      reduceTask = {taskId, []() {}, // 初始化为空执行函数
+      reduceTask = {taskId, []() {}, 
                     "REDUCE"};
       if(outEdges.first != outEdges.second){
         if (offloadRatio > omax) {
