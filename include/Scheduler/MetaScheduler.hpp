@@ -17,21 +17,21 @@ using OptimizerBase = Optimizer::OptimizerBase<float, float>;
 using HeteroComputePool = Executor::HeteroComputePool;
 using execType = Executor::execType;
 
-using  pt_t       =    Optimizer::OptimizerBase<float,float>::pt_t;
-using  valFrm_t   =    Optimizer::OptimizerBase<float,float>::valFrm_t;
-using  ptFrm_t    =    Optimizer::OptimizerBase<float,float>::ptFrm_t;
-using  ptHist_t   =    Optimizer::OptimizerBase<float,float>::ptHist_t;
-using  valHist_t  =    Optimizer::OptimizerBase<float,float>::valHist_t;
+using pt_t = Optimizer::OptimizerBase<float, float>::pt_t;
+using valFrm_t = Optimizer::OptimizerBase<float, float>::valFrm_t;
+using ptFrm_t = Optimizer::OptimizerBase<float, float>::ptFrm_t;
+using ptHist_t = Optimizer::OptimizerBase<float, float>::ptHist_t;
+using valHist_t = Optimizer::OptimizerBase<float, float>::valHist_t;
 
 class MetaScheduler {
 public:
   typedef struct {
     std::string optimizerName;
-    ptFrm_t totalPtFrm; // flatten all point to single frame
+    ptFrm_t totalPtFrm;    // flatten all point to single frame
     ptFrm_t convergePtFrm; // flatten frame best point to signel frame
     valHist_t totalValHist;
     valFrm_t convergeValFrm; // flatten frame best value to single frame.
-  }OptimizerInfos;
+  } OptimizerInfos;
   MetaScheduler(const double Alpha, const double Beta, const size_t OptIterMax,
                 const TaskGraph &tg, OperatorManager &om)
       : Arg_Alpha(Alpha), Arg_Beta(Beta), OptIterMax(OptIterMax), tg(tg),
@@ -46,9 +46,7 @@ public:
   }
   Schedule schedule() noexcept;
   std::vector<float> evalSchedules(const vector<vector<float>> &ratioVecs);
-  OptimizerInfos getOptInfo()const noexcept{
-    return optInfo;
-  }
+  OptimizerInfos getOptInfo() const noexcept { return optInfo; }
 
 private:
   std::vector<int> HEFTorder;

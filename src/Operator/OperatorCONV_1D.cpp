@@ -11,8 +11,8 @@ inline void OperatorCONV_1D::execCPU(const size_t batchSize_MiB,
   float *inputBuffer = static_cast<float *>(memPoolBffrPtrs[0]);
   float *outputBuffer = static_cast<float *>(memPoolBffrPtrs[1]);
 
-  // Perform convolution
-  #pragma omp parallel for
+// Perform convolution
+#pragma omp parallel for
   for (size_t i = 0; i < inputSize; ++i) {
     float sum = 0.0f;
     for (size_t j = 0; j < kernelSize; ++j) {
@@ -42,7 +42,8 @@ OperatorCONV_1D::execDPU(const size_t batchSize_MiB) const noexcept {
       (input_size_dpu % 8) != 0
           ? roundup(input_size_dpu, 8)
           : input_size_dpu; // Input size per DPU (max.), 8-byte aligned
-if(input_size_dpu_8bytes > 67108864)return;
+  if (input_size_dpu_8bytes > 67108864)
+    return;
 
   // Copy input arrays
   conv_args args;

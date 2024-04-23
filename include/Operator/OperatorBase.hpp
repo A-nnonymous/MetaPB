@@ -42,6 +42,7 @@ public:
   inline virtual void execDPU(const size_t batchSize_MiB) const noexcept = 0;
 
   // -------------- Optimization phase utilities ----------------
+  // TODO: Add cache logic to speed up deducing.
   void trainModel(const size_t batchUpperBound_MiB, void **memPoolBffrPtrs,
                   const int iterMax = REGRESSION_TRAINING_ITER) noexcept;
   void dumpMetrics(const size_t batchSize_MiB, void **memPoolBffrPtrs,
@@ -50,6 +51,9 @@ public:
                        const size_t batchSize_MiB) noexcept;
   perfStats deducePerfCPU(const size_t batchSize_MiB) noexcept;
   perfStats deducePerfDPU(const size_t batchSize_MiB) noexcept;
+
+  perfStats deducePerfCPU_new(const size_t batchSize_MiB) noexcept;
+  perfStats deducePerfDPU_new(const size_t batchSize_MiB) noexcept;
 
   std::string getDPUBinaryPath() const noexcept;
   inline virtual const std::string get_name() const noexcept = 0;

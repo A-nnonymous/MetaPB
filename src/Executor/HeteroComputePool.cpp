@@ -6,7 +6,7 @@ namespace Executor {
 bool HeteroComputePool::allDependenciesMet(
     const std::vector<bool> &completedVector,
     const std::vector<int> &deps) const noexcept {
-  
+
   for (int dep : deps) {
     if (!completedVector[dep]) {
       return false;
@@ -28,8 +28,7 @@ void HeteroComputePool::processTasks(
     // Wait for dependencies to be met
     {
       std::unique_lock<std::mutex> lock(mutex_);
-      cv_.wait(lock, [&] { 
-        return dependencyCheck(task.id); });
+      cv_.wait(lock, [&] { return dependencyCheck(task.id); });
     }
 
     // For map and reduce tasks, acquire the mapReduceMutex to ensure
@@ -83,7 +82,7 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
   totalEnergyCost_joule = 0.0f;
   totalTransfer_mb = 0.0f;
 
-  // for first job that is no dependencies
+  // for first job that is no dependencies(buggy)
   cpuCompleted_[0] = true;
   dpuCompleted_[0] = true;
   mapCompleted_[0] = true;
@@ -94,18 +93,11 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
     const TaskProperties &tp = g.g[taskId];
     Task cpuTask, dpuTask, mapTask, reduceTask;
 
-    // ----------------------- Special case --------------------------------------
-    // Initial and final data transferring
-    
-    if(tp.op == OperatorTag::LOGIC_END){
-      cpuTask = {taskId, []() {}, 
-          "CPU", opType2Name.at(tp.opType)};
-      dpuTask = {taskId, []() {},
-                "DPU", opType2Name.at(tp.opType)};
-      reduceTask = {taskId, []() {}, 
-                    "REDUCE", "REDUCE"};
-      mapTask = {taskId, []() {}, 
-                "MAP", "MAP"};
+    if (tp.op == OperatorTag::LOGIC_END) {
+      cpuTask = {taskId, []() {}, "CPU", opType2Name.at(tp.opType)};
+      dpuTask = {taskId, []() {}, "DPU", opType2Name.at(tp.opType)};
+      reduceTask = {taskId, []() {}, "REDUCE", "REDUCE"};
+      mapTask = {taskId, []() {}, "MAP", "MAP"};
 
       size_t totalOutputSize_MiB = 0.0f;
       auto inEdges = boost::in_edges(taskId, g.g);
@@ -116,14 +108,17 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
         totalOutputSize_MiB += predTp.inputSize_MiB * sched.offloadRatio[pred];
       }
       totalTransfer_mb += totalOutputSize_MiB;
-      if(eT ==execType::DO){
+      if (eT == execType::DO) {
         reduceTask.execute = [this, totalOutputSize_MiB]() {
-          om.execCPU(OperatorTag::REDUCE, totalOutputSize_MiB, this->memPoolPtr);
+          om.execCPU(OperatorTag::REDUCE, totalOutputSize_MiB,
+                     this->memPoolPtr);
         };
-      }else{ //MIMIC
-        perfTag thisTag = {EUType::CPU, OperatorTag::REDUCE, totalOutputSize_MiB};
+      } else { // MIMIC
+        perfTag thisTag = {EUType::CPU, OperatorTag::REDUCE,
+                           totalOutputSize_MiB};
         if (!cachedCPUPerfDeduce.contains(thisTag))
-          cachedCPUPerfDeduce[thisTag] = om.deducePerfCPU(OperatorTag::REDUCE, totalOutputSize_MiB);
+          cachedCPUPerfDeduce[thisTag] =
+              om.deducePerfCPU(OperatorTag::REDUCE, totalOutputSize_MiB);
         mapTask.execute = [this, thisTag]() {
           const auto perf = this->cachedCPUPerfDeduce[thisTag];
           // For all transfer work that allowed to execute, estimation is these:
@@ -181,12 +176,12 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                  },
                  "DPU", opType2Name.at(tp.opType)};
 
-      mapTask = {taskId, []() {}, 
-                 "MAP", "MAP"};
+      mapTask = {taskId, []() {}, "MAP", "MAP"};
 
-      reduceTask = {taskId, []() {}, 
-                    "REDUCE", "REDUCE"};
-      if(outEdges.first != outEdges.second){ // for single no LOGIC_END node
+      reduceTask = {taskId, []() {}, "REDUCE", "REDUCE"};
+      
+      // undefined tail transfer avoiding
+      if (outEdges.first != outEdges.second) { // for single no LOGIC_END node
         if (offloadRatio > omax) {
           size_t reduce_work = (offloadRatio - omin) * batchSize_MiB;
           reduceTask.execute = [this, reduce_work]() {
@@ -211,8 +206,8 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
           totalTransfer_mb += map_work;
         }
       }
-    } else {            // ----------- MIMIC dependency and time forwarding
-                        // --------------------
+    } else {// ------------------ MIMIC ----------------------
+      // ----------------TODO: reuse as function --------------
       size_t batchSize; // works that to be done on this EU
       perfTag thisTag;  // performance tag of this work
 
@@ -225,6 +220,7 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                    const auto perf = this->cachedCPUPerfDeduce[thisTag];
                    // For all CPU work that allowed to execute, estimation is
                    // these: execute immediately after transfer.
+                  // ------------- critical zone --------------
                    {
                      std::lock_guard<std::mutex> lock(this->mutex_);
                      earliestCPUIdleTime_ms =
@@ -234,8 +230,10 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                          perf.timeCost_Second * 1000;
                      totalEnergyCost_joule += perf.energyCost_Joule;
                    }
+                  // ------------- critical zone --------------
                  },
                  "CPU", opType2Name.at(tp.opType)};
+      // ------------------------------------------------------
 
       batchSize = size_t(batchSize_MiB * offloadRatio);
       thisTag = {EUType::DPU, tp.op, batchSize};
@@ -246,6 +244,7 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                    const auto perf = this->cachedDPUPerfDeduce[thisTag];
                    // For all DPU work that allowed to execute, estimation is
                    // these: execute immediately after transfer.
+                  // ------------- critical zone --------------
                    {
                      std::lock_guard<std::mutex> lock(this->mutex_);
                      earliestDPUIdleTime_ms =
@@ -255,16 +254,19 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                          perf.timeCost_Second * 1000;
                      totalEnergyCost_joule += perf.energyCost_Joule;
                    }
+                  // ------------- critical zone --------------
                  },
                  "DPU", opType2Name.at(tp.opType)};
 
-      mapTask = {taskId, []() {}, 
-                 "MAP", "MAP"};
+      mapTask = {taskId, []() {}, "MAP", "MAP"};
 
-      reduceTask = {taskId, []() {}, 
-                    "REDUCE"};
-      if(outEdges.first != outEdges.second){
+      reduceTask = {taskId, []() {}, "REDUCE"};
+      
+      // undefined tail transfer avoiding
+      if (outEdges.first != outEdges.second) {
+
         if (offloadRatio > omax) {
+
           size_t reduce_work = (offloadRatio - omin) * batchSize_MiB;
           thisTag = {EUType::CPU, OperatorTag::REDUCE, reduce_work};
           if (!cachedCPUPerfDeduce.contains(thisTag))
@@ -272,8 +274,10 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                 om.deducePerfCPU(OperatorTag::REDUCE, reduce_work);
           reduceTask.execute = [this, thisTag, reduce_work]() {
             const auto perf = this->cachedCPUPerfDeduce[thisTag];
-            // For all transfer work that allowed to execute, estimation is these:
-            // execute immediately after DPU is idle, block the use of dpu.
+            // For all transfer work that allowed to execute, estimation is
+            // these: execute immediately after DPU is idle, block the use of
+            // dpu.
+            // ------------- critical zone --------------
             {
               std::lock_guard<std::mutex> lock(this->mutex_);
               earliestDPUIdleTime_ms =
@@ -284,29 +288,34 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
               totalEnergyCost_joule += perf.energyCost_Joule;
               totalTransfer_mb += reduce_work;
             }
-          };
-        } else if (offloadRatio > omin && offloadRatio < omax) {
-          size_t reduce_work = (offloadRatio - omin) * batchSize_MiB;
-          thisTag = {EUType::CPU, OperatorTag::REDUCE, reduce_work};
-          if (!cachedCPUPerfDeduce.contains(thisTag))
-            cachedCPUPerfDeduce[thisTag] =
-                om.deducePerfCPU(OperatorTag::REDUCE, reduce_work);
-          reduceTask.execute = [this, thisTag, reduce_work]() {
-            const auto perf = this->cachedCPUPerfDeduce[thisTag];
-            // For all transfer work that allowed to execute, estimation is these:
-            // execute immediately after DPU is idle, block the use of dpu.
-            {
-              std::lock_guard<std::mutex> lock(this->mutex_);
-              earliestDPUIdleTime_ms =
-                  std::max(earliestDPUIdleTime_ms,
-                           std::max(earliestMAPIdleTime_ms,
-                                    earliestREDUCEIdleTime_ms)) +
-                  perf.timeCost_Second * 1000;
-              totalEnergyCost_joule += perf.energyCost_Joule;
-              totalTransfer_mb += reduce_work;
-            }
+            // ------------- critical zone --------------
           };
 
+        } else if (offloadRatio > omin && offloadRatio < omax) {
+
+          size_t reduce_work = (offloadRatio - omin) * batchSize_MiB;
+          thisTag = {EUType::CPU, OperatorTag::REDUCE, reduce_work};
+          if (!cachedCPUPerfDeduce.contains(thisTag))
+            cachedCPUPerfDeduce[thisTag] =
+                om.deducePerfCPU(OperatorTag::REDUCE, reduce_work);
+          reduceTask.execute = [this, thisTag, reduce_work]() {
+            const auto perf = this->cachedCPUPerfDeduce[thisTag];
+            // For all transfer work that allowed to execute, estimation is
+            // these: execute immediately after DPU is idle, block the use of
+            // dpu.
+            {
+            // ------------- critical zone --------------
+              std::lock_guard<std::mutex> lock(this->mutex_);
+              earliestDPUIdleTime_ms =
+                  std::max(earliestDPUIdleTime_ms,
+                           std::max(earliestMAPIdleTime_ms,
+                                    earliestREDUCEIdleTime_ms)) +
+                  perf.timeCost_Second * 1000;
+              totalEnergyCost_joule += perf.energyCost_Joule;
+              totalTransfer_mb += reduce_work;
+            }
+            // ------------- critical zone --------------
+          };
           size_t map_work = (omax - offloadRatio) * batchSize_MiB;
           thisTag = {EUType::CPU, OperatorTag::MAP, map_work};
           if (!cachedCPUPerfDeduce.contains(thisTag))
@@ -314,8 +323,10 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                 om.deducePerfCPU(OperatorTag::MAP, map_work);
           mapTask.execute = [this, thisTag, map_work]() {
             const auto perf = this->cachedCPUPerfDeduce[thisTag];
-            // For all transfer work that allowed to execute, estimation is these:
-            // execute immediately after DPU is idle, block the use of dpu.
+            // For all transfer work that allowed to execute, estimation is
+            // these: execute immediately after DPU is idle, block the use of
+            // dpu.
+            // ------------- critical zone --------------
             {
               std::lock_guard<std::mutex> lock(this->mutex_);
               earliestDPUIdleTime_ms =
@@ -326,31 +337,39 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
               totalEnergyCost_joule += perf.energyCost_Joule;
               totalTransfer_mb += map_work;
             }
+            // ------------- critical zone --------------
           };
+
         } else {
+
           size_t map_work = (omax - offloadRatio) * batchSize_MiB;
           thisTag = {EUType::CPU, OperatorTag::MAP, map_work};
           if (!cachedCPUPerfDeduce.contains(thisTag))
-          cachedCPUPerfDeduce[thisTag] =
-              om.deducePerfCPU(OperatorTag::MAP, map_work);
-        mapTask.execute = [this, thisTag, map_work]() {
-          const auto perf = this->cachedCPUPerfDeduce[thisTag];
-          // For all transfer work that allowed to execute, estimation is these:
-          // execute immediately after DPU is idle, block the use of dpu.
-          {
-            std::lock_guard<std::mutex> lock(this->mutex_);
-            earliestDPUIdleTime_ms =
-                std::max(earliestDPUIdleTime_ms,
-                         std::max(earliestMAPIdleTime_ms,
-                                  earliestREDUCEIdleTime_ms)) +
-                perf.timeCost_Second * 1000;
-            totalEnergyCost_joule += perf.energyCost_Joule;
-            totalTransfer_mb += map_work;
-          }
-        };
-      }
-      }
-    } // if(execType::DO)
+            cachedCPUPerfDeduce[thisTag] =
+                om.deducePerfCPU(OperatorTag::MAP, map_work);
+          mapTask.execute = [this, thisTag, map_work]() {
+            const auto perf = this->cachedCPUPerfDeduce[thisTag];
+            // For all transfer work that allowed to execute, estimation is
+            // these: execute immediately after DPU is idle, block the use of
+            // dpu.
+            // ------------- critical zone --------------
+            {
+              std::lock_guard<std::mutex> lock(this->mutex_);
+              earliestDPUIdleTime_ms =
+                  std::max(earliestDPUIdleTime_ms,
+                           std::max(earliestMAPIdleTime_ms,
+                                    earliestREDUCEIdleTime_ms)) +
+                  perf.timeCost_Second * 1000;
+              totalEnergyCost_joule += perf.energyCost_Joule;
+              totalTransfer_mb += map_work;
+            }
+            // ------------- critical zone --------------
+          }; // definition of mapTask's lambda
+        } // offloadRatio < omin
+
+      }// if tail (redundant with op:LOGIC_END handling)
+      
+    } // if(execType::DO) else
 
     cpuQueue_.push(cpuTask);
     dpuQueue_.push(dpuTask);
@@ -359,10 +378,10 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
   }
 
   cpuTimings_.clear();
-  if(eT == execType::DO){ // DPU Energy deduce
+  if (eT == execType::DO) { // DPU Energy deduce
     totalDPUTime_Second = 0.0f;
-    for(const auto& [_, tps] : dpuTimings_){
-      for(const auto& tp : tps){
+    for (const auto &[_, tps] : dpuTimings_) {
+      for (const auto &tp : tps) {
         auto duration = tp.end - tp.start;
         totalDPUTime_Second += std::chrono::duration<double>(duration).count();
       }
@@ -374,8 +393,8 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
 
   // -------------------- Entering unsafe multithread zone ------------------
   // Thread workers definition
-    ChronoTrigger ct;
-  if(eT == execType::DO){
+  ChronoTrigger ct;
+  if (eT == execType::DO) {
     ct.tick("HCP");
   }
   std::thread cpuThread(
@@ -400,8 +419,8 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
       &HeteroComputePool::processTasks, this, std::ref(mapQueue_),
       std::ref(mapCompleted_),
       [this](int taskId) noexcept {
-        //return cpuCompleted_[taskId] && dpuCompleted_[taskId];
-        return cpuCompleted_[taskId] ;
+        // return cpuCompleted_[taskId] && dpuCompleted_[taskId];
+        return cpuCompleted_[taskId];
       },
       std::ref(mapTimings_), "MAP");
 
@@ -415,7 +434,7 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
   dpuThread.join();
   mapThread.join();
   reduceThread.join();
-  if(eT == execType::DO){
+  if (eT == execType::DO) {
     ct.tock("HCP");
   }
 
@@ -439,7 +458,8 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
     auto energyMeanSum =
         energyMeans[0].mean +
         energyMeans[1].mean; // This can only count CPU energy cost.
-    return {energyMeanSum + totalDPUTime_Second * 280, timeMean, totalTransfer_mb};
+    return {energyMeanSum + totalDPUTime_Second * 280, timeMean,
+            totalTransfer_mb};
   }
 }
 
@@ -453,7 +473,7 @@ void HeteroComputePool::printTimings() const noexcept {
 void HeteroComputePool::outputTimingsToCSV(
     const std::string &filename) const noexcept {
   std::ofstream csvFile(filename);
-  std::cout << "CSV writting started" <<std::endl;
+  std::cout << "CSV writting started" << std::endl;
   if (!csvFile.is_open()) {
     std::cerr << "Failed to open the CSV file." << std::endl;
     return;
@@ -489,9 +509,9 @@ void HeteroComputePool::outputTimingsToCSV(
                            timing.end - minStart)
                            .count();
             auto type = timing.taskType;
-            csvFile << pair.first << "," << worker<< "," <<type << ","<<std::fixed
-                    << std::setprecision(4) << start << "," << std::fixed
-                    << std::setprecision(4) << end << "\n";
+            csvFile << pair.first << "," << worker << "," << type << ","
+                    << std::fixed << std::setprecision(4) << start << ","
+                    << std::fixed << std::setprecision(4) << end << "\n";
           }
         }
       };

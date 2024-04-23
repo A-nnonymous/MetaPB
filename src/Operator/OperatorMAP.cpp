@@ -20,7 +20,8 @@ inline void OperatorMAP::execCPU(const size_t batchSize_MiB,
       (input_size_dpu % 8) != 0
           ? roundup(input_size_dpu, 8)
           : input_size_dpu; // Input size per DPU (max.), 8-byte aligned
-if(input_size_dpu_8bytes > 67108864)return;
+  if (input_size_dpu_8bytes > 67108864)
+    return;
 
   int i = 0;
   dpu_set_t dpu;

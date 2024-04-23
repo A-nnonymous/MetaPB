@@ -161,7 +161,7 @@ void OperatorBase::verifyRegression(const std::string &filePath,
         dataSize_MiB, deducePerfCPU(dataSize_MiB).energyCost_Joule});
   }
 
-  if(!checkIfIsCPUOnly()){
+  if (!checkIfIsCPUOnly()) {
     for (const auto &[dataSize_MiB, taskName] : dpuExecJob2Name) {
       const auto report = ct.getReport(taskName);
       auto dpuTimeCost =
@@ -179,11 +179,11 @@ void OperatorBase::verifyRegression(const std::string &filePath,
         std::vector<float>{batch, deducePerfCPU(batch).timeCost_Second});
     cpuEnergyRegress.emplace_back(
         std::vector<float>{batch, deducePerfCPU(batch).energyCost_Joule});
-    if(!checkIfIsCPUOnly()){
+    if (!checkIfIsCPUOnly()) {
       dpuPerfRegress.emplace_back(
           std::vector<float>{batch, deducePerfDPU(batch).timeCost_Second});
     }
-       }
+  }
   auto sortByFirst = [](const std::vector<float> &a,
                         const std::vector<float> &b) {
     return a.front() < b.front(); // 根据每一行的第一个元素进行比较
@@ -192,7 +192,7 @@ void OperatorBase::verifyRegression(const std::string &filePath,
   std::sort(cpuPerfRegress.begin(), cpuPerfRegress.end(), sortByFirst);
   std::sort(cpuEnergyReal.begin(), cpuEnergyReal.end(), sortByFirst);
   std::sort(cpuEnergyRegress.begin(), cpuEnergyRegress.end(), sortByFirst);
-  if(!checkIfIsCPUOnly()){
+  if (!checkIfIsCPUOnly()) {
     std::sort(dpuPerfReal.begin(), dpuPerfReal.end(), sortByFirst);
     std::sort(dpuPerfRegress.begin(), dpuPerfRegress.end(), sortByFirst);
   }
@@ -204,10 +204,10 @@ void OperatorBase::verifyRegression(const std::string &filePath,
   w.writeCSV(cpuEnergyRegress, header,
              filePath + "CPU_energy_" + regressionPostfix);
 
-  if(!checkIfIsCPUOnly()){
-  w.writeCSV(dpuPerfReal, header, filePath + "DPU_perf_" + reportsPostfix);
-  w.writeCSV(dpuPerfRegress, header,
-             filePath + "DPU_perf_" + regressionPostfix);
+  if (!checkIfIsCPUOnly()) {
+    w.writeCSV(dpuPerfReal, header, filePath + "DPU_perf_" + reportsPostfix);
+    w.writeCSV(dpuPerfRegress, header,
+               filePath + "DPU_perf_" + regressionPostfix);
   }
 }
 

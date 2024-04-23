@@ -16,13 +16,12 @@ using regressionTask = utils::regressionTask;
 
 class TaskGraph {
 public:
-  TaskGraph(){}
+  TaskGraph() {}
   TaskGraph(Graph gIn, const std::string n) : g(gIn), name(n) {}
-    TaskGraph(const TaskGraph& other) noexcept
-    : g(std::move(other.g)), 
-      name(std::move(other.name)) {}
-  TaskGraph& operator=(TaskGraph&& other) noexcept {
-    if (this != &other) { // 防止自赋值
+  TaskGraph(const TaskGraph &other) noexcept
+      : g(std::move(other.g)), name(std::move(other.name)) {}
+  TaskGraph &operator=(TaskGraph &&other) noexcept {
+    if (this != &other) {     // 防止自赋值
       g = std::move(other.g); // 移动Graph对象
       this->name = other.name;
     }
