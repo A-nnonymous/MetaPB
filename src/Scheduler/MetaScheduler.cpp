@@ -24,9 +24,12 @@ MetaScheduler::evalSchedules(const vector<vector<float>> &ratioVecs) {
     pools.emplace_back(std::move(
         HeteroComputePool{ratioVecs[0].size(), this->om, this->dummyPool}));
   }
+  /*
   omp_set_num_threads(agentNum);
 #pragma omp parallel for schedule(dynamic)
+*/
   for (int i = 0; i < agentNum; i++) {
+    std::cout << "Evaluating agent "<< i <<std::endl;
     stats[i] = pools[i].execWorkload(tg, proposedSchedule[i], execType::MIMIC);
   }
   for (int i = 0; i < stats.size(); i++) {
@@ -72,6 +75,7 @@ Schedule MetaScheduler::schedule() noexcept {
 
   float bestVal = 666666666.6f;
   std::vector<float> ratio(nTask, 0.0f);
+  /*
 #pragma omp parallel
   {
 #pragma omp single
@@ -96,13 +100,12 @@ Schedule MetaScheduler::schedule() noexcept {
   }
   ratio = oVec[bestOptimizerIdx]->getGlobalOptimaPoint();
   bestVal = oVec[bestOptimizerIdx]->getGlobalOptimaValue();
+  */
 
-  /*
-  int bestOptimizerIdx = 2;
+  int bestOptimizerIdx = 0;
   oVec[bestOptimizerIdx]->exec();
   ratio = oVec[bestOptimizerIdx]->getGlobalOptimaPoint();
   bestVal = oVec[bestOptimizerIdx]->getGlobalOptimaValue();
-  */
 
   // ---------- showoff use --------------
   switch (bestOptimizerIdx) {

@@ -213,13 +213,14 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
 
       batchSize = size_t(batchSize_MiB * (1 - offloadRatio));
       thisTag = {EUType::CPU, tp.op, batchSize};
+      /*
       if (!cachedCPUPerfDeduce.contains(thisTag))
         cachedCPUPerfDeduce[thisTag] = om.deducePerfCPU(tp.op, batchSize);
+        */
       cpuTask = {taskId,
                  [this, thisTag]() {
-                   const auto perf = this->cachedCPUPerfDeduce[thisTag];
-                   // For all CPU work that allowed to execute, estimation is
-                   // these: execute immediately after transfer.
+                   //const auto perf = this->cachedCPUPerfDeduce[thisTag];
+                   const auto perf = om.deducePerfCPU(std::get<1>(thisTag), std::get<2>(thisTag));
                   // ------------- critical zone --------------
                    {
                      std::lock_guard<std::mutex> lock(this->mutex_);
@@ -237,13 +238,14 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
 
       batchSize = size_t(batchSize_MiB * offloadRatio);
       thisTag = {EUType::DPU, tp.op, batchSize};
+      /*
       if (!cachedDPUPerfDeduce.contains(thisTag))
         cachedDPUPerfDeduce[thisTag] = om.deducePerfDPU(tp.op, batchSize);
+        */
       dpuTask = {taskId,
                  [this, thisTag]() {
-                   const auto perf = this->cachedDPUPerfDeduce[thisTag];
-                   // For all DPU work that allowed to execute, estimation is
-                   // these: execute immediately after transfer.
+                   //const auto perf = this->cachedDPUPerfDeduce[thisTag];
+                   const auto perf = om.deducePerfDPU(std::get<1>(thisTag), std::get<2>(thisTag));
                   // ------------- critical zone --------------
                    {
                      std::lock_guard<std::mutex> lock(this->mutex_);
@@ -269,14 +271,14 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
 
           size_t reduce_work = (offloadRatio - omin) * batchSize_MiB;
           thisTag = {EUType::CPU, OperatorTag::REDUCE, reduce_work};
+          /*
           if (!cachedCPUPerfDeduce.contains(thisTag))
             cachedCPUPerfDeduce[thisTag] =
                 om.deducePerfCPU(OperatorTag::REDUCE, reduce_work);
+                */
           reduceTask.execute = [this, thisTag, reduce_work]() {
-            const auto perf = this->cachedCPUPerfDeduce[thisTag];
-            // For all transfer work that allowed to execute, estimation is
-            // these: execute immediately after DPU is idle, block the use of
-            // dpu.
+            //const auto perf = this->cachedCPUPerfDeduce[thisTag];
+            const auto perf = om.deducePerfCPU(OperatorTag::REDUCE, reduce_work);
             // ------------- critical zone --------------
             {
               std::lock_guard<std::mutex> lock(this->mutex_);
@@ -295,14 +297,14 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
 
           size_t reduce_work = (offloadRatio - omin) * batchSize_MiB;
           thisTag = {EUType::CPU, OperatorTag::REDUCE, reduce_work};
+          /*
           if (!cachedCPUPerfDeduce.contains(thisTag))
             cachedCPUPerfDeduce[thisTag] =
                 om.deducePerfCPU(OperatorTag::REDUCE, reduce_work);
+                */
           reduceTask.execute = [this, thisTag, reduce_work]() {
-            const auto perf = this->cachedCPUPerfDeduce[thisTag];
-            // For all transfer work that allowed to execute, estimation is
-            // these: execute immediately after DPU is idle, block the use of
-            // dpu.
+            //const auto perf = this->cachedCPUPerfDeduce[thisTag];
+            const auto perf = om.deducePerfCPU(OperatorTag::REDUCE, reduce_work);
             {
             // ------------- critical zone --------------
               std::lock_guard<std::mutex> lock(this->mutex_);
@@ -318,14 +320,14 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
           };
           size_t map_work = (omax - offloadRatio) * batchSize_MiB;
           thisTag = {EUType::CPU, OperatorTag::MAP, map_work};
+          /*
           if (!cachedCPUPerfDeduce.contains(thisTag))
             cachedCPUPerfDeduce[thisTag] =
                 om.deducePerfCPU(OperatorTag::MAP, map_work);
+                */
           mapTask.execute = [this, thisTag, map_work]() {
-            const auto perf = this->cachedCPUPerfDeduce[thisTag];
-            // For all transfer work that allowed to execute, estimation is
-            // these: execute immediately after DPU is idle, block the use of
-            // dpu.
+            //const auto perf = this->cachedCPUPerfDeduce[thisTag];
+            const auto perf = om.deducePerfCPU(OperatorTag::MAP, map_work);
             // ------------- critical zone --------------
             {
               std::lock_guard<std::mutex> lock(this->mutex_);
@@ -344,14 +346,14 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
 
           size_t map_work = (omax - offloadRatio) * batchSize_MiB;
           thisTag = {EUType::CPU, OperatorTag::MAP, map_work};
+          /*
           if (!cachedCPUPerfDeduce.contains(thisTag))
             cachedCPUPerfDeduce[thisTag] =
                 om.deducePerfCPU(OperatorTag::MAP, map_work);
+                */
           mapTask.execute = [this, thisTag, map_work]() {
-            const auto perf = this->cachedCPUPerfDeduce[thisTag];
-            // For all transfer work that allowed to execute, estimation is
-            // these: execute immediately after DPU is idle, block the use of
-            // dpu.
+            //const auto perf = this->cachedCPUPerfDeduce[thisTag];
+            const auto perf = om.deducePerfCPU(OperatorTag::MAP, map_work);
             // ------------- critical zone --------------
             {
               std::lock_guard<std::mutex> lock(this->mutex_);

@@ -65,6 +65,7 @@ perfStats OperatorBase::execDPUwithProbe(const size_t batchSize_MiB) noexcept {
 // -------------------- Checkpoint strategy -------------------------
 void OperatorBase::savePerfSamples(const perfStats src[], const std::string& path) const noexcept{
   std::ofstream dataFile(path);
+  std::cout<< "saving perf sample file to: "<< path<<std::endl;
   dataFile << "dataSize_MiB,timeCost_Second,energyCost_joule\n";
   size_t step_MiB =
     (deduceSizeUpperBound_MiB - BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
@@ -128,23 +129,23 @@ bool OperatorBase::loadModelCacheIfExist(const size_t batchSize_MiB) noexcept {
       + std::to_string(PERF_SAMPLE_POINT) + "_sample.csv";
 
   std::string modelPathPrefix = REGRESSION_MODEL_CACHE_PATH;
-  std::cout << "loading " << modelPathPrefix << "*" << modelTagPostfix
-            << std::endl;
 
   if (checkIfIsTrainable()) {
     std::string CPUPerfSamplePath=
         modelPathPrefix + "CPUPerfSamples_" + modelTagPostfix;
-    if (std::filesystem::exists({CPUPerfSamplePath}))
+      std::cout << "loading " << CPUPerfSamplePath
+            << std::endl;
+    if (std::filesystem::exists({CPUPerfSamplePath})){
       loadPerfSamples(CPUPerfSamples, CPUPerfSamplePath);
-    else
-      return false;
+    } else{ return false;}
     if (!checkIfIsCPUOnly()) {
       std::string DPUPerfSamplePath =
           modelPathPrefix + "DPUPerfSamples_" + modelTagPostfix;
-      if (std::filesystem::exists({DPUPerfSamplePath}))
+        std::cout << "loading " << DPUPerfSamplePath
+            << std::endl;
+      if (std::filesystem::exists({DPUPerfSamplePath})){
         loadPerfSamples(DPUPerfSamples, DPUPerfSamplePath);
-      else
-        return false;
+      } else{ return false;}
     }
   }
   this->isTrained = true;
@@ -174,6 +175,19 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
       sampleIdx ++;
     }
     this->deduceSizeUpperBound_MiB = upperBound_MiB;
+    this->isTrained = true;
+    std::string modelTagPostfix =
+      this->get_name() + "_" + std::to_string(batchUpperBound_MiB) + "_MiB_"
+      + std::to_string(PERF_SAMPLE_POINT) + "_sample.csv";
+
+    std::string modelPathPrefix = REGRESSION_MODEL_CACHE_PATH;
+    std::string CPUPerfSamplePath=
+        modelPathPrefix + "CPUPerfSamples_" + modelTagPostfix;
+      std::string DPUPerfSamplePath =
+          modelPathPrefix + "DPUPerfSamples_" + modelTagPostfix;
+    savePerfSamples(CPUPerfSamples, CPUPerfSamplePath);
+    savePerfSamples(DPUPerfSamples, DPUPerfSamplePath);
+
     /*
     const size_t cpuQuantSize = cpuExecJob2Name.size();
     float cpuInputSize[cpuQuantSize];
