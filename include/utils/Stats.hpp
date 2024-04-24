@@ -57,10 +57,42 @@ typedef struct Stats {
   }
 } Stats;
 
-typedef struct {
+typedef struct perfStats{
   double energyCost_Joule = 0.0f;
   double timeCost_Second = 0.0f;
   double dataMovement_MiB = 0;
+
+  perfStats operator+(const perfStats& rhs) const {
+      return {energyCost_Joule + rhs.energyCost_Joule, timeCost_Second + rhs.timeCost_Second, dataMovement_MiB + rhs.dataMovement_MiB};
+  }
+
+  perfStats operator-(const perfStats& rhs) const {
+      return {energyCost_Joule - rhs.energyCost_Joule, timeCost_Second - rhs.timeCost_Second, dataMovement_MiB - rhs.dataMovement_MiB};
+  }
+
+  perfStats& operator*=(long unsigned int rhs) {
+      energyCost_Joule *= rhs;
+      timeCost_Second *= rhs;
+      dataMovement_MiB *= rhs;
+      return *this;
+  }
+
+  perfStats& operator/=(long unsigned int rhs) {
+      energyCost_Joule /= rhs;
+      timeCost_Second /= rhs;
+      dataMovement_MiB /= rhs;
+      return *this;
+  }
+  perfStats operator*(long unsigned int rhs) const {
+    perfStats newStats = *this;
+    newStats*=rhs;
+    return newStats;
+  }
+  perfStats operator/(long unsigned int rhs) const {
+    perfStats newStats = *this;
+    newStats/=rhs;
+    return newStats;
+  }
 } perfStats;
 
 typedef std::map<OperatorTag, size_t> regressionTask;

@@ -1,3 +1,6 @@
+// TODO: 
+//  1. Re-write model constructing with only interpolation.
+//  2. Re-write model caching/loading related code
 #include "Operator/OperatorBase.hpp"
 #include <algorithm>
 #include <cstdlib>
@@ -35,8 +38,7 @@ perfStats OperatorBase::execCPUwithProbe(const size_t batchSize_MiB,
   auto energyMeans = std::get<vector<Stats>>(
       report.reportItems[metricTag::CPUPowerConsumption_Joule].data);
   auto energyMeanSum = energyMeans[0].mean + energyMeans[1].mean;
-
-  return {timeMean, energyMeanSum};
+  return {energyMeanSum,timeMean};
 }
 
 perfStats OperatorBase::execDPUwithProbe(const size_t batchSize_MiB) noexcept {
@@ -57,9 +59,101 @@ perfStats OperatorBase::execDPUwithProbe(const size_t batchSize_MiB) noexcept {
       1e9;
   auto energyMean = timeMean * DPU_ENERGY_CONSTANT_PER_SEC;
 
-  return {timeMean, energyMean};
+  return {energyMean, timeMean};
 }
 
+// -------------------- Checkpoint strategy -------------------------
+void OperatorBase::savePerfSamples(const perfStats src[], const std::string& path) const noexcept{
+  std::ofstream dataFile(path);
+  dataFile << "dataSize_MiB,timeCost_Second,energyCost_joule\n";
+  size_t step_MiB =
+    (deduceSizeUpperBound_MiB - BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
+  int sampleIdx = 0;
+  for (size_t dataSize_MiB = BATCH_LOWERBOUND_MB;
+      dataSize_MiB <= deduceSizeUpperBound_MiB; dataSize_MiB += step_MiB) {
+      dataFile << std::to_string(dataSize_MiB) << ","
+               << std::to_string(src[sampleIdx].timeCost_Second) << ","
+               << std::to_string(src[sampleIdx].energyCost_Joule);
+      sampleIdx++;
+      if(dataSize_MiB + step_MiB <= deduceSizeUpperBound_MiB)dataFile<<"\n";
+  }
+}
+
+void OperatorBase::cacheModel(const size_t batchSize_MiB) const noexcept {
+  std::string modelTagPostfix =
+      this->get_name() + "_" + std::to_string(batchSize_MiB) + "_MiB_"
+      + std::to_string(PERF_SAMPLE_POINT) + "_sample.csv";
+  std::string modelPathPrefix = REGRESSION_MODEL_CACHE_PATH;
+  std::filesystem::path modelPath{modelPathPrefix};
+  if (!std::filesystem::exists(modelPath))
+    std::filesystem::create_directories(modelPath);
+  if (checkIfIsTrainable()) {
+    savePerfSamples(CPUPerfSamples, modelPathPrefix + "CPUPerfSamples_" + modelTagPostfix);
+    if (!checkIfIsCPUOnly()) {
+      savePerfSamples(DPUPerfSamples, modelPathPrefix + "DPUPerfSamples_" + modelTagPostfix);
+    }
+  }
+  std::cout << modelTagPostfix << " is cached" << std::endl;
+}
+
+void OperatorBase::loadPerfSamples(perfStats dst[], const std::string& path) const noexcept{
+  std::ifstream file(path);
+  
+  std::string line, word;
+  getline(file, line);  // Skip header line
+  int sampleIdx = 0;
+  while (getline(file, line)) {
+    std::istringstream s(line);
+    perfStats stats;
+
+    // Read data size
+    getline(s, word, ','); // pass the datasize part
+
+    // Read time cost
+    getline(s, word, ',');
+    stats.timeCost_Second = std::stod(word);
+
+    getline(s, word, ',');
+    stats.energyCost_Joule= std::stod(word);
+
+    dst[sampleIdx++] = stats;
+  }
+
+  file.close();
+}
+
+bool OperatorBase::loadModelCacheIfExist(const size_t batchSize_MiB) noexcept {
+  std::string modelTagPostfix =
+      this->get_name() + "_" + std::to_string(batchSize_MiB) + "_MiB_"
+      + std::to_string(PERF_SAMPLE_POINT) + "_sample.csv";
+
+  std::string modelPathPrefix = REGRESSION_MODEL_CACHE_PATH;
+  std::cout << "loading " << modelPathPrefix << "*" << modelTagPostfix
+            << std::endl;
+
+  if (checkIfIsTrainable()) {
+    std::string CPUPerfSamplePath=
+        modelPathPrefix + "CPUPerfSamples_" + modelTagPostfix;
+    if (std::filesystem::exists({CPUPerfSamplePath}))
+      loadPerfSamples(CPUPerfSamples, CPUPerfSamplePath);
+    else
+      return false;
+    if (!checkIfIsCPUOnly()) {
+      std::string DPUPerfSamplePath =
+          modelPathPrefix + "DPUPerfSamples_" + modelTagPostfix;
+      if (std::filesystem::exists({DPUPerfSamplePath}))
+        loadPerfSamples(DPUPerfSamples, DPUPerfSamplePath);
+      else
+        return false;
+    }
+  }
+  this->isTrained = true;
+  this->deduceSizeUpperBound_MiB = batchSize_MiB;
+  std::cout << modelTagPostfix << " is loaded" << std::endl;
+  return true;
+}
+
+// ---------------- Model training -----------------------
 void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
                               void **memPoolBffrPtrs,
                               const int iterMax) noexcept {
@@ -68,15 +162,19 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
     size_t upperBound_MiB = batchUpperBound_MiB;
     size_t step_MiB =
         (upperBound_MiB - BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
+    int sampleIdx = 0;
     for (size_t batchSize_MiB = BATCH_LOWERBOUND_MB;
          batchSize_MiB <= batchUpperBound_MiB; batchSize_MiB += step_MiB) {
       std::cout << "Training with data batchsize: " << batchSize_MiB
                 << " MiB\n";
-      execCPUwithProbe(batchSize_MiB, memPoolBffrPtrs);
+      CPUPerfSamples[sampleIdx] = execCPUwithProbe(batchSize_MiB, memPoolBffrPtrs);
       if (!checkIfIsCPUOnly())
-        execDPUwithProbe(batchSize_MiB);
-    }
+        DPUPerfSamples[sampleIdx] = execDPUwithProbe(batchSize_MiB);
 
+      sampleIdx ++;
+    }
+    this->deduceSizeUpperBound_MiB = upperBound_MiB;
+    /*
     const size_t cpuQuantSize = cpuExecJob2Name.size();
     float cpuInputSize[cpuQuantSize];
     float cpuTimeCost[cpuQuantSize];
@@ -121,93 +219,26 @@ void OperatorBase::trainModel(const size_t batchUpperBound_MiB,
 
     std::cout << "Regression model of " << get_name() << " is trained after "
               << REGRESSION_TRAINING_ITER << " iteration." << std::endl;
+
     this->isTrained = true;
+    this->deduceSizeUpperBound_MiB = batchUpperBound_MiB;
     cacheModel(batchUpperBound_MiB);
   } else {
+    this->isTrained = true;
+    this->deduceSizeUpperBound_MiB = batchUpperBound_MiB;
+    std::cout << "warmup Operator " << get_name()
+              << "'s Model cache \n";
+    for(int i = 0; i < PERF_SAMPLE_POINT; i++){
+      size_t step_MiB =
+        (this->deduceSizeUpperBound_MiB - BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
+      std::cout << "Deducing:" << i <<std::endl;
+      CPUPerfSamples[i] = this->deducePerfCPU(BATCH_LOWERBOUND_MB + i * step_MiB);
+      if(!checkIfIsCPUOnly())DPUPerfSamples[i] = this->deducePerfDPU(BATCH_LOWERBOUND_MB + i * step_MiB);
+    }
     std::cout << "Operator " << get_name()
               << "'s Model cache hits sucessfully\n";
   }
-}
-
-void OperatorBase::verifyRegression(const std::string &filePath,
-                                    const size_t batchUpperBound_MiB) {
-  loadModelCacheIfExist(batchUpperBound_MiB);
-  std::string command = "mkdir -p " + filePath;
-  system(command.c_str());
-  utils::CSVWriter<float> w;
-  std::vector<std::string> header = {"dataSize_MiB", "Time_Second"};
-  std::string reportsPostfix = "Scatters_" + get_name() + ".csv";
-  std::string regressionPostfix = "Regression_" + get_name() + ".csv";
-  std::vector<std::vector<float>> cpuPerfReal;
-  std::vector<std::vector<float>> cpuEnergyReal;
-  std::vector<std::vector<float>> cpuPerfRegress;
-  std::vector<std::vector<float>> cpuEnergyRegress;
-  std::vector<std::vector<float>> dpuPerfReal;
-  std::vector<std::vector<float>> dpuPerfRegress;
-  for (const auto &[dataSize_MiB, taskName] : cpuExecJob2Name) {
-    const auto report = ct.getReport(taskName);
-    float cpuTimeCost =
-        std::get<Stats>(report.reportItems[metricTag::TimeConsume_ns].data)
-            .mean /
-        1e9;
-    auto energyMeans = std::get<vector<Stats>>(
-        report.reportItems[metricTag::CPUPowerConsumption_Joule].data);
-    float cpuEnergyCost = energyMeans[0].mean + energyMeans[1].mean;
-    cpuPerfReal.emplace_back(std::vector<float>{dataSize_MiB, cpuTimeCost});
-    cpuEnergyReal.emplace_back(std::vector<float>{dataSize_MiB, cpuEnergyCost});
-    cpuPerfRegress.emplace_back(std::vector<float>{
-        dataSize_MiB, deducePerfCPU(dataSize_MiB).timeCost_Second});
-    cpuEnergyRegress.emplace_back(std::vector<float>{
-        dataSize_MiB, deducePerfCPU(dataSize_MiB).energyCost_Joule});
-  }
-
-  if (!checkIfIsCPUOnly()) {
-    for (const auto &[dataSize_MiB, taskName] : dpuExecJob2Name) {
-      const auto report = ct.getReport(taskName);
-      auto dpuTimeCost =
-          std::get<Stats>(report.reportItems[metricTag::TimeConsume_ns].data)
-              .mean /
-          1e9;
-      dpuPerfReal.emplace_back(std::vector<float>{dataSize_MiB, dpuTimeCost});
-      dpuPerfRegress.emplace_back(std::vector<float>{
-          dataSize_MiB, deducePerfDPU(dataSize_MiB).timeCost_Second});
-    }
-  }
-  for (float batch = (float)BATCH_LOWERBOUND_MB; batch < batchUpperBound_MiB;
-       batch += (batchUpperBound_MiB - BATCH_LOWERBOUND_MB) / 100.0) {
-    cpuPerfRegress.emplace_back(
-        std::vector<float>{batch, deducePerfCPU(batch).timeCost_Second});
-    cpuEnergyRegress.emplace_back(
-        std::vector<float>{batch, deducePerfCPU(batch).energyCost_Joule});
-    if (!checkIfIsCPUOnly()) {
-      dpuPerfRegress.emplace_back(
-          std::vector<float>{batch, deducePerfDPU(batch).timeCost_Second});
-    }
-  }
-  auto sortByFirst = [](const std::vector<float> &a,
-                        const std::vector<float> &b) {
-    return a.front() < b.front(); // 根据每一行的第一个元素进行比较
-  };
-  std::sort(cpuPerfReal.begin(), cpuPerfReal.end(), sortByFirst);
-  std::sort(cpuPerfRegress.begin(), cpuPerfRegress.end(), sortByFirst);
-  std::sort(cpuEnergyReal.begin(), cpuEnergyReal.end(), sortByFirst);
-  std::sort(cpuEnergyRegress.begin(), cpuEnergyRegress.end(), sortByFirst);
-  if (!checkIfIsCPUOnly()) {
-    std::sort(dpuPerfReal.begin(), dpuPerfReal.end(), sortByFirst);
-    std::sort(dpuPerfRegress.begin(), dpuPerfRegress.end(), sortByFirst);
-  }
-
-  w.writeCSV(cpuPerfReal, header, filePath + "CPU_perf_" + reportsPostfix);
-  w.writeCSV(cpuEnergyReal, header, filePath + "CPU_energy_" + reportsPostfix);
-  w.writeCSV(cpuPerfRegress, header,
-             filePath + "CPU_perf_" + regressionPostfix);
-  w.writeCSV(cpuEnergyRegress, header,
-             filePath + "CPU_energy_" + regressionPostfix);
-
-  if (!checkIfIsCPUOnly()) {
-    w.writeCSV(dpuPerfReal, header, filePath + "DPU_perf_" + reportsPostfix);
-    w.writeCSV(dpuPerfRegress, header,
-               filePath + "DPU_perf_" + regressionPostfix);
+  */
   }
 }
 
@@ -227,35 +258,7 @@ void OperatorBase::dumpMetrics(const size_t batchSize_MiB,
   }
 }
 
-perfStats OperatorBase::deducePerf(const double offloadRatio,
-                                   const size_t batchSize_MiB) noexcept {
-  if (!isTrained || !checkIfIsTrainable()) {
-    return {};
-  } else {
-    float cpuBatchSize_MiB[1] = {(1 - offloadRatio) * batchSize_MiB};
-    float cpuTimePredict[1];
-    float cpuEnergyPredict[1];
-
-    CPUPerfLearner.predict(cpuBatchSize_MiB, 1, cpuTimePredict);
-    CPUEnergyLearner.predict(cpuBatchSize_MiB, 1, cpuEnergyPredict);
-
-    perfStats result;
-
-    if (checkIfIsCPUOnly()) {
-      result.energyCost_Joule = cpuEnergyPredict[0];
-      result.timeCost_Second = cpuTimePredict[0];
-    } else {
-      float dpuBatchSize_MiB[1] = {(offloadRatio)*batchSize_MiB};
-      float dpuTimePredict[1];
-      DPUPerfLearner.predict(dpuBatchSize_MiB, 1, dpuTimePredict);
-      result.timeCost_Second = std::max(cpuTimePredict[0], dpuTimePredict[0]);
-      result.energyCost_Joule =
-          cpuEnergyPredict[0] + dpuTimePredict[0] * DPU_ENERGY_CONSTANT_PER_SEC;
-    }
-
-    return result;
-  }
-}
+/* // Legacy decision tree model
 perfStats OperatorBase::deducePerfCPU(const size_t batchSize_MiB) noexcept {
   if (!isTrained || !checkIfIsTrainable()) {
     return {};
@@ -287,60 +290,8 @@ perfStats OperatorBase::deducePerfDPU(const size_t batchSize_MiB) noexcept {
     return result;
   }
 }
+*/
 
-void OperatorBase::cacheModel(const size_t batchSize_MiB) const noexcept {
-  std::string modelTagPostfix =
-      this->get_name() + "_" + std::to_string(batchSize_MiB) + "_MiB.json";
-  std::string modelPathPrefix = REGRESSION_MODEL_CACHE_PATH;
-  std::filesystem::path modelPath{modelPathPrefix};
-  if (!std::filesystem::exists(modelPath))
-    std::filesystem::create_directories(modelPath);
-  if (checkIfIsTrainable()) {
-    CPUPerfLearner.saveModel(modelPathPrefix + "CPUPerfModel_" +
-                             modelTagPostfix);
-    CPUEnergyLearner.saveModel(modelPathPrefix + "CPUEnergyModel_" +
-                               modelTagPostfix);
-    if (!checkIfIsCPUOnly()) {
-      DPUPerfLearner.saveModel(modelPathPrefix + "DPUPerfModel_" +
-                               modelTagPostfix);
-    }
-  }
-  std::cout << modelTagPostfix << " is cached" << std::endl;
-}
-
-bool OperatorBase::loadModelCacheIfExist(const size_t batchSize_MiB) noexcept {
-  std::string modelTagPostfix =
-      get_name() + "_" + std::to_string(batchSize_MiB) + "_MiB.json";
-  std::string modelPathPrefix = REGRESSION_MODEL_CACHE_PATH;
-  std::cout << "loading " << modelPathPrefix << "*" << modelTagPostfix
-            << std::endl;
-
-  if (checkIfIsTrainable()) {
-    std::string CPUPerfModelPath =
-        modelPathPrefix + "CPUPerfModel_" + modelTagPostfix;
-    std::string CPUEnergyModelPath =
-        modelPathPrefix + "CPUEnergyModel_" + modelTagPostfix;
-    if (std::filesystem::exists({CPUPerfModelPath}))
-      CPUPerfLearner.loadModel(CPUPerfModelPath);
-    else
-      return false;
-    if (std::filesystem::exists({CPUEnergyModelPath}))
-      CPUEnergyLearner.loadModel(CPUEnergyModelPath);
-    else
-      return false;
-    if (!checkIfIsCPUOnly()) {
-      std::string DPUPerfModelPath =
-          modelPathPrefix + "DPUPerfModel_" + modelTagPostfix;
-      if (std::filesystem::exists({DPUPerfModelPath}))
-        DPUPerfLearner.loadModel(DPUPerfModelPath);
-      else
-        return false;
-    }
-  }
-  this->isTrained = true;
-  std::cout << modelTagPostfix << " is loaded" << std::endl;
-  return true;
-}
 
 } // namespace Operator
 } // namespace MetaPB

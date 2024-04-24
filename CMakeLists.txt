@@ -11,7 +11,7 @@ set(CMAKE_CXX_COMPILER /usr/bin/g++-12 )
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -mavx512f -march=native -g -I/usr/include/dpu -ldpu -Wno-pointer-arith ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -mavx512f -march=native -g -I/usr/include/dpu -ldpu -Wno-pointer-arith -Wno-narrowing -Wno-unused-result ")
 
 execute_process(
   COMMAND dpu-pkg-config --libs --cflags dpu

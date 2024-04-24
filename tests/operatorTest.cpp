@@ -56,8 +56,6 @@ int main() {
               << std::endl;
   }
   */
-  OperatorManager om;
-  size_t batchSize_MiB = 4096;
   /*
   size_t bytes = batchSize_MiB * (1 <<20);
   void* src1 = (void*) malloc(bytes);
@@ -68,9 +66,5 @@ int main() {
   va->trainModel(batchSize_MiB,allBffrPtrs, 300);
   va->verifyRegression("./", batchSize_MiB);
   */
-  for (size_t batch = 256; batch <= batchSize_MiB; batch *= 2) {
-    om.trainAll(batch, 200);
-    om.verifyAll("/output/batch_" + std::to_string(batch) + "MiB/", batch);
-  }
   return 0;
 }

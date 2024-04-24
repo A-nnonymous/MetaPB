@@ -2,9 +2,9 @@
 #define OP_BASE_HPP
 
 #define PREPROBE_WARMUP_REP 3
-#define PROBE_REP 5
+#define PROBE_REP 10
 #define BATCH_LOWERBOUND_MB 128
-#define PERF_SAMPLE_POINT 16
+#define PERF_SAMPLE_POINT 32
 #define REGRESSION_TRAINING_ITER 200
 #define REGRESSION_MODEL_CACHE_PATH "/tmp/MetaPB/perfModel/"
 #define DPU_ENERGY_CONSTANT_PER_SEC 280.0
@@ -49,11 +49,55 @@ public:
                    const std::string dumpPath) noexcept;
   perfStats deducePerf(const double offloadRatio,
                        const size_t batchSize_MiB) noexcept;
-  perfStats deducePerfCPU(const size_t batchSize_MiB) noexcept;
-  perfStats deducePerfDPU(const size_t batchSize_MiB) noexcept;
 
-  perfStats deducePerfCPU_new(const size_t batchSize_MiB) noexcept;
-  perfStats deducePerfDPU_new(const size_t batchSize_MiB) noexcept;
+  inline perfStats deducePerfCPU(const size_t batchSize_MiB) const noexcept{
+    size_t step_MiB =
+        (this->deduceSizeUpperBound_MiB- BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
+
+    if (batchSize_MiB<= BATCH_LOWERBOUND_MB)[[unlikely]]{
+        return CPUPerfSamples[0];
+    }
+    if (batchSize_MiB>= this->deduceSizeUpperBound_MiB)[[unlikely]]{
+        return CPUPerfSamples[PERF_SAMPLE_POINT];
+    }
+
+    size_t index = (batchSize_MiB- BATCH_LOWERBOUND_MB) / step_MiB;
+
+              
+
+    size_t x0 = BATCH_LOWERBOUND_MB + index * step_MiB;
+    size_t x1 = x0 + step_MiB;
+
+    perfStats y0 = CPUPerfSamples[index];
+    perfStats y1 = CPUPerfSamples[index + 1];
+
+    perfStats y = y0 + (y1 - y0) * (batchSize_MiB- x0)   / (x1 - x0);
+
+    return y;
+  }
+
+  inline perfStats deducePerfDPU(const size_t batchSize_MiB) const noexcept{
+    size_t step_MiB =
+        (this->deduceSizeUpperBound_MiB- BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
+    if (batchSize_MiB<= BATCH_LOWERBOUND_MB)[[unlikely]]{
+        return DPUPerfSamples[0];
+    }
+    if (batchSize_MiB>= this->deduceSizeUpperBound_MiB)[[unlikely]]{
+        return DPUPerfSamples[PERF_SAMPLE_POINT];
+    }
+
+    size_t index = (batchSize_MiB- BATCH_LOWERBOUND_MB) / step_MiB;
+
+    size_t x0 = BATCH_LOWERBOUND_MB + index * step_MiB;
+    size_t x1 = x0 + step_MiB;
+
+    perfStats y0 = DPUPerfSamples[index];
+    perfStats y1 = DPUPerfSamples[index + 1];
+
+    perfStats y = y0 +(y1 - y0) *  (batchSize_MiB- x0)/ (x1 - x0);
+
+    return y;
+  }
 
   std::string getDPUBinaryPath() const noexcept;
   inline virtual const std::string get_name() const noexcept = 0;
@@ -63,14 +107,15 @@ public:
   virtual inline const bool checkIfIsTrained() const noexcept {
     return isTrained;
   }
-  void verifyRegression(const std::string &filePath,
-                        const size_t batchUpperBound_MiB);
 
-private:
   perfStats execCPUwithProbe(const size_t batchSize_MiB,
                              void **memPoolBffrPtrs) noexcept;
   perfStats execDPUwithProbe(const size_t batchSize_MiB) noexcept;
 
+private:
+
+  void savePerfSamples(const perfStats[], const std::string& path)const noexcept;
+  void loadPerfSamples(perfStats[], const std::string& path)const noexcept;
   void cacheModel(const size_t batchSize_MiB) const noexcept;
   bool loadModelCacheIfExist(const size_t batchSize_MiB) noexcept;
 
@@ -78,11 +123,15 @@ private:
   std::map<float, std::string> cpuExecJob2Name;
   std::map<float, std::string> dpuExecJob2Name;
 
-  Learner CPUPerfLearner;
-  Learner CPUEnergyLearner;
-  Learner DPUPerfLearner;
-  inline static bool isTrained = false;
+  size_t deduceSizeUpperBound_MiB = 0;
+
   ChronoTrigger ct;
+
+  // Caches that used to store deduce results and do interpolation
+  perfStats CPUPerfSamples[PERF_SAMPLE_POINT + 1]; // +1 for lowerbound
+  perfStats DPUPerfSamples[PERF_SAMPLE_POINT + 1];
+
+  inline static bool isTrained = false;
 
 protected:
   dpu_set_t &allDPUs;

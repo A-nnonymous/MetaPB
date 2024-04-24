@@ -81,15 +81,6 @@ struct OperatorManager {
     free(src1);
   }
 
-  void verifyAll(const std::string &filePath,
-                 const size_t batchUpperBound_MiB) {
-    trainAll(batchUpperBound_MiB, 200);
-    for (const auto &opSet : allPerfRelOPSet) {
-      for (const auto &opTag : opSet) {
-        opMap[opTag]->verifyRegression(filePath, batchUpperBound_MiB);
-      }
-    }
-  }
 
   inline void execCPU(OperatorTag opTag, const size_t batchSize_MiB,
                       void **memPoolBffrPtrs) const noexcept {
@@ -100,16 +91,27 @@ struct OperatorManager {
     opMap.at(opTag)->execDPU(batchSize_MiB);
   }
 
+  inline perfStats execCPUwithProbe(OperatorTag opTag, const size_t batchSize_MiB, void **memPoolBffrPtrs) const noexcept {
+    return {opMap.at(opTag)->execCPUwithProbe(batchSize_MiB,memPoolBffrPtrs)};
+  }
+
+  inline perfStats execDPUwithProbe(OperatorTag opTag,
+                      const size_t batchSize_MiB) const noexcept {
+    return {opMap.at(opTag)->execDPUwithProbe(batchSize_MiB)};
+  }
+
   perfStats deducePerf(OperatorTag opTag, double offloadRatio,
                        size_t batchSize_MiB) {
     return opMap.at(opTag)->deducePerf(offloadRatio, batchSize_MiB);
   }
+
   perfStats deducePerfCPU(OperatorTag opTag, size_t batchSize_MiB) const {
     return opMap.at(opTag)->deducePerfCPU(batchSize_MiB);
   }
   perfStats deducePerfDPU(OperatorTag opTag, size_t batchSize_MiB) const {
     return opMap.at(opTag)->deducePerfDPU(batchSize_MiB);
   }
+
 
   std::unique_ptr<OperatorBase> getOperator(OperatorTag tag) {
     switch (tag) {

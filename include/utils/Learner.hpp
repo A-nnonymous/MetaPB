@@ -22,7 +22,9 @@ private:
   int y_norm;
 
 public:
-  Learner(int cols = 1) : cols(cols), h_booster(nullptr) {}
+  Learner(int cols = 1) : cols(cols), h_booster(nullptr) {
+    std::cout << "Learner has been constructed\n";
+  }
 
   void train(float *train_data, float *train_labels, int rows, int iterMax) {
     /*
@@ -98,6 +100,7 @@ public:
 
   ~Learner() {
     // free xgboost internal structures
+    std::cout << "Learner has been free\n";
     if (h_booster) {
       safe_xgboost(XGBoosterFree(h_booster));
     }

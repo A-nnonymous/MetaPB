@@ -10,7 +10,6 @@ ChronoTrigger::ChronoTrigger()
     : pcmHandle(PCM::getInstance()), socketNum(pcmHandle->getNumSockets()) {
 
 // Repeatly run tick-tock and count the bias to a report.
-#pragma unroll BIAS_CORRECTION_REPEAT
   for (auto corr = 0; corr < BIAS_CORRECTION_REPEAT; corr++) {
     tick("__BIAS__");
     tock("__BIAS__");
