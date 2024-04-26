@@ -7,14 +7,7 @@ namespace utils {
 using std::vector;
 
 ChronoTrigger::ChronoTrigger()
-    : pcmHandle(PCM::getInstance()), socketNum(pcmHandle->getNumSockets()) {
-
-// Repeatly run tick-tock and count the bias to a report.
-  for (auto corr = 0; corr < BIAS_CORRECTION_REPEAT; corr++) {
-    tick("__BIAS__");
-    tock("__BIAS__");
-  }
-}
+    : pcmHandle(getPCMInstance()), socketNum(pcmHandle->getNumSockets()) {}
 
 void ChronoTrigger::tick(const std::string &taskName) {
   // If this task haven't registered yet, allocate space and register it.
@@ -45,8 +38,7 @@ void ChronoTrigger::tock(const std::string &taskName) {
   if (!task2Report.contains(taskName)) {
     task2Report[taskName] = Report(socketNum, metricTag::size);
   }
-  Report &thisReport = task2Report[taskName];
-  // Stat calculating and register.
+  Report &thisReport = task2Report[taskName]; // Stat calculating and register.
   const auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
       currTimePoint - taskLastProbe.time);
   const double thisDuration_ns = duration.count();
@@ -62,6 +54,11 @@ void ChronoTrigger::tock(const std::string &taskName) {
 
 void ChronoTrigger::dumpAllReport(std::string path) {
   CSVWriter<std::string> writer;
+  // Repeatly run tick-tock and count the bias to a report.
+  for (auto corr = 0; corr < BIAS_CORRECTION_REPEAT; corr++) {
+    tick("__BIAS__");
+    tock("__BIAS__");
+  }
   const std::vector<std::string> header = {
       "taskName", "repeat",     "sum",        "mean",      "variance",
       "stdVar",   "upperBound", "lowerBound", "upperBias", "lowerBias",

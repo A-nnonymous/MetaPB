@@ -21,7 +21,6 @@ int main() {
       {"isConsideringReduce", "true"},
     }
   );
-  */
   bm.addBenchmark<Graph_benchmark>(
       {"All_Graphloads"},
       {
@@ -37,6 +36,7 @@ int main() {
                                      {"loadSize_MiB", "4096"},
                                      {"opNum", "6"},
                                  });
+  */
   bm.addBenchmark<singleOPDeduce>({"regression"},
                                   {
                                     {"upperBound_MiB", "4096"}

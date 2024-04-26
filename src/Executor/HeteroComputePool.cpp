@@ -30,8 +30,6 @@ void HeteroComputePool::processTasks(
       std::unique_lock<std::mutex> lock(mutex_);
       cv_.wait(lock, [&] { return dependencyCheck(task.id); });
     }
-
-    // For map and reduce tasks, acquire the mapReduceMutex to ensure
     // exclusivity
     std::unique_lock<std::mutex> dpuLock(
         type == "MAP" || type == "REDUCE" || type == "DPU" ? dpuMutex_ : mutex_,
@@ -82,32 +80,38 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
   totalEnergyCost_joule = 0.0f;
   totalTransfer_mb = 0.0f;
 
-  // for first job that is no dependencies(buggy)
+  // Order Must Ensure first node is LOGIC_START
+  // This node is completed without prerequisities.
   cpuCompleted_[0] = true;
   dpuCompleted_[0] = true;
   mapCompleted_[0] = true;
   reduceCompleted_[0] = true;
 
+  // ----------- A.Task queue initializing -----------
   for (size_t i = 0; i < sched.order.size(); ++i) {
     int taskId = sched.order[i];
     const TaskProperties &tp = g.g[taskId];
     Task cpuTask, dpuTask, mapTask, reduceTask;
 
+    // ----------- A.1. special: End node writeback ---------
     if (tp.op == OperatorTag::LOGIC_END) {
       cpuTask = {taskId, []() {}, "CPU", opType2Name.at(tp.opType)};
       dpuTask = {taskId, []() {}, "DPU", opType2Name.at(tp.opType)};
       reduceTask = {taskId, []() {}, "REDUCE", "REDUCE"};
       mapTask = {taskId, []() {}, "MAP", "MAP"};
 
+      // --- A.1.a xfer dataSize specify related to pred nodes---
       size_t totalOutputSize_MiB = 0.0f;
       auto inEdges = boost::in_edges(taskId, g.g);
       for (auto ei = inEdges.first; ei != inEdges.second; ++ei) {
         TaskNode pred = boost::source(*ei, g.g);
-        dependencies_[taskId].push_back(pred);
+        dependencies_[taskId].push_back(pred); 
         const TaskProperties &predTp = g.g[pred];
         totalOutputSize_MiB += predTp.inputSize_MiB * sched.offloadRatio[pred];
       }
       totalTransfer_mb += totalOutputSize_MiB;
+      
+      // --- A.1.b xfer job specify related to execType ---
       if (eT == execType::DO) {
         reduceTask.execute = [this, totalOutputSize_MiB]() {
           om.execCPU(OperatorTag::REDUCE, totalOutputSize_MiB,
@@ -138,9 +142,9 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
       dpuQueue_.push(dpuTask);
       mapQueue_.push(mapTask);
       reduceQueue_.push(reduceTask);
-      continue; // continue to processing next node.
+      continue; // finish this node's processing
     }
-    // -------------------------------------------------------------------
+    // ----------- Plain operator processing ------------
     auto inEdges = boost::in_edges(taskId, g.g);
     for (auto ei = inEdges.first; ei != inEdges.second; ++ei) {
       TaskNode pred = boost::source(*ei, g.g);
@@ -150,6 +154,7 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
     float offloadRatio = sched.offloadRatio[i];
     float omax = 0.0f;
     float omin = 1.0f;
+
     std::vector<int> successors;
     auto outEdges = boost::out_edges(taskId, g.g);
     for (auto ei = outEdges.first; ei != outEdges.second; ++ei) {
@@ -393,53 +398,49 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
   mapTimings_.clear();
   reduceTimings_.clear();
 
-  // -------------------- Entering unsafe multithread zone ------------------
-  // Thread workers definition
-  ChronoTrigger ct;
   if (eT == execType::DO) {
     ct.tick("HCP");
   }
-  std::thread cpuThread(
+  // -------------------- Entering unsafe multithread zone ------------------
+  // Thread workers definition
+  {
+  std::jthread cpuThread(
       &HeteroComputePool::processTasks, this, std::ref(cpuQueue_),
       std::ref(cpuCompleted_),
       [this](int taskId) noexcept {
-        return allDependenciesMet(mapCompleted_, dependencies_[taskId]) &&
-               allDependenciesMet(reduceCompleted_, dependencies_[taskId]);
+        return allDependenciesMet(reduceCompleted_, dependencies_[taskId]);
       },
       std::ref(cpuTimings_), "CPU");
 
-  std::thread dpuThread(
+  std::jthread dpuThread(
       &HeteroComputePool::processTasks, this, std::ref(dpuQueue_),
       std::ref(dpuCompleted_),
       [this](int taskId) noexcept {
-        return allDependenciesMet(mapCompleted_, dependencies_[taskId]) &&
-               allDependenciesMet(reduceCompleted_, dependencies_[taskId]);
+        return allDependenciesMet(mapCompleted_, dependencies_[taskId]);
+               
       },
       std::ref(dpuTimings_), "DPU");
 
-  std::thread mapThread(
+  std::jthread mapThread(
       &HeteroComputePool::processTasks, this, std::ref(mapQueue_),
       std::ref(mapCompleted_),
       [this](int taskId) noexcept {
-        // return cpuCompleted_[taskId] && dpuCompleted_[taskId];
         return cpuCompleted_[taskId];
       },
       std::ref(mapTimings_), "MAP");
 
-  std::thread reduceThread(
+  std::jthread reduceThread(
       &HeteroComputePool::processTasks, this, std::ref(reduceQueue_),
       std::ref(reduceCompleted_),
-      [this](int taskId) noexcept { return dpuCompleted_[taskId]; },
+      [this](int taskId) noexcept { 
+        return dpuCompleted_[taskId]; 
+      },
       std::ref(reduceTimings_), "REDUCE");
+  }
 
-  cpuThread.join();
-  dpuThread.join();
-  mapThread.join();
-  reduceThread.join();
   if (eT == execType::DO) {
     ct.tock("HCP");
   }
-
   perfStats result;
   if (eT == execType::MIMIC) {
     result.timeCost_Second = std::max(
@@ -463,6 +464,7 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
     return {energyMeanSum + totalDPUTime_Second * 280, timeMean,
             totalTransfer_mb};
   }
+
 }
 
 // Print timings for each type of task

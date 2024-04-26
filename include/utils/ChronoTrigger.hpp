@@ -34,7 +34,6 @@ class ChronoTrigger {
   } Probe;
 
 public:
-  /// @brief This class should not be initialized without taskNum
   ChronoTrigger();
 
   /// @brief Unique name of specific task(exclude __BIAS__)
@@ -61,6 +60,11 @@ private:
   const size_t socketNum;
   std::map<std::string, Report> task2Report;
   std::map<std::string, Probe> task2LastProbe;
+
+  inline static PCM* getPCMInstance() {
+      static PCM* instance = PCM::getInstance();
+      return instance;
+  }
 };
 
 } // namespace utils

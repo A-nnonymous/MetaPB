@@ -3,7 +3,8 @@
 #include "workloads/single_op_experiment.hpp"
 #include <map>
 
-#define TEST_SAMPLE_POINT (PERF_SAMPLE_POINT*2)
+//#define TEST_SAMPLE_POINT (PERF_SAMPLE_POINT*2)
+#define TEST_SAMPLE_POINT 16
 
 using namespace benchmarks;
 using namespace MetaPB;
@@ -15,6 +16,7 @@ using Operator::hybridOPSet;
 using Operator::OperatorManager;
 using Operator::OperatorTag;
 using Operator::tag2Name;
+using Operator::allPerfRelOPSet;
 using utils::Schedule;
 
 namespace benchmarks {
@@ -24,16 +26,28 @@ public:
   using Benchmark::Benchmark;
   void writeCSV(const std::string &dumpPath) const noexcept override {
     std::ofstream dataFile(dumpPath + "deduceResult.csv");
-    dataFile << "dataSize_MiB,real_perf,deduce_perf\n";
-    for(const auto&[dataSize, _] : realStats){
-      dataFile << std::to_string(dataSize) << "," 
-               << std::to_string(realStats.at(dataSize).timeCost_Second) << ","
-               << std::to_string(deduceStats.at(dataSize).timeCost_Second) << "\n";
+    dataFile << "opName,dataSize_MiB,realPerfCPU,deducePerfCPU,realEnergyCPU,deduceEnergyCPU,realPerfDPU,deducePerfDPU\n";
+    for(const auto&[perfTag, _] : realStats){
+      size_t dataSize = perfTag.second;
+      auto opTag = perfTag.first;
+      std::string opName = tag2Name.at(perfTag.first);
+      dataFile << opName << ","
+               << std::to_string(dataSize) << "," 
+               << std::to_string(realStats.at(perfTag).timeCost_Second) << ","
+               << std::to_string(deduceStats.at(perfTag).timeCost_Second) << ","
+               << std::to_string(realStats.at(perfTag).energyCost_Joule) << ","
+               << std::to_string(deduceStats.at(perfTag).energyCost_Joule) << ",";
+            if(memoryBoundOPSet.contains(opTag)||computeBoundOPSet.contains(opTag)){
+              dataFile << std::to_string(realStatsDPU.at(perfTag).timeCost_Second) << ","
+               << std::to_string(deduceStatsDPU.at(perfTag).timeCost_Second) << "\n";
+            }else{
+              dataFile << "0,0\n";
+            }
+
     }
   }
 
   void exec() override {
-    int warmup = 2, rep = 5;
     size_t upperBound_MiB = std::stoul(myArgs["upperBound_MiB"]);
     void **memPool = (void **)malloc(3);
 
@@ -43,22 +57,39 @@ public:
     }
 
     OperatorManager om;
-    om.trainModel({{OperatorTag::MAC, upperBound_MiB}});
+    om.trainAll(upperBound_MiB,100);
 
-    size_t step_MiB =
-        (upperBound_MiB - BATCH_LOWERBOUND_MB) / TEST_SAMPLE_POINT;
+    std::vector<size_t> testSizes(TEST_SAMPLE_POINT);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<size_t> dist(BATCH_LOWERBOUND_MB, upperBound_MiB);
+    for (auto& elem : testSizes) {
+        elem = dist(gen);
+    }
+    std::sort(testSizes.begin(),testSizes.end());
+    for (const auto &opSet : allPerfRelOPSet) {
+      for (const auto &opTag : opSet) {
+        for (const size_t batchSize_MiB :testSizes) {
+            std::cout << "testing "<< batchSize_MiB << "\n";
+            // This stat is already been averaged by probing function
+            realStats[{opTag,batchSize_MiB}]=  om.execCPUwithProbe(opTag, batchSize_MiB,memPool);
 
-    for (size_t batchSize_MiB = BATCH_LOWERBOUND_MB; batchSize_MiB <= upperBound_MiB; batchSize_MiB += step_MiB) {
-        std::cout << "testing "<< batchSize_MiB << "\n";
-        // This stat is already been averaged by probing function
-        realStats[batchSize_MiB]=  om.execCPUwithProbe(OperatorTag::MAC, batchSize_MiB,memPool);
+            deduceStats[{opTag,batchSize_MiB}] = om.deducePerfCPU(opTag, batchSize_MiB);
+            // not CPUOnly
+            if(memoryBoundOPSet.contains(opTag)||computeBoundOPSet.contains(opTag)){
+              realStatsDPU[{opTag,batchSize_MiB}]=  om.execDPUwithProbe(opTag, batchSize_MiB);
 
-        deduceStats[batchSize_MiB] = om.deducePerfCPU(OperatorTag::MAC, batchSize_MiB);
+              deduceStatsDPU[{opTag,batchSize_MiB}] = om.deducePerfDPU(opTag, batchSize_MiB);
+            }
+        }
+      }
     }
   }
 
 private:
-  std::map<size_t, perfStats> realStats;
-  std::map<size_t, perfStats> deduceStats;
+  std::map<std::pair<OperatorTag,size_t>, perfStats> realStats;
+  std::map<std::pair<OperatorTag,size_t>, perfStats> deduceStats;
+  std::map<std::pair<OperatorTag,size_t>, perfStats> realStatsDPU;
+  std::map<std::pair<OperatorTag,size_t>, perfStats> deduceStatsDPU;
 };
 } // namespace benchmarks

@@ -120,6 +120,7 @@ private:
   int memPoolNum = 3;
   double totalDPUTime_Second = 0.0f;
   const OperatorManager &om;
+  ChronoTrigger ct;
   std::mutex mutex_;
   std::condition_variable cv_;
   std::mutex dpuMutex_;

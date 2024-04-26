@@ -6,8 +6,8 @@ namespace Scheduler {
 std::vector<float>
 MetaScheduler::evalSchedules(const vector<vector<float>> &ratioVecs) {
   const int agentNum = ratioVecs.size();
-  std::vector<perfStats> stats(agentNum);
   std::vector<HeteroComputePool> pools;
+  std::vector<perfStats> stats(agentNum);
   std::vector<Schedule> proposedSchedule(ratioVecs.size());
   for (auto &schedule : proposedSchedule) {
     schedule.offloadRatio.resize(ratioVecs[0].size(), 0.0f);
@@ -24,12 +24,9 @@ MetaScheduler::evalSchedules(const vector<vector<float>> &ratioVecs) {
     pools.emplace_back(std::move(
         HeteroComputePool{ratioVecs[0].size(), this->om, this->dummyPool}));
   }
-  /*
   omp_set_num_threads(agentNum);
-#pragma omp parallel for schedule(dynamic)
-*/
+#pragma omp parallel for schedule(static)
   for (int i = 0; i < agentNum; i++) {
-    std::cout << "Evaluating agent "<< i <<std::endl;
     stats[i] = pools[i].execWorkload(tg, proposedSchedule[i], execType::MIMIC);
   }
   for (int i = 0; i < stats.size(); i++) {
@@ -51,7 +48,7 @@ Schedule MetaScheduler::schedule() noexcept {
   const std::vector<float> lowerLimit(nTask, -100.0f);
   const std::vector<float> upperLimit(nTask, 100.0f);
   const size_t dimNum = nTask;
-  const int pointNum = 20;
+  const int pointNum = 64;
   const int iterNum = OptIterMax;
 
   std::vector<std::unique_ptr<OptimizerBase>> oVec;
@@ -75,22 +72,20 @@ Schedule MetaScheduler::schedule() noexcept {
 
   float bestVal = 666666666.6f;
   std::vector<float> ratio(nTask, 0.0f);
-  /*
 #pragma omp parallel
   {
 #pragma omp single
     {
-      // for(int i = 0; i < oVec.size(); i++){
-      for (int i = 0; i < 2; i++) {
-// 创建untied任务
+      for(int i = 0; i < oVec.size(); i++){
 #pragma omp task untied
-        { oVec[i]->exec(); }
+        { 
+          oVec[i]->exec(); 
+        }
       }
     }
   }
   int bestOptimizerIdx = -1; // init illegal value
-  // for(int i = 0; i < oVec.size();i++){
-  for (int i = 0; i < 2; i++) {
+  for(int i = 0; i < oVec.size();i++){
     std::cout << "score " << i << "=" << oVec[i]->getGlobalOptimaValue()
               << "\n";
     if (oVec[i]->getGlobalOptimaValue() < bestVal) {
@@ -100,12 +95,13 @@ Schedule MetaScheduler::schedule() noexcept {
   }
   ratio = oVec[bestOptimizerIdx]->getGlobalOptimaPoint();
   bestVal = oVec[bestOptimizerIdx]->getGlobalOptimaValue();
-  */
 
+  /*
   int bestOptimizerIdx = 0;
   oVec[bestOptimizerIdx]->exec();
   ratio = oVec[bestOptimizerIdx]->getGlobalOptimaPoint();
   bestVal = oVec[bestOptimizerIdx]->getGlobalOptimaValue();
+  */
 
   // ---------- showoff use --------------
   switch (bestOptimizerIdx) {

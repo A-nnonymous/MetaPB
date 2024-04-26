@@ -159,7 +159,7 @@ int main() {
   OperatorManager om;
   om.trainModel(rt);
   MetaPB::Scheduler::HEFTScheduler he(g, om);
-  MetaPB::Scheduler::MetaScheduler ms(1.0, 0.0, 50, g, om);
+  MetaPB::Scheduler::MetaScheduler ms(0.5, 0.5, 50, g, om);
   HeteroComputePool hcp(boost::num_vertices(g.g),om, memPoolPtr);
   Schedule scheduleResult = he.schedule();
   std::cout <<"MetaScheduler Scheduling\n";
