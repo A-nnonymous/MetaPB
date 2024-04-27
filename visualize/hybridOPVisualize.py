@@ -15,10 +15,10 @@ def plot_performance_energy(data_file_w, data_file_wo, output_path):
     operators = pd.concat([w_reduce_data['OperatorName'], wo_reduce_data['OperatorName']]).unique()
 
     # 创建子图
-    fig, axs = plt.subplots(1, len(operators), figsize=(5 * len(operators), 5))
+    #fig, axs = plt.subplots(1, len(operators), figsize=(5 * len(operators), 5))
     #fig, axs = plt.subplots(2, 3, figsize=(3  , 2))
-    #fig, axs = plt.subplots(2, 3, figsize=(15  , 10))
-    #axs = axs.flatten()
+    fig, axs = plt.subplots(2, 3, figsize=(15  , 10))
+    axs = axs.flatten()
     # 如果只有一个运算符，将axs转换为列表
     if len(operators) == 1:
         axs = [axs]

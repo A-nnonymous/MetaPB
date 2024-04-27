@@ -1,5 +1,5 @@
-#ifndef OP_DOT_PROD_HPP
-#define OP_DOT_PROD_HPP
+#ifndef OP_ELEW_PROD_HPP
+#define OP_ELEW_PROD_HPP
 
 #include "Operator/OperatorBase.hpp"
 #include "Operator/dpu/common.h"
@@ -7,9 +7,9 @@
 namespace MetaPB {
 namespace Operator {
 
-class OperatorDOT_PROD : public OperatorBase {
+class OperatorELEW_PROD : public OperatorBase {
 public:
-  OperatorDOT_PROD(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR)
+  OperatorELEW_PROD(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR)
       : OperatorBase(g_DPU_MGR) {}
   inline virtual const std::string get_name() const noexcept override {
     return OpName;
@@ -29,7 +29,7 @@ public:
   }
 
 private:
-  inline static const std::string OpName = "DOT_PROD";
+  inline static const std::string OpName = "ELEW_PROD";
 };
 } // namespace Operator
 } // namespace MetaPB

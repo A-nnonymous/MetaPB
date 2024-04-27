@@ -92,7 +92,7 @@ private:
         std::cout << " ";
     }
     std::cout << "] " << int(progress * 100.0) << "% (" << completed << "/"
-              << total << ")";
+              << total << ")\n";
     std::cout.flush();
   }
 

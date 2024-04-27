@@ -100,9 +100,9 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
   TaskProperties geaNode = {OperatorTag::MAC, OperatorType::ComputeBound,
                             batchSize_MiB, "blue", "MAC"};
 
-  TaskProperties geaDiagonal = {OperatorTag::DOT_PROD,
+  TaskProperties geaDiagonal = {OperatorTag::ELEW_PROD,
                                 OperatorType::MemoryBound, batchSize_MiB,
-                                "blue", "DOT_PROD"};
+                                "blue", "ELEW_PROD"};
 
   TaskProperties endNode = {OperatorTag::LOGIC_END, OperatorType::Logical, 0,
                             "yellow", "END"};
@@ -132,16 +132,16 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
           g[rc2Task[{row, col}]].name = getCordinateStr(row, col);
           boost::add_edge(rc2Task[{row, col}], rc2Task[{row + 1, col}],
                           geaTransfer, g);
-        }else if(row == (N - 2) && col == (N - 1)){
+        } else if (row == (N - 2) && col == (N - 1)) {
           g[rc2Task[{row, col}]] = geaNode;
           g[rc2Task[{row, col}]].name = getCordinateStr(row, col);
           auto end = boost::add_vertex(endNode, g);
-          boost::add_edge(rc2Task[{N-2, N-1}], end, geaTransfer, g);
+          boost::add_edge(rc2Task[{N - 2, N - 1}], end, geaTransfer, g);
         }
       }
     }
   }
-
+  
   return {g, "GEA_" + std::to_string(N)};
 }
 

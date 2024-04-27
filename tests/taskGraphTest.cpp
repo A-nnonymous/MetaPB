@@ -22,9 +22,9 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
 
   TaskProperties geaNode = {OperatorTag::MAC, OperatorType::ComputeBound,
                             batchSize_MiB, "blue", "MAC"};
-  TaskProperties geaDiagonal = {OperatorTag::DOT_PROD,
+  TaskProperties geaDiagonal = {OperatorTag::ELEW_PROD,
                                 OperatorType::MemoryBound, batchSize_MiB,
-                                "blue", "DOT_PROD"};
+                                "blue", "ELEW_PROD"};
 
   TransferProperties geaTransfer = {1.0f, true};
 

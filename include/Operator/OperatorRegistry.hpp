@@ -14,8 +14,8 @@ enum class OperatorTag {
   EUDIST,      // Vector Euclidean-distance(modified)
   CONV_1D,     // Convolution in 1 dimension
   LOOKUP,      // Table lookup
-  DOT_PROD,    // Vector dot product
-  DOT_ADD,     // Vector dot adding
+  ELEW_PROD,    // Vector dot product
+  ELEW_ADD,     // Vector dot adding
   LOGIC_START, // Logical Start Operator
   LOGIC_END,   // Logical End Operator
   MAP,         // Transfer Operator that maps data to DPU
@@ -28,8 +28,8 @@ static const map<OperatorTag, std::string> tag2Name = {
     {OperatorTag::EUDIST, "EUDIST"},
     {OperatorTag::CONV_1D, "CONV_1D"},
     {OperatorTag::LOOKUP, "LOOKUP"},
-    {OperatorTag::DOT_PROD, "DOT_PROD"},
-    {OperatorTag::DOT_ADD, "DOT_ADD"},
+    {OperatorTag::ELEW_PROD, "ELEW_PROD"},
+    {OperatorTag::ELEW_ADD, "ELEW_ADD"},
     {OperatorTag::LOGIC_START, "LOGIC_START"},
     {OperatorTag::LOGIC_END, "LOGIC_END"},
     {OperatorTag::MAP, "MAP"},
@@ -44,8 +44,8 @@ static const set<OperatorTag> computeBoundOPSet = {
 static const set<OperatorTag> memoryBoundOPSet = {
     OperatorTag::EUDIST,
     OperatorTag::LOOKUP,
-    OperatorTag::DOT_PROD,
-    OperatorTag::DOT_ADD,
+    OperatorTag::ELEW_PROD,
+    OperatorTag::ELEW_ADD,
 };
 
 static const set<OperatorTag> xferOPSet = {OperatorTag::MAP,
@@ -60,7 +60,7 @@ static const set<set<OperatorTag>> allPerfRelOPSet = {
 
 static const set<OperatorTag> allOPSet = {
     OperatorTag::MAC,         OperatorTag::EUDIST,    OperatorTag::CONV_1D,
-    OperatorTag::LOOKUP,      OperatorTag::DOT_PROD,  OperatorTag::DOT_ADD,
+    OperatorTag::LOOKUP,      OperatorTag::ELEW_PROD,  OperatorTag::ELEW_ADD,
     OperatorTag::LOGIC_START, OperatorTag::LOGIC_END, OperatorTag::MAP,
     OperatorTag::REDUCE,      OperatorTag::UNDEFINED};
 

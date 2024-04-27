@@ -60,6 +60,7 @@ public:
             perfStats stat{0, 0, 0};
             for (int i = 0; i < WARMUP_REP + REP; i++) {
               perfStats thisStat = hcp.execWorkload(tg, sched, execType::DO);
+              hcp.outputTimingsToCSV("./test.csv");
               if (i >= WARMUP_REP) {
                 stat.timeCost_Second += thisStat.timeCost_Second / REP;
                 stat.energyCost_Joule += thisStat.energyCost_Joule / REP;

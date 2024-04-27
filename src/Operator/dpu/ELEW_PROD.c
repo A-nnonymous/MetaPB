@@ -10,9 +10,9 @@
 
 __host common_args DPU_INPUT_ARGUMENTS;
 
-static void DOT_ADD(T *bufferB, T *bufferA, unsigned int l_size) {
+static void ELEW_PROD(T *bufferB, T *bufferA, unsigned int l_size) {
   for (unsigned int i = 0; i < l_size; i++) {
-    bufferB[i] += bufferA[i];
+    bufferB[i] *= bufferA[i];
   }
 }
 
@@ -60,7 +60,7 @@ int main(void) {
     mram_read((__mram_ptr void const *)(mram_base_addr_B + byte_index), cache_B,
               l_size_bytes);
 
-    DOT_ADD(cache_B, cache_A, l_size_bytes >> DIV);
+    ELEW_PROD(cache_B, cache_A, l_size_bytes >> DIV);
 
     // Write cache to current MRAM block
     mram_write(cache_B, (__mram_ptr void *)(mram_base_addr_B + byte_index),

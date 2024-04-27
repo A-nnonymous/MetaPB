@@ -3,8 +3,8 @@
 #include "Executor/TaskGraph.hpp"
 #include "Operator/OperatorBase.hpp"
 #include "Operator/OperatorCONV_1D.hpp"
-#include "Operator/OperatorDOT_ADD.hpp"
-#include "Operator/OperatorDOT_PROD.hpp"
+#include "Operator/OperatorELEW_ADD.hpp"
+#include "Operator/OperatorELEW_PROD.hpp"
 #include "Operator/OperatorEUDIST.hpp"
 #include "Operator/OperatorLOGIC_END.hpp"
 #include "Operator/OperatorLOGIC_START.hpp"
@@ -117,10 +117,10 @@ struct OperatorManager {
     switch (tag) {
     case OperatorTag::CONV_1D:
       return std::make_unique<OperatorCONV_1D>(g_DPU_MGR);
-    case OperatorTag::DOT_ADD:
-      return std::make_unique<OperatorDOT_ADD>(g_DPU_MGR);
-    case OperatorTag::DOT_PROD:
-      return std::make_unique<OperatorDOT_PROD>(g_DPU_MGR);
+    case OperatorTag::ELEW_ADD:
+      return std::make_unique<OperatorELEW_ADD>(g_DPU_MGR);
+    case OperatorTag::ELEW_PROD:
+      return std::make_unique<OperatorELEW_PROD>(g_DPU_MGR);
     case OperatorTag::EUDIST:
       return std::make_unique<OperatorEUDIST>(g_DPU_MGR);
     case OperatorTag::LOGIC_END:

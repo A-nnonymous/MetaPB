@@ -1,5 +1,5 @@
-#ifndef OP_DOT_ADD_HPP
-#define OP_DOT_ADD_HPP
+#ifndef OP_ELEW_ADD_HPP
+#define OP_ELEW_ADD_HPP
 
 #include "Operator/OperatorBase.hpp"
 extern "C" {
@@ -11,9 +11,9 @@ using MetaPB::Operator::OperatorBase;
 namespace MetaPB {
 namespace Operator {
 
-class OperatorDOT_ADD : public OperatorBase {
+class OperatorELEW_ADD : public OperatorBase {
 public:
-  OperatorDOT_ADD(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR)
+  OperatorELEW_ADD(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR)
       : OperatorBase(g_DPU_MGR) {}
   inline virtual const std::string get_name() const noexcept override {
     return OpName;
@@ -34,7 +34,7 @@ public:
   }
 
 private:
-  inline static const std::string OpName = "DOT_ADD";
+  inline static const std::string OpName = "ELEW_ADD";
 };
 } // namespace Operator
 } // namespace MetaPB

@@ -20,7 +20,7 @@ execute_process(
 )
 #------------------- DPU Compiler settings-------------------
 set(CMAKE_C_COMPILER "dpu-upmem-dpurte-clang" )  
-set(CMAKE_C_FLAGS " -O2 -DNR_TASKLET=12")  
+set(CMAKE_C_FLAGS " -O2 -DNR_TASKLETS=12")  
 
 #------------------- Path variables -------------------------
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/cpu_bin)

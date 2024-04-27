@@ -11,8 +11,8 @@ using MetaPB::Operator::OperatorTag;
 using MetaPB::Operator::OperatorType;
 
 TaskGraph genInterleavedWorkload(const size_t batchSize_MiB, int opNum) {
-  TaskProperties memBound = {OperatorTag::DOT_ADD, OperatorType::MemoryBound,
-                             batchSize_MiB, "blue", "DOT_PROD"};
+  TaskProperties memBound = {OperatorTag::ELEW_ADD, OperatorType::MemoryBound,
+                             batchSize_MiB, "blue", "ELEW_PROD"};
   TaskProperties computeBound = {OperatorTag::MAC, OperatorType::ComputeBound,
                                  batchSize_MiB, "red", "MAC"};
   TaskProperties end = {OperatorTag::LOGIC_END, OperatorType::Logical,

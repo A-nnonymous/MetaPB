@@ -62,7 +62,7 @@ int main() {
   void* src2 = (void*) malloc(bytes);
   void* dst1 = (void*) malloc(bytes);
   void* allBffrPtrs[3] = {src1, src2, dst1};
-  auto va = om.getOperator(OperatorTag::DOT_ADD);
+  auto va = om.getOperator(OperatorTag::ELEW_ADD);
   va->trainModel(batchSize_MiB,allBffrPtrs, 300);
   va->verifyRegression("./", batchSize_MiB);
   */
