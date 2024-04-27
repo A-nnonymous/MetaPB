@@ -1,8 +1,8 @@
-#include "Operator/OperatorCONV_1D.hpp"
+#include "Operator/OperatorFILTER.hpp"
 
 namespace MetaPB {
 namespace Operator {
-inline void OperatorCONV_1D::execCPU(const size_t batchSize_MiB,
+inline void OperatorFILTER::execCPU(const size_t batchSize_MiB,
                                      void **memPoolBffrPtrs) const noexcept {
   size_t inputSize = batchSize_MiB * 1024 * 1024 / sizeof(float);
   size_t padding = (kernelSize - 1) / 2;
@@ -21,15 +21,15 @@ omp_set_num_threads(64);
       int inputIndex = i - padding + j;
       // Check if the input index is within bounds
       if (inputIndex >= 0 && inputIndex < inputSize) {
-        sum += inputBuffer[inputIndex] * gaussianKernel[j];
+        sum += inputBuffer[inputIndex];
       }
     }
-    outputBuffer[i] = sum;
+    outputBuffer[i] = sum/kernelSize;
   }
 }
 
 inline void
-OperatorCONV_1D::execDPU(const size_t batchSize_MiB) const noexcept {
+OperatorFILTER::execDPU(const size_t batchSize_MiB) const noexcept {
   auto DPU_BINARY = getDPUBinaryPath();
   DPU_ASSERT(dpu_load(allDPUs, DPU_BINARY.c_str(), NULL));
   uint32_t nr_of_dpus;
@@ -47,7 +47,7 @@ OperatorCONV_1D::execDPU(const size_t batchSize_MiB) const noexcept {
     return;
 
   // Copy input arrays
-  conv_args args;
+  filter_args args;
   for (int i = 0; i < 8; i++) {
     args.gaussianKernel[i] = this->gaussianKernel[i];
   }

@@ -11,9 +11,9 @@
 
 __host affine_args DPU_INPUT_ARGUMENTS;
 
-static void MAC(T *bufferB, T *bufferA, T weight, unsigned int l_size) {
+static void AFFINE(T *bufferB, T *bufferA, T weight, unsigned int l_size) {
   for (unsigned int i = 0; i < l_size; i++) {
-    bufferB[0] += weight * bufferA[i];
+    bufferB[i] = weight * bufferA[i] + bufferB[i];
   }
 }
 
@@ -65,7 +65,7 @@ int main(void) {
     mram_read((__mram_ptr void const *)(mram_base_addr_B + byte_index), cache_B,
               l_size_bytes);
 
-    MAC(cache_B, cache_A, weight, l_size_bytes >> DIV);
+    AFFINE(cache_B, cache_A, weight, l_size_bytes >> DIV);
 
     // Write cache to current MRAM block
     mram_write(cache_B, (__mram_ptr void *)(mram_base_addr_B + byte_index),

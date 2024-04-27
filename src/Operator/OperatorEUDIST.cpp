@@ -9,6 +9,7 @@ inline void OperatorEUDIST::execCPU(const size_t batchSize_MiB,
   float *src1 = static_cast<float *>(memPoolBffrPtrs[0]);
   float *src2 = static_cast<float *>(memPoolBffrPtrs[1]);
   float *dst = static_cast<float *>(memPoolBffrPtrs[2]);
+  omp_set_num_threads(64);
 #pragma omp parallel for
   for (int i = 0; i < inputSize; i++) {
     // ignoring sqrt because DPU doesn't have hardware sqrt

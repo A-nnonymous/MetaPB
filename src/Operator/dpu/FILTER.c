@@ -1,4 +1,3 @@
-
 #include <alloc.h>
 #include <barrier.h>
 #include <defs.h>
@@ -7,13 +6,18 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "Operator/dpu/AFFINE.h"
+#include "Operator/dpu/CONV_1D.h"
 
-__host affine_args DPU_INPUT_ARGUMENTS;
+__host conv_args DPU_INPUT_ARGUMENTS;
 
-static void MAC(T *bufferB, T *bufferA, T weight, unsigned int l_size) {
-  for (unsigned int i = 0; i < l_size; i++) {
-    bufferB[0] += weight * bufferA[i];
+//do filter for a cache block
+static void FILTER(T *bufferB, T *bufferA, int kernelSize,int startIdx, unsigned int l_size) {
+  for (size_t i = 0; i < l_size; i++) {
+    int sum = 0;
+    for (size_t j = 0; j < kernelSize; ++j) {
+        sum += bufferA[i + j];
+    }
+    bufferB[i] = sum / kernelSize ;
   }
 }
 
@@ -34,12 +38,14 @@ int main(void) {
   uint32_t input_size_dpu_bytes =
       DPU_INPUT_ARGUMENTS.co.inputSize; // Input size per DPU in bytes
   uint32_t input_size_dpu_bytes_transfer =
-      DPU_INPUT_ARGUMENTS.co.inputSize /
-      2; // Transfer input size per DPU in bytes
-  if (input_size_dpu_bytes == 0)
-    return 0;
-  float weight = DPU_INPUT_ARGUMENTS.weight;
+      DPU_INPUT_ARGUMENTS.co.inputSize; // Transfer input size per DPU in bytes
 
+  int kernelSize = DPU_INPUT_ARGUMENTS.kernelSize;
+  for (int i = 0; i < 8; i++) {
+    kernel[i] = DPU_INPUT_ARGUMENTS.gaussianKernel[i];
+  }
+  int stride = DPU_INPUT_ARGUMENTS.stride;
+  int kernelSizeByte = kernelSize * 4;
   // Address of the current processing block in MRAM
   uint32_t base_tasklet = tasklet_id << BLOCK_SIZE_LOG2;
   uint32_t mram_base_addr_A = (uint32_t)DPU_MRAM_HEAP_POINTER;
@@ -50,9 +56,7 @@ int main(void) {
   T *cache_A = (T *)mem_alloc(BLOCK_SIZE);
   T *cache_B = (T *)mem_alloc(BLOCK_SIZE);
 
-  for (unsigned int byte_index = base_tasklet;
-       byte_index < input_size_dpu_bytes;
-       byte_index += BLOCK_SIZE * NR_TASKLETS) {
+  for (unsigned int byte_index = base_tasklet; byte_index < input_size_dpu_bytes; byte_index += BLOCK_SIZE * NR_TASKLETS) {
 
     // Bound checking
     uint32_t l_size_bytes = (byte_index + BLOCK_SIZE >= input_size_dpu_bytes)
@@ -61,11 +65,11 @@ int main(void) {
 
     // Load cache with current MRAM block
     mram_read((__mram_ptr void const *)(mram_base_addr_A + byte_index), cache_A,
-              l_size_bytes);
+              l_size_bytes + kernelSizeByte); //
     mram_read((__mram_ptr void const *)(mram_base_addr_B + byte_index), cache_B,
-              l_size_bytes);
+              l_size_bytes + kernelSizeByte); //
 
-    MAC(cache_B, cache_A, weight, l_size_bytes >> DIV);
+    FILTER(cache_B, cache_A, kernelSize, stride, (l_size_bytes + kernelSizeByte )>> DIV);
 
     // Write cache to current MRAM block
     mram_write(cache_B, (__mram_ptr void *)(mram_base_addr_B + byte_index),

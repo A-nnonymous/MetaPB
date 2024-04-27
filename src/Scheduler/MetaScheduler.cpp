@@ -128,6 +128,7 @@ Schedule MetaScheduler::schedule() noexcept {
   for (int i = 0; i < nTask; i++) {
     std::cout << ratio[i] / 200.0f + 0.5f << ",";
     actualRatio[i] = ratio[i] / 200.0f + 0.5f;
+    actualRatio[1] = std::round(actualRatio[i] / 0.05) * 0.05;
   }
   std::cout << std::endl;
   return {false, this->HEFTorder, actualRatio};

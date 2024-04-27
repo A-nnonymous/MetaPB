@@ -49,12 +49,20 @@ public:
 
   void exec() override {
     size_t upperBound_MiB = std::stoul(myArgs["upperBound_MiB"]);
+    /*
     void **memPool = (void **)malloc(3);
-
 #pragma omp parallel for
     for (int i = 0; i < 3; i++) {
       memPool[i] = malloc(upperBound_MiB* size_t(1 << 20));
     }
+    */
+    ///////////// debugging ////////////
+    size_t bytes = upperBound_MiB * size_t(1 << 20);
+    void *src1 = (void *)malloc(bytes);
+    void *src2 = (void *)malloc(bytes);
+    void *dst1 = (void *)malloc(bytes);
+    void *memPool[3] = {src1, src2, dst1};
+    ///////////// debugging ////////////
 
     OperatorManager om;
     om.trainAll(upperBound_MiB,100);

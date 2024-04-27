@@ -9,7 +9,7 @@
 #include "Operator/OperatorLOGIC_END.hpp"
 #include "Operator/OperatorLOGIC_START.hpp"
 #include "Operator/OperatorLOOKUP.hpp"
-#include "Operator/OperatorMAC.hpp"
+#include "Operator/OperatorAFFINE.hpp"
 #include "Operator/OperatorMAP.hpp"
 #include "Operator/OperatorREDUCE.hpp"
 #include "Operator/OperatorRegistry.hpp"
@@ -62,8 +62,8 @@ std::unique_ptr<OperatorBase> getOperator(OperatorTag tag) {
     return std::make_unique<OperatorLOGIC_START>();
   case OperatorTag::LOOKUP:
     return std::make_unique<OperatorLOOKUP>();
-  case OperatorTag::MAC:
-    return std::make_unique<OperatorMAC>();
+  case OperatorTag::AFFINE:
+    return std::make_unique<OperatorAFFINE>();
   case OperatorTag::MAP:
     return std::make_unique<OperatorMAP>();
   case OperatorTag::REDUCE:

@@ -1,23 +1,21 @@
-#include "Operator/OperatorELEW_PROD.hpp"
+#include "Operator/OperatorAFFINE.hpp"
 
 namespace MetaPB {
 namespace Operator {
 
-inline void OperatorELEW_PROD::execCPU(const size_t batchSize_MiB,
-                                      void **memPoolBffrPtrs) const noexcept {
+inline void OperatorAFFINE::execCPU(const size_t batchSize_MiB,
+                                 void **memPoolBffrPtrs) const noexcept {
   size_t inputSize = batchSize_MiB * 1024 * 1024 / sizeof(float);
   float *src1 = static_cast<float *>(memPoolBffrPtrs[0]);
   float *src2 = static_cast<float *>(memPoolBffrPtrs[1]);
-  float *dst = static_cast<float *>(memPoolBffrPtrs[2]);
-  omp_set_num_threads(64);
+  size_t dstIdx = 0;
+omp_set_num_threads(64);
 #pragma omp parallel for
   for (int i = 0; i < inputSize; i++) {
-    dst[i] = src1[i] * src2[i];
+    src1[i] = src1[i] * weight + src2[i];
   }
 }
-
-inline void
-OperatorELEW_PROD::execDPU(const size_t batchSize_MiB) const noexcept {
+inline void OperatorAFFINE::execDPU(const size_t batchSize_MiB) const noexcept {
   auto DPU_BINARY = getDPUBinaryPath();
   DPU_ASSERT(dpu_load(allDPUs, DPU_BINARY.c_str(), NULL));
   uint32_t nr_of_dpus;
@@ -35,9 +33,10 @@ OperatorELEW_PROD::execDPU(const size_t batchSize_MiB) const noexcept {
     return;
 
   // Copy input arrays
-  common_args args;
-  args.inputSize = getInputTensorNum() * input_size_dpu_8bytes;
-  args.operandNum = getInputTensorNum();
+  affine_args args;
+  args.co.inputSize = getInputTensorNum() * input_size_dpu_8bytes;
+  args.co.operandNum = getInputTensorNum();
+  args.weight = this->weight;
 
   DPU_ASSERT(dpu_broadcast_to(allDPUs, "DPU_INPUT_ARGUMENTS", 0, &args,
                               sizeof(args), DPU_XFER_DEFAULT));

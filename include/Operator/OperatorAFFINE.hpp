@@ -1,17 +1,17 @@
-#ifndef OP_MAC_HPP
-#define OP_MAC_HPP
+#ifndef OP_AFFINE_HPP
+#define OP_AFFINE_HPP
 
 extern "C" {
-#include "Operator/dpu/MAC.h"
+#include "Operator/dpu/AFFINE.h"
 }
 #include "Operator/OperatorBase.hpp"
 
 namespace MetaPB {
 namespace Operator {
 
-class OperatorMAC: public OperatorBase {
+class OperatorAFFINE : public OperatorBase {
 public:
-  OperatorMAC(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR)
+  OperatorAFFINE(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR)
       : OperatorBase(g_DPU_MGR) {}
 
   inline virtual const std::string get_name() const noexcept override {
@@ -33,7 +33,7 @@ public:
 
 private:
   const float weight = 2.5f;
-  inline static const std::string OpName = "MAC";
+  inline static const std::string OpName = "AFFINE";
 };
 } // namespace Operator
 } // namespace MetaPB

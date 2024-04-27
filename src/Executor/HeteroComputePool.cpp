@@ -28,8 +28,20 @@ void HeteroComputePool::processTasks(
     // Wait for dependencies to be met
     {
       std::unique_lock<std::mutex> lock(mutex_);
-      cv_.wait(lock, [&] { return dependencyCheck(task.id); });
+      cv_.wait(lock, [&] { 
+        auto result = dependencyCheck(task.id);
+        if(!result){
+          // tag the worker with stall mark (used in MIMIC)
+          if(type=="CPU") {
+            isCPUStalled = true;
+          }
+          if(type=="DPU") {
+            isDPUStalled = true;
+          }
+        }
+        return result;});
     }
+
     // exclusivity
     std::unique_lock<std::mutex> dpuLock(
         type == "MAP" || type == "REDUCE" || type == "DPU" ? dpuMutex_ : mutex_,
@@ -79,6 +91,7 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
   earliestREDUCEIdleTime_ms = 0.0f;
   totalEnergyCost_joule = 0.0f;
   totalTransfer_mb = 0.0f;
+  ct.clear();
 
   // Order Must Ensure first node is LOGIC_START
   // This node is completed without prerequisities.
@@ -177,11 +190,12 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                   // ------------- critical zone --------------
                    {
                      std::lock_guard<std::mutex> lock(this->mutex_);
-                     earliestCPUIdleTime_ms =
-                         std::max(earliestCPUIdleTime_ms,
-                                  std::max(earliestMAPIdleTime_ms,
-                                           earliestREDUCEIdleTime_ms)) +
-                         perf.timeCost_Second * 1000;
+                     if(!this->isCPUStalled){ // immediate execution without stalling
+                        earliestCPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+                     }else{
+                        earliestCPUIdleTime_ms = earliestREDUCEIdleTime_ms + (perf.timeCost_Second * 1000);
+                        this->isCPUStalled = false; // maintain stall mark
+                     }
                      totalEnergyCost_joule += perf.energyCost_Joule;
                    }
                   // ------------- critical zone --------------
@@ -197,11 +211,12 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                   // ------------- critical zone --------------
                    {
                      std::lock_guard<std::mutex> lock(this->mutex_);
-                     earliestDPUIdleTime_ms =
-                         std::max(earliestDPUIdleTime_ms,
-                                  std::max(earliestMAPIdleTime_ms,
-                                           earliestREDUCEIdleTime_ms)) +
-                         perf.timeCost_Second * 1000;
+                     if(!this->isDPUStalled){ // immediate execution without stalling
+                        earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+                     }else{
+                        earliestDPUIdleTime_ms = std::max(earliestMAPIdleTime_ms, earliestDPUIdleTime_ms) + (perf.timeCost_Second * 1000);
+                        this->isDPUStalled = false; // maintain stall mark
+                     }
                      totalEnergyCost_joule += perf.energyCost_Joule;
                    }
                   // ------------- critical zone --------------
@@ -224,11 +239,8 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
             // ------------- critical zone --------------
             {
               std::lock_guard<std::mutex> lock(this->mutex_);
-              earliestDPUIdleTime_ms =
-                  std::max(earliestDPUIdleTime_ms,
-                           std::max(earliestMAPIdleTime_ms,
-                                    earliestREDUCEIdleTime_ms)) +
-                  perf.timeCost_Second * 1000;
+              earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+              earliestREDUCEIdleTime_ms = earliestDPUIdleTime_ms;
               totalEnergyCost_joule += perf.energyCost_Joule;
               totalTransfer_mb += reduce_work;
             }
@@ -244,11 +256,9 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
             {
             // ------------- critical zone --------------
               std::lock_guard<std::mutex> lock(this->mutex_);
-              earliestDPUIdleTime_ms =
-                  std::max(earliestDPUIdleTime_ms,
-                           std::max(earliestMAPIdleTime_ms,
-                                    earliestREDUCEIdleTime_ms)) +
-                  perf.timeCost_Second * 1000;
+              earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+              earliestREDUCEIdleTime_ms = earliestDPUIdleTime_ms;
+
               totalEnergyCost_joule += perf.energyCost_Joule;
               totalTransfer_mb += reduce_work;
             }
@@ -261,11 +271,9 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
             // ------------- critical zone --------------
             {
               std::lock_guard<std::mutex> lock(this->mutex_);
-              earliestDPUIdleTime_ms =
-                  std::max(earliestDPUIdleTime_ms,
-                           std::max(earliestMAPIdleTime_ms,
-                                    earliestREDUCEIdleTime_ms)) +
-                  perf.timeCost_Second * 1000;
+              earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+              earliestMAPIdleTime_ms = earliestDPUIdleTime_ms;
+
               totalEnergyCost_joule += perf.energyCost_Joule;
               totalTransfer_mb += map_work;
             }
@@ -277,16 +285,13 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
           size_t map_work = (omax - offloadRatio) * batchSize_MiB;
           thisTag = {EUType::CPU, OperatorTag::MAP, map_work};
           mapTask.execute = [this, thisTag, map_work]() {
-            //const auto perf = this->cachedCPUPerfDeduce[thisTag];
             const auto perf = om.deducePerfCPU(OperatorTag::MAP, map_work);
             // ------------- critical zone --------------
             {
               std::lock_guard<std::mutex> lock(this->mutex_);
-              earliestDPUIdleTime_ms =
-                  std::max(earliestDPUIdleTime_ms,
-                           std::max(earliestMAPIdleTime_ms,
-                                    earliestREDUCEIdleTime_ms)) +
-                  perf.timeCost_Second * 1000;
+              earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+              earliestMAPIdleTime_ms = earliestDPUIdleTime_ms;
+
               totalEnergyCost_joule += perf.energyCost_Joule;
               totalTransfer_mb += map_work;
             }
@@ -410,7 +415,7 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
 
 }
 
-// Print timings for each type of task
+// ---------------------- Timing visualization ------------------------------
 void HeteroComputePool::printTimings() const noexcept {
   printTimingsForType("CPU", cpuTimings_);
   printTimingsForType("DPU", dpuTimings_);

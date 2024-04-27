@@ -27,13 +27,14 @@ public:
   void writeCSV(const std::string &dumpPath) const noexcept override {
     std::ofstream file(dumpPath + myArgs.at("loadSize_MiB") + "MiB_" +
                        +"wholesome_perf.csv");
-    file << "workload_name,scheduler_name,timeConsume_Seconds,energyConsume_"
-            "Joules,dataTransfer_MiB\n";
+    file << "workload_name,scheduler_name,timeConsume_Seconds,timeConsume_deduce_Seconds,energyConsume_Joules,energyConsume_deduce_Joules,dataTransfer_MiB\n";
     for (const auto &[expTag, stats] : testResults) {
       const auto & [loadName, schedName] = expTag;
       file << loadName << "," <<
           schedName<< "," << std::to_string(stats.timeCost_Second) << ","
+                       << std::to_string(deduceResults.at(expTag).timeCost_Second) << ","
                        << std::to_string(stats.energyCost_Joule) << ","
+                       << std::to_string(deduceResults.at(expTag).energyCost_Joule) << ","
                        << std::to_string(stats.dataMovement_MiB) << "\n";
     }
   }
@@ -47,7 +48,7 @@ public:
       graphLoads["FFT-" + std::to_string(i)] = genFFT(i, loadSize_MiB);
       graphLoads["GEA-" + std::to_string(i)] = genGEA(i, loadSize_MiB);
     }
-
+    
     void **memPool = (void **)malloc(3);
     memPool[0] = malloc(72 * size_t(1<<30));
     memPool[1] = memPool[0] + 1 * size_t(1<<30);
@@ -81,6 +82,7 @@ public:
           "executing "<< schedName << 
           "'s schedule on "<< loadName << "\n"; 
         perfStats stat;
+        deduceResults[{loadName, schedName}] = hcp.execWorkload(loadGraph, sched, execType::MIMIC);
         for (int i = 0; i < WARMUP_REP + REP; i++) {
           perfStats thisStat = hcp.execWorkload(loadGraph, sched, execType::DO);
           if (i >= WARMUP_REP) {
@@ -103,5 +105,6 @@ public:
 private:
   std::map<std::string, TaskGraph> graphLoads;
   std::map<std::pair<std::string, std::string>, perfStats> testResults;
+  std::map<std::pair<std::string, std::string>, perfStats> deduceResults;
 };
 } // namespace benchmarks

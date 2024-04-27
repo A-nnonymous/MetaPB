@@ -8,10 +8,10 @@ inline void OperatorMAC::execCPU(const size_t batchSize_MiB,
   size_t inputSize = batchSize_MiB * 1024 * 1024 / sizeof(float);
   float *src1 = static_cast<float *>(memPoolBffrPtrs[0]);
   float *src2 = static_cast<float *>(memPoolBffrPtrs[1]);
-  size_t dstIdx = 0;
+omp_set_num_threads(64);
 #pragma omp parallel for
   for (int i = 0; i < inputSize; i++) {
-    src1[i] = src1[i] * weight + src2[i];
+    src1[i%256] = src1[i] * weight + src2[i];
   }
 }
 inline void OperatorMAC::execDPU(const size_t batchSize_MiB) const noexcept {

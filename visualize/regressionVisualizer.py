@@ -58,7 +58,7 @@ def plot_and_save_all_batches(operator, batch_folders):
 
 # List of folders and operators to process
 batch_folders = ['batch_1024MiB', 'batch_256MiB', 'batch_2048MiB', 'batch_512MiB','batch_4096MiB']
-operators = ['CONV_1D', 'ELEW_ADD', 'ELEW_PROD', 'EUDIST', 'MAC', 'MAP','REDUCE']  # Add all your operators here
+operators = ['CONV_1D', 'ELEW_ADD', 'ELEW_PROD', 'EUDIST', 'AFFINE', 'MAP','REDUCE']  # Add all your operators here
 
 for operator in operators:
     plot_and_save_all_batches(operator, batch_folders)

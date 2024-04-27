@@ -40,6 +40,11 @@ public:
   void tick(const std::string &taskName);
   /// @brief stop counting time for a specific work
   void tock(const std::string &taskName);
+  /// @brief Clean all the register.
+  inline void clear()noexcept{
+    task2Report.clear();
+    task2LastProbe.clear();
+  }
 
   /// @brief Uses the overrided operator to correct the idle bias
   /// @param taskIdx_In input taskIdx (0 - taskNum - 1)

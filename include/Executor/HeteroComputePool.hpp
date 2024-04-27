@@ -138,6 +138,9 @@ private:
   double earliestDPUIdleTime_ms = 0.0f;
   double earliestMAPIdleTime_ms = 0.0f;
   double earliestREDUCEIdleTime_ms = 0.0f;
+  bool isCPUStalled = false;
+  bool isDPUStalled = false;
+
   double totalEnergyCost_joule = 0.0f;
   double totalTransfer_mb = 0.0f;
   std::map<perfTag, perfStats> cachedCPUPerfDeduce;

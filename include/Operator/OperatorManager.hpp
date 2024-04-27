@@ -9,7 +9,7 @@
 #include "Operator/OperatorLOGIC_END.hpp"
 #include "Operator/OperatorLOGIC_START.hpp"
 #include "Operator/OperatorLOOKUP.hpp"
-#include "Operator/OperatorMAC.hpp"
+#include "Operator/OperatorAFFINE.hpp"
 #include "Operator/OperatorMAP.hpp"
 #include "Operator/OperatorREDUCE.hpp"
 #include "Operator/OperatorRegistry.hpp"
@@ -129,8 +129,8 @@ struct OperatorManager {
       return std::make_unique<OperatorLOGIC_START>(g_DPU_MGR);
     case OperatorTag::LOOKUP:
       return std::make_unique<OperatorLOOKUP>(g_DPU_MGR);
-    case OperatorTag::MAC:
-      return std::make_unique<OperatorMAC>(g_DPU_MGR);
+    case OperatorTag::AFFINE:
+      return std::make_unique<OperatorAFFINE>(g_DPU_MGR);
     case OperatorTag::MAP:
       return std::make_unique<OperatorMAP>(g_DPU_MGR);
     case OperatorTag::REDUCE:
