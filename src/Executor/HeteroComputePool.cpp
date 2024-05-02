@@ -80,28 +80,145 @@ void HeteroComputePool::processTasks(
     }
   }
 }
-/*
-std::pair<Task> HeteroComputePool::genComputeTask(OperatorTag opTag, size_t inputSize_MiB, float offloadRatio, execType eT)const noexcept{
 
+std::pair<Task,Task> HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag, OperatorType opType, size_t inputSize_MiB, float offloadRatio, execType eT)noexcept{
+  Task cpuTask, dpuTask;
+  size_t cpuInputSize_MiB = size_t(inputSize_MiB * (1 - offloadRatio));
+  size_t dpuInputSize_MiB = size_t(inputSize_MiB * offloadRatio);
+  std::string opTypeStr= opType2Name.at(opType);
+
+  ////////// DEBUG /////////////
+  std::cout << "CPU Task "<< taskId << " ("<< tag2Name.at(opTag)<< "): "<< cpuInputSize_MiB << "MiB.\n";
+  std::cout << "DPU Task "<< taskId << " ("<< tag2Name.at(opTag)<< "): "<< dpuInputSize_MiB << "MiB.\n";
+  ////////// DEBUG /////////////
+
+  if (eT == execType::DO) {
+      cpuTask = {taskId,
+                 [this, opTag, cpuInputSize_MiB]() {
+                   om.execCPU(opTag, cpuInputSize_MiB, this->memPoolPtr);
+                 },
+                 "CPU", opTypeStr};
+
+      dpuTask = {taskId,
+                 [this, opTag, dpuInputSize_MiB]() {
+                   om.execDPU(opTag, dpuInputSize_MiB);
+                 },
+                 "DPU", opTypeStr};
+
+  }else{ // MIMIC logic
+    cpuTask = {taskId,
+                [this, opTag, cpuInputSize_MiB]() {
+                  const auto perf = om.deducePerfCPU(opTag, cpuInputSize_MiB);
+                // ------------- critical zone --------------
+                  {
+                    std::lock_guard<std::mutex> lock(this->mutex_);
+                    if(!this->isCPUStalled){ // immediate execution without stalling
+                      earliestCPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+                    }else{
+                      earliestCPUIdleTime_ms = std::max(earliestCPUIdleTime_ms, earliestREDUCEIdleTime_ms) + (perf.timeCost_Second * 1000);
+                      this->isCPUStalled = false; // maintain stall mark
+                    }
+                    totalEnergyCost_joule += perf.energyCost_Joule;
+                  }
+                // ------------- critical zone --------------
+                },
+                "CPU", opTypeStr};
+
+    dpuTask = {taskId,
+                [this, opTag, dpuInputSize_MiB]() {
+                  const auto perf = om.deducePerfDPU(opTag, dpuInputSize_MiB);
+                // ------------- critical zone --------------
+                  {
+                    std::lock_guard<std::mutex> lock(this->mutex_);
+                    if(!this->isDPUStalled){ // immediate execution without stalling
+                      earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+                    }else{
+                      earliestDPUIdleTime_ms = std::max(earliestMAPIdleTime_ms, earliestDPUIdleTime_ms) + (perf.timeCost_Second * 1000);
+                      this->isDPUStalled = false; // maintain stall mark
+                    }
+                    totalEnergyCost_joule += perf.energyCost_Joule;
+                  }
+                // ------------- critical zone --------------
+                },
+                "DPU", opTypeStr};
+
+  }
+
+  return {cpuTask, dpuTask};
 }
 
-std::pair<Task> HeteroComputePool::genXferTask(OperatorTag opTag, size_t inputSize_MiB, float oMax, float oMin, execType eT)const noexcept{
+std::pair<Task,Task> HeteroComputePool::genXferTask(int taskId, OperatorTag opTag, size_t mapWork_MiB, size_t reduceWork_MiB, execType eT)noexcept{
+  Task mapTask, reduceTask;
 
+  ////////// DEBUG /////////////
+  std::cout << "MAP Task "<< taskId << ": " << mapWork_MiB << " MiB.\n";
+  std::cout << "REDUCE Task "<< taskId << ": "<< reduceWork_MiB << "MiB.\n";
+  ////////// DEBUG /////////////
+
+  mapTask = {taskId, []() {}, "MAP", "MAP"};
+  reduceTask = {taskId, []() {}, "REDUCE", "REDUCE"};
+
+  // If this node is LOGIC_END, no xfer to next(because no succNodes)
+  if (opTag != OperatorTag::LOGIC_END && opTag != OperatorTag::LOGIC_START) { 
+    if (eT == execType::DO) {
+      reduceTask.execute = [this, reduceWork_MiB]() {
+        om.execCPU(OperatorTag::REDUCE, reduceWork_MiB, this->memPoolPtr);
+      };
+      mapTask.execute = [this, mapWork_MiB]() {
+        om.execCPU(OperatorTag::MAP, mapWork_MiB, this->memPoolPtr);
+      };
+    }else{
+      reduceTask.execute = [this, reduceWork_MiB]() {
+        const auto perf = (reduceWork_MiB == 0)? perfStats{} : om.deducePerfCPU(OperatorTag::REDUCE, reduceWork_MiB);
+        {
+        // ------------- critical zone --------------
+          std::lock_guard<std::mutex> lock(this->mutex_);
+          if(!this->isREDUCEStalled){
+            earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+            earliestREDUCEIdleTime_ms = earliestDPUIdleTime_ms;
+          }else{
+            earliestDPUIdleTime_ms = std::max(earliestDPUIdleTime_ms, earliestCPUIdleTime_ms) +(perf.timeCost_Second * 1000);
+            earliestREDUCEIdleTime_ms = earliestDPUIdleTime_ms;
+          }
+          this->isREDUCEStalled = false;
+          totalEnergyCost_joule += perf.energyCost_Joule;
+        }
+        // ------------- critical zone --------------
+      };
+
+      mapTask.execute = [this, mapWork_MiB]() {
+        const auto perf = (mapWork_MiB == 0)? perfStats{}: om.deducePerfCPU(OperatorTag::MAP, mapWork_MiB);
+        // ------------- critical zone --------------
+        {
+          std::lock_guard<std::mutex> lock(this->mutex_);
+          if(!this->isMAPStalled){
+            earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+            earliestMAPIdleTime_ms = earliestDPUIdleTime_ms;
+          }else{
+            earliestDPUIdleTime_ms = std::max(earliestDPUIdleTime_ms, earliestCPUIdleTime_ms) +(perf.timeCost_Second * 1000);
+            earliestMAPIdleTime_ms = earliestDPUIdleTime_ms;
+          }
+
+          this->isMAPStalled = false;
+          totalEnergyCost_joule += perf.energyCost_Joule;
+        }
+        // ------------- critical zone --------------
+      };
+    }
+    totalTransfer_mb += reduceWork_MiB + mapWork_MiB;
+  }
+
+  return {mapTask, reduceTask};
 }
-*/
 // TODO: 
 // 1. Further capsulate this function to a multi-level modulized style
 // 2. Add coarse-grained schedule specific task parsing.
 void HeteroComputePool::parseGraph(const TaskGraph& g, const Schedule& sched, execType eT)noexcept{
-    // ----------- A.Task queue initializing -----------
   for (size_t i = 0; i < sched.order.size(); ++i) {
     int taskId = sched.order[i];
     const TaskProperties &tp = g.g[taskId];
-    Task cpuTask, dpuTask, mapTask, reduceTask;
 
-    // ----------- A.1. Normal operator processing ------------
-    
-    // --- A.1.a Dependency maintain: Pred nodes related logic --- 
+    // Looking upward: Dependencies maintain.
     auto inEdges = boost::in_edges(taskId, g.g);
     for (auto ei = inEdges.first; ei != inEdges.second; ++ei) {
       TaskNode pred = boost::source(*ei, g.g);
@@ -112,243 +229,48 @@ void HeteroComputePool::parseGraph(const TaskGraph& g, const Schedule& sched, ex
     float omax = 0.0f;
     float omin = 1.0f;
 
-    // --- A.1.b Xfer definition: Succ nodes related logic(PUSH style)  --- 
-    //std::vector<int> successors;
+    // Looking downward: Transfer measuring.
     auto outEdges = boost::out_edges(taskId, g.g);
-    for (auto ei = outEdges.first; ei != outEdges.second; ++ei) {
-      TaskNode succ = boost::target(*ei, g.g);
-      float succOffloadRatio = sched.offloadRatio[succ];
-      omax = std::max(omax, succOffloadRatio);
-      omin = std::min(omin, succOffloadRatio);
-     //successors.push_back(succ);
+    if(outEdges.first != outEdges.second){
+      for (auto ei = outEdges.first; ei != outEdges.second; ++ei) {
+        TaskNode succ = boost::target(*ei, g.g);
+        float succOffloadRatio = sched.offloadRatio[succ];
+        omax = std::max(omax, succOffloadRatio);
+        omin = std::min(omin, succOffloadRatio);
+      }
+    }else{
+      omax = 0.0f; omin = 0.0f;
     }
 
-    // --- A.1.c Job specify related to execType--- 
-    float batchSize_MiB = tp.inputSize_MiB;
-    if (eT == execType::DO) {
-      cpuTask = {taskId,
-                 [this, op = tp.op,
-                  batchSize = size_t(batchSize_MiB * (1 - offloadRatio))]() {
-                   om.execCPU(op, batchSize, this->memPoolPtr);
-                 },
-                 "CPU", opType2Name.at(tp.opType)};
+    size_t reduceWork_MiB, mapWork_MiB;
 
-      dpuTask = {taskId,
-                 [this, op = tp.op,
-                  batchSize = size_t(batchSize_MiB * offloadRatio)]() {
-                   om.execDPU(op, batchSize);
-                 },
-                 "DPU", opType2Name.at(tp.opType)};
+    if(sched.isAlwaysWrittingBack){
+      reduceWork_MiB = tp.inputSize_MiB;
+      mapWork_MiB = omax * tp.inputSize_MiB;
+    }else{
+      if (offloadRatio > omax) {
+        reduceWork_MiB = (offloadRatio - omin) * tp.inputSize_MiB;
+        mapWork_MiB = 0;
+      } else if (offloadRatio > omin && offloadRatio < omax) {
+        reduceWork_MiB = (offloadRatio - omin) * tp.inputSize_MiB;
+        mapWork_MiB = (omax - offloadRatio) * tp.inputSize_MiB;
+      } else {
+        reduceWork_MiB = 0;
+        mapWork_MiB= (omax - offloadRatio) * tp.inputSize_MiB;
+      } // offloadRatio < omin
+    }
 
-      mapTask = {taskId, []() {}, "MAP", "MAP"};
-
-      reduceTask = {taskId, []() {}, "REDUCE", "REDUCE"};
-      
-      // undefined tail transfer avoiding
-      if (tp.op != OperatorTag::LOGIC_END) { 
-        if (offloadRatio > omax) {
-          size_t reduce_work = (offloadRatio - omin) * batchSize_MiB;
-          reduceTask.execute = [this, reduce_work]() {
-            om.execCPU(OperatorTag::REDUCE, reduce_work, this->memPoolPtr);
-          };
-          totalTransfer_mb += reduce_work;
-        } else if (offloadRatio > omin && offloadRatio < omax) {
-          size_t reduce_work = (offloadRatio - omin) * batchSize_MiB;
-          reduceTask.execute = [this, reduce_work]() {
-            om.execCPU(OperatorTag::REDUCE, reduce_work, this->memPoolPtr);
-          };
-          size_t map_work = (omax - offloadRatio) * batchSize_MiB;
-          mapTask.execute = [this, map_work]() {
-            om.execCPU(OperatorTag::MAP, map_work, this->memPoolPtr);
-          };
-          totalTransfer_mb += reduce_work + map_work;
-        } else {
-          size_t map_work = (omax - offloadRatio) * batchSize_MiB;
-          mapTask.execute = [this, map_work]() {
-            om.execCPU(OperatorTag::MAP, map_work, this->memPoolPtr);
-          };
-          totalTransfer_mb += map_work;
-        }
-      }
-    } else {// ------------------ MIMIC ----------------------
-      // ----------------TODO: reuse as function --------------
-      size_t batchSize; // works that to be done on this EU
-      perfTag thisTag;  // performance tag of this work
-
-      batchSize = size_t(batchSize_MiB * (1 - offloadRatio));
-      thisTag = {EUType::CPU, tp.op, batchSize};
-      cpuTask = {taskId,
-                 [this, thisTag]() {
-                   const auto perf = om.deducePerfCPU(std::get<1>(thisTag), std::get<2>(thisTag));
-                  // ------------- critical zone --------------
-                   {
-                     std::lock_guard<std::mutex> lock(this->mutex_);
-                     if(!this->isCPUStalled){ // immediate execution without stalling
-                        earliestCPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
-                     }else{
-                        earliestCPUIdleTime_ms = std::max(earliestCPUIdleTime_ms, earliestREDUCEIdleTime_ms) + (perf.timeCost_Second * 1000);
-                        this->isCPUStalled = false; // maintain stall mark
-                     }
-                     totalEnergyCost_joule += perf.energyCost_Joule;
-                   }
-                  // ------------- critical zone --------------
-                 },
-                 "CPU", opType2Name.at(tp.opType)};
-      // ------------------------------------------------------
-
-      batchSize = size_t(batchSize_MiB * offloadRatio);
-      thisTag = {EUType::DPU, tp.op, batchSize};
-      dpuTask = {taskId,
-                 [this, thisTag]() {
-                   const auto perf = om.deducePerfDPU(std::get<1>(thisTag), std::get<2>(thisTag));
-                  // ------------- critical zone --------------
-                   {
-                     std::lock_guard<std::mutex> lock(this->mutex_);
-                     if(!this->isDPUStalled){ // immediate execution without stalling
-                        earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
-                     }else{
-                        earliestDPUIdleTime_ms = std::max(earliestMAPIdleTime_ms, earliestDPUIdleTime_ms) + (perf.timeCost_Second * 1000);
-                        this->isDPUStalled = false; // maintain stall mark
-                     }
-                     totalEnergyCost_joule += perf.energyCost_Joule;
-                   }
-                  // ------------- critical zone --------------
-                 },
-                 "DPU", opType2Name.at(tp.opType)};
-
-      mapTask = {taskId, []() {}, "MAP", "MAP"};
-
-      reduceTask = {taskId, []() {}, "REDUCE"};
-      
-      // undefined tail transfer avoiding
-      if (tp.op != OperatorTag::LOGIC_END) {
-
-        if (offloadRatio > omax) {
-
-          size_t reduce_work = (offloadRatio - omin) * batchSize_MiB;
-          thisTag = {EUType::CPU, OperatorTag::REDUCE, reduce_work};
-          reduceTask.execute = [this, thisTag, reduce_work]() {
-            const auto perf = om.deducePerfCPU(OperatorTag::REDUCE, reduce_work);
-            // ------------- critical zone --------------
-            {
-              std::lock_guard<std::mutex> lock(this->mutex_);
-              if(!this->isREDUCEStalled){
-                earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
-                earliestREDUCEIdleTime_ms = earliestDPUIdleTime_ms;
-              }else{
-                earliestDPUIdleTime_ms = std::max(earliestDPUIdleTime_ms, earliestCPUIdleTime_ms) +(perf.timeCost_Second * 1000);
-                earliestREDUCEIdleTime_ms = earliestDPUIdleTime_ms;
-              }
-              this->isREDUCEStalled = false;
-              totalEnergyCost_joule += perf.energyCost_Joule;
-              totalTransfer_mb += reduce_work;
-            }
-            // ------------- critical zone --------------
-          };
-          // keep up and do nothing
-          size_t map_work = 0;
-          thisTag = {EUType::CPU, OperatorTag::MAP, map_work};
-          mapTask.execute = [this, thisTag, map_work]() {
-            // ------------- critical zone --------------
-            {
-              std::lock_guard<std::mutex> lock(this->mutex_);
-              earliestMAPIdleTime_ms = earliestDPUIdleTime_ms;
-            }
-            // ------------- critical zone --------------
-          };
-
-        } else if (offloadRatio > omin && offloadRatio < omax) {
-
-          size_t reduce_work = (offloadRatio - omin) * batchSize_MiB;
-          thisTag = {EUType::CPU, OperatorTag::REDUCE, reduce_work};
-          reduceTask.execute = [this, thisTag, reduce_work]() {
-            const auto perf = om.deducePerfCPU(OperatorTag::REDUCE, reduce_work);
-            {
-            // ------------- critical zone --------------
-              std::lock_guard<std::mutex> lock(this->mutex_);
-              if(!this->isREDUCEStalled){
-                earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
-                earliestREDUCEIdleTime_ms = earliestDPUIdleTime_ms;
-              }else{
-                earliestDPUIdleTime_ms = std::max(earliestDPUIdleTime_ms, earliestCPUIdleTime_ms) +(perf.timeCost_Second * 1000);
-                earliestREDUCEIdleTime_ms = earliestDPUIdleTime_ms;
-              }
-              this->isREDUCEStalled = false;
-              totalEnergyCost_joule += perf.energyCost_Joule;
-              totalTransfer_mb += reduce_work;
-            }
-            // ------------- critical zone --------------
-          };
-
-          size_t map_work = (omax - offloadRatio) * batchSize_MiB;
-          thisTag = {EUType::CPU, OperatorTag::MAP, map_work};
-          mapTask.execute = [this, thisTag, map_work]() {
-            const auto perf = om.deducePerfCPU(OperatorTag::MAP, map_work);
-            // ------------- critical zone --------------
-            {
-              std::lock_guard<std::mutex> lock(this->mutex_);
-              if(!this->isMAPStalled){
-                earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
-                earliestMAPIdleTime_ms = earliestDPUIdleTime_ms;
-              }else{
-                earliestDPUIdleTime_ms = std::max(earliestDPUIdleTime_ms, earliestCPUIdleTime_ms) +(perf.timeCost_Second * 1000);
-                earliestMAPIdleTime_ms = earliestDPUIdleTime_ms;
-              }
-
-              this->isMAPStalled = false;
-              totalEnergyCost_joule += perf.energyCost_Joule;
-              totalTransfer_mb += map_work;
-            }
-            // ------------- critical zone --------------
-          };
-
-        } else {
-
-          // keep up and do nothing
-          size_t reduce_work = 0;
-          thisTag = {EUType::CPU, OperatorTag::REDUCE, reduce_work};
-          reduceTask.execute = [this, thisTag, reduce_work]() {
-            {
-            // ------------- critical zone --------------
-              std::lock_guard<std::mutex> lock(this->mutex_);
-              earliestREDUCEIdleTime_ms = earliestDPUIdleTime_ms;
-            }
-            // ------------- critical zone --------------
-          };
-
-          size_t map_work = (omax - offloadRatio) * batchSize_MiB;
-          thisTag = {EUType::CPU, OperatorTag::MAP, map_work};
-          mapTask.execute = [this, thisTag, map_work]() {
-            const auto perf = om.deducePerfCPU(OperatorTag::MAP, map_work);
-            // ------------- critical zone --------------
-            {
-              std::lock_guard<std::mutex> lock(this->mutex_);
-
-              if(!this->isMAPStalled){
-                earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
-                earliestMAPIdleTime_ms = earliestDPUIdleTime_ms;
-              }else{
-                earliestDPUIdleTime_ms = std::max(earliestDPUIdleTime_ms, earliestCPUIdleTime_ms) +(perf.timeCost_Second * 1000);
-                earliestMAPIdleTime_ms = earliestDPUIdleTime_ms;
-              }
-              this->isMAPStalled = false;
-              totalEnergyCost_joule += perf.energyCost_Joule;
-              totalTransfer_mb += map_work;
-            }
-            // ------------- critical zone --------------
-          }; // definition of mapTask's lambda
-        } // offloadRatio < omin
-
-      }// if tail (redundant with op:LOGIC_END handling)
-      
-    } // if(execType::DO) else
+    auto [cpuTask, dpuTask] = genComputeTask(taskId, tp.op, tp.opType,
+                              tp.inputSize_MiB, offloadRatio, eT);
+    auto [mapTask, reduceTask] = genXferTask(taskId, tp.op, mapWork_MiB, reduceWork_MiB, eT);
 
     cpuQueue_.push(cpuTask);
     dpuQueue_.push(dpuTask);
     mapQueue_.push(mapTask);
     reduceQueue_.push(reduceTask);
-  }
+  }// if tail (redundant with op:LOGIC_END handling)
 }
+
 perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
                                           const Schedule &sched,
                                           execType eT) noexcept {

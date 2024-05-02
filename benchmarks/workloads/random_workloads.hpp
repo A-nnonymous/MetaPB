@@ -66,10 +66,13 @@ TaskGraph randomizeHO(const float CBRatio, const size_t batchSize_MiB) {
   for (auto vp = vertices(g); vp.first != vp.second; ++vp.first) {
     g[*vp.first] = randomProperty(CBRatio, batchSize_MiB);
   }
+  TaskProperties startNode = {OperatorTag::LOGIC_START, OperatorType::Logical,
+                            0, "yellow", "START"};
   TaskProperties end = {OperatorTag::LOGIC_END, OperatorType::Logical,
                         batchSize_MiB, "black", "END"};
   auto lastNode = std::prev(vertices(g).second); 
   g[*lastNode] = end;
+  g[0] = startNode;
   return {g, "H-"+ std::to_string(int(CBRatio * 100))};
 }
 TaskGraph randomizeMO(const float CBRatio, const size_t batchSize_MiB) {
@@ -82,6 +85,9 @@ TaskGraph randomizeMO(const float CBRatio, const size_t batchSize_MiB) {
                         batchSize_MiB, "black", "END"};
   auto lastNode = std::prev(vertices(g).second); 
   g[*lastNode] = end;
+  TaskProperties startNode = {OperatorTag::LOGIC_START, OperatorType::Logical,
+                            0, "yellow", "START"};
+  g[0] = startNode;
   return {g, "M-"+ std::to_string(int(CBRatio * 100))};
 }
 

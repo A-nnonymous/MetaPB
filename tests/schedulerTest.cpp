@@ -145,27 +145,51 @@ TaskGraph genGEA(int matrixSize, size_t batchSize_MiB) {
   return {g, "GEA_" + std::to_string(N)};
 }
 
-
+TaskGraph genString(const size_t batchSize_MiB, int opNum) {
+  TaskProperties start = {OperatorTag::LOGIC_START, OperatorType::Logical,
+                        batchSize_MiB, "yellow", "START"};
+  TaskProperties memBound = {OperatorTag::ELEW_PROD, OperatorType::MemoryBound,
+                             batchSize_MiB, "blue", "ELEW_PROD"};
+  TaskProperties computeBound = {OperatorTag::CONV_1D, OperatorType::ComputeBound,
+                                 batchSize_MiB, "red", "CONV_1D"};
+  TaskProperties end = {OperatorTag::LOGIC_END, OperatorType::Logical,
+                        batchSize_MiB, "black", "END"};
+  TransferProperties logicConnect = {1.0f, true};
+  Graph g;
+  auto prevNode = boost::add_vertex(start, g);
+  for (int i = 1; i <= opNum; i++) {
+    auto thisNode = boost::add_vertex(i % 2 ? computeBound : memBound, g);
+    boost::add_edge(prevNode, thisNode, logicConnect, g);
+    prevNode = thisNode;
+  }
+  auto endNode = boost::add_vertex(end, g);
+  boost::add_edge(prevNode, endNode, logicConnect, g);
+  return {g, "string_workload"};
+}
 
 int main() {
   void **memPoolPtr = (void **)malloc(3);
-  #pragma omp parallel
-  for (int i = 0; i < 3; i++) {
-    memPoolPtr[i] = malloc(16 * size_t(1 << 30)); // 2GiB
-  }
-  auto g = genGEA(8, 4096);
+  memPoolPtr[0] = malloc(72 * size_t(1<<30));
+  memPoolPtr[1] = memPoolPtr[0] + 1 * size_t(1<<30);
+  memPoolPtr[2] = memPoolPtr[1] + 1 * size_t(1<<30);
+
+  //auto g = genGEA(8, 4096);
+  auto g = genString(4096,3);
   g.printGraph("./");
+
   regressionTask rt = g.genRegressionTask();
   OperatorManager om;
   om.trainModel(rt);
   MetaPB::Scheduler::HEFTScheduler he(g, om);
   MetaPB::Scheduler::MetaScheduler ms(0.5, 0.5, 50, g, om);
   HeteroComputePool hcp(boost::num_vertices(g.g),om, memPoolPtr);
+  
   Schedule scheduleResult = he.schedule();
   std::cout <<"MetaScheduler Scheduling\n";
   Schedule comparison = ms.schedule();
+  hcp.parseGraph(g,comparison,execType::DO);
 
-
+  /*
   perfStats heftStat, metaPBStat, cpuonlyStat, dpuonlyStat;
   for(int i = 0; i < 3; i++){
     heftStat = hcp.execWorkload(g, scheduleResult, execType::DO);
@@ -190,15 +214,15 @@ int main() {
   for(auto& ratio: comparison.offloadRatio){
     ratio = 1.0f;
   }
+  comparison.isAlwaysWrittingBack = true;
   for(int i = 0; i < 3; i++){
     dpuonlyStat = hcp.execWorkload(g, comparison, execType::DO);
     hcp.outputTimingsToCSV("./DPUOnly.csv");
   }
   std::cout << "DPUOnly scheduler, time consume: "<< dpuonlyStat.timeCost_Second<<"second, energy consume: "<< dpuonlyStat.energyCost_Joule    << " joule\n";
+  */
 
   free(memPoolPtr[0]);
-  free(memPoolPtr[1]);
-  free(memPoolPtr[2]);
   free((void*)memPoolPtr);
   return 0;
 }

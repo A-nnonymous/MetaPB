@@ -27,6 +27,7 @@ namespace Executor {
 using Operator::OperatorManager;
 using Operator::OperatorTag;
 using Operator::opType2Name;
+using Operator::tag2Name;
 using utils::ChronoTrigger;
 using utils::metricTag;
 using utils::perfStats;
@@ -118,9 +119,9 @@ private:
                     std::unordered_map<int, std::vector<TaskTiming>> &timings,
                     const std::string &type) noexcept;
   
-  std::pair<Task,Task> genComputeTask(OperatorTag opTag, size_t inputSize_MiB, float offloadRatio, execType eT)const noexcept;
+  std::pair<Task,Task> genComputeTask(int taskId, OperatorTag opTag, OperatorType opType, size_t inputSize_MiB, float offloadRatio, execType eT)noexcept;
 
-  std::pair<Task,Task> genXferTask(OperatorTag opTag, size_t inputSize_MiB,float offloadRatio, float oMax, float oMin, execType eT)const noexcept;
+  std::pair<Task,Task> genXferTask(int taskId, OperatorTag opTag, size_t mapWork_MiB, size_t reduceWork_MiB, execType eT)noexcept;
 
 private:
   void **memPoolPtr;
