@@ -38,6 +38,7 @@ perfStats OperatorBase::execCPUwithProbe(const size_t batchSize_MiB,
   auto energyMeans = std::get<vector<Stats>>(
       report.reportItems[metricTag::CPUPowerConsumption_Joule].data);
   auto energyMeanSum = energyMeans[0].mean + energyMeans[1].mean;
+  ct.clear();
   return {energyMeanSum,timeMean};
 }
 

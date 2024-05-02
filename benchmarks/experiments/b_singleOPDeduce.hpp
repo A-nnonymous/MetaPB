@@ -92,6 +92,9 @@ public:
         }
       }
     }
+    free(dst1);
+    free(src2);
+    free(src1);
   }
 
 private:

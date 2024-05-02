@@ -10,7 +10,7 @@
 #define DIV 2
 
 #ifndef __cplusplus
-#define T int
+#define T float
 #endif
 
 typedef struct {

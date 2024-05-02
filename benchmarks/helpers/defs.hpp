@@ -10,7 +10,7 @@
 #endif
 
 #ifndef REP
-#define REP 5
+#define REP 10
 #endif
 
 #endif

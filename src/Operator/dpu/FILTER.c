@@ -13,9 +13,9 @@ __host conv_args DPU_INPUT_ARGUMENTS;
 //do filter for a cache block
 static void FILTER(T *bufferB, T *bufferA, int kernelSize,int startIdx, unsigned int l_size) {
   for (size_t i = 0; i < l_size; i++) {
-    int sum = 0;
+    T sum = 0;
     for (size_t j = 0; j < kernelSize; ++j) {
-        sum += bufferA[i + j];
+        sum += bufferA[i + j] / kernelSize;
     }
     bufferB[i] = sum / kernelSize ;
   }
@@ -40,12 +40,9 @@ int main(void) {
   uint32_t input_size_dpu_bytes_transfer =
       DPU_INPUT_ARGUMENTS.co.inputSize; // Transfer input size per DPU in bytes
 
-  int kernelSize = DPU_INPUT_ARGUMENTS.kernelSize;
-  for (int i = 0; i < 8; i++) {
-    kernel[i] = DPU_INPUT_ARGUMENTS.gaussianKernel[i];
-  }
+  int kernelSizeByte = 9*4;
+  int kernelSize = 9;
   int stride = DPU_INPUT_ARGUMENTS.stride;
-  int kernelSizeByte = kernelSize * 4;
   // Address of the current processing block in MRAM
   uint32_t base_tasklet = tasklet_id << BLOCK_SIZE_LOG2;
   uint32_t mram_base_addr_A = (uint32_t)DPU_MRAM_HEAP_POINTER;

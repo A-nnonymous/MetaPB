@@ -170,7 +170,7 @@ public:
       memPool[i] = malloc(loadSize_MiB * size_t(1 << 20));
     }
     OperatorManager om;
-    HeteroComputePool hcp(opNum, om, memPool);
+    HeteroComputePool hcp(opNum + 2, om, memPool);
     TaskGraph tg = genInterleavedWorkload(loadSize_MiB, opNum);
     om.trainModel(tg.genRegressionTask());
     MetaScheduler msPF(0.3f, 0.7f, 100, tg, om);

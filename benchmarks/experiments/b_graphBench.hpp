@@ -48,6 +48,7 @@ public:
       graphLoads["FFT-" + std::to_string(i)] = genFFT(i, loadSize_MiB);
       graphLoads["GEA-" + std::to_string(i)] = genGEA(i, loadSize_MiB);
     }
+    //graphLoads["stringLoad"] = genInterleavedWorkload(loadSize_MiB, 6);
     
     void **memPool = (void **)malloc(3);
     memPool[0] = malloc(72 * size_t(1<<30));

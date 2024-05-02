@@ -13,6 +13,8 @@
 #include "Operator/OperatorMAP.hpp"
 #include "Operator/OperatorREDUCE.hpp"
 #include "Operator/OperatorRegistry.hpp"
+#include "Operator/OperatorFILTER.hpp"
+#include "Operator/OperatorMAC.hpp"
 #include "Operator/OperatorUNDEFINED.hpp"
 #include "utils/Stats.hpp"
 #include <cstdlib>
@@ -135,6 +137,10 @@ struct OperatorManager {
       return std::make_unique<OperatorMAP>(g_DPU_MGR);
     case OperatorTag::REDUCE:
       return std::make_unique<OperatorREDUCE>(g_DPU_MGR);
+    case OperatorTag::FILTER:
+      return std::make_unique<OperatorFILTER>(g_DPU_MGR);
+    case OperatorTag::MAC:
+      return std::make_unique<OperatorMAC>(g_DPU_MGR);
     case OperatorTag::UNDEFINED:
       return std::make_unique<OperatorUNDEFINED>(g_DPU_MGR);
     }

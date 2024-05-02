@@ -6,19 +6,10 @@ int main() {
   // ------------ Hybridize OP benchmarks --------------
 
 
-  bm.addBenchmark<Graph_benchmark>(
-      {"All_Graphloads"},
-      {
-        {"loadSize_MiB", "4096"}
-      });
+  /*
   bm.addBenchmark<DetailShowOff>({"string_workload"},
                                  {
                                      {"loadSize_MiB", "2048"},
-                                     {"opNum", "6"},
-                                 });
-  bm.addBenchmark<DetailShowOff>({"string_workload"},
-                                 {
-                                     {"loadSize_MiB", "4096"},
                                      {"opNum", "6"},
                                  });
   bm.addBenchmark<singleOPDeduce>({"regression"},
@@ -39,6 +30,19 @@ int main() {
       {"isConsideringReduce", "false"},
     }
   );
+                                  */
+  /*
+  bm.addBenchmark<Graph_benchmark>(
+      {"All_Graphloads"},
+      {
+        {"loadSize_MiB", "4096"}
+      });
+      */
+  bm.addBenchmark<DetailShowOff>({"string_workload"},
+                                 {
+                                     {"loadSize_MiB", "4096"},
+                                     {"opNum", "6"},
+                                 });
   
   bm.exec();
   return 0;

@@ -18,6 +18,7 @@
 #include <string>
 #include <thread>
 #include <tuple>
+#include <utility>
 #include <unordered_map>
 #include <vector>
 
@@ -89,6 +90,9 @@ public:
         totalEnergyCost_joule(std::exchange(other.totalEnergyCost_joule, 0.0)),
         totalTransfer_mb(std::exchange(other.totalTransfer_mb, 0.0)), rd_(),
         gen_(std::move(other.gen_)), dis_(std::move(other.dis_)) {}
+
+  void parseGraph(const TaskGraph &g, const Schedule &sched,execType eT)noexcept;
+  
   perfStats execWorkload(const TaskGraph &g, const Schedule &sched,
                          execType) noexcept;
 
@@ -108,12 +112,15 @@ private:
   bool allDependenciesMet(const std::vector<bool> &completedVector,
                           const std::vector<int> &deps) const noexcept;
 
-
   // Generic worker function for processing tasks from a queue
   void processTasks(std::queue<Task> &queue, std::vector<bool> &completedVector,
                     std::function<bool(int)> dependencyCheck,
                     std::unordered_map<int, std::vector<TaskTiming>> &timings,
                     const std::string &type) noexcept;
+  
+  std::pair<Task,Task> genComputeTask(OperatorTag opTag, size_t inputSize_MiB, float offloadRatio, execType eT)const noexcept;
+
+  std::pair<Task,Task> genXferTask(OperatorTag opTag, size_t inputSize_MiB,float offloadRatio, float oMax, float oMin, execType eT)const noexcept;
 
 private:
   void **memPoolPtr;
@@ -138,8 +145,11 @@ private:
   double earliestDPUIdleTime_ms = 0.0f;
   double earliestMAPIdleTime_ms = 0.0f;
   double earliestREDUCEIdleTime_ms = 0.0f;
+
   bool isCPUStalled = false;
   bool isDPUStalled = false;
+  bool isMAPStalled = false;
+  bool isREDUCEStalled = false;
 
   double totalEnergyCost_joule = 0.0f;
   double totalTransfer_mb = 0.0f;

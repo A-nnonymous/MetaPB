@@ -53,7 +53,7 @@ Schedule HEFTScheduler::schedule() {
     float ratio = (info.assignedProcessor == 1) ? 1.0f : 0.0f;
     scheduleResult.offloadRatio.push_back(ratio);
   }
-
+  scheduleResult.isAlwaysWrittingBack = false;
   return scheduleResult;
 }
 

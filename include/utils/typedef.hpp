@@ -7,7 +7,7 @@ namespace MetaPB {
 namespace utils {
 
 typedef struct {
-  bool isCoarseGrain = true;
+  bool isAlwaysWrittingBack = true;
   vector<int> order;
   vector<float> offloadRatio;
 } Schedule;

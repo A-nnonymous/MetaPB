@@ -12,7 +12,7 @@ public:
     Schedule s;
     s.order = gIn.topoSort();
     s.offloadRatio = std::vector<float>(s.order.size(), 0.0f);
-    s.isCoarseGrain = true;
+    s.isAlwaysWrittingBack = true;
     return s;
   }
 };

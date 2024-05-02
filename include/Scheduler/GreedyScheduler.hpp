@@ -20,7 +20,7 @@ public:
         s.offloadRatio[i] = 1.0f;
       }
     }
-    s.isCoarseGrain = true;
+    s.isAlwaysWrittingBack = true;
     return s;
   }
 };
