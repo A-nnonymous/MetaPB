@@ -53,6 +53,7 @@ Schedule HEFTScheduler::schedule() {
     float ratio = (info.assignedProcessor == 1) ? 1.0f : 0.0f;
     scheduleResult.offloadRatio.push_back(ratio);
   }
+  scheduleResult.offloadRatio[boost::num_vertices(graw) - 1] = 0.0f; // LOGIC_END
   scheduleResult.isAlwaysWrittingBack = false;
   return scheduleResult;
 }
@@ -63,7 +64,6 @@ double HEFTScheduler::calculateUpwardRank(
   TaskSchedulingInfo &info = schedulingInfo[tn];
   if (info.upwardRank != -1)
     return info.upwardRank; // Already calculated
-
   double maxSuccessorRank = 0.0;
   auto outEdges = boost::out_edges(tn, graw);
   for (auto ei = outEdges.first; ei != outEdges.second; ++ei) {
@@ -73,6 +73,9 @@ double HEFTScheduler::calculateUpwardRank(
   }
   info.upwardRank = (info.computationCostCPU + info.computationCostDPU) / 2.0 +
                     maxSuccessorRank;
+  
+  if(tn == 0) info.upwardRank = 10 + maxSuccessorRank;  //ensure entry node to be the first.
+
   return info.upwardRank;
 }
 

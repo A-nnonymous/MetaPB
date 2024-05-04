@@ -87,28 +87,31 @@ std::pair<Task,Task> HeteroComputePool::genComputeTask(int taskId, OperatorTag o
   size_t dpuInputSize_MiB = size_t(inputSize_MiB * offloadRatio);
   std::string opTypeStr= opType2Name.at(opType);
 
+  
+  /*
   ////////// DEBUG /////////////
   std::cout << "CPU Task "<< taskId << " ("<< tag2Name.at(opTag)<< "): "<< cpuInputSize_MiB << "MiB.\n";
   std::cout << "DPU Task "<< taskId << " ("<< tag2Name.at(opTag)<< "): "<< dpuInputSize_MiB << "MiB.\n";
   ////////// DEBUG /////////////
+  */
 
   if (eT == execType::DO) {
       cpuTask = {taskId,
                  [this, opTag, cpuInputSize_MiB]() {
-                   om.execCPU(opTag, cpuInputSize_MiB, this->memPoolPtr);
+                   if(cpuInputSize_MiB)om.execCPU(opTag, cpuInputSize_MiB, this->memPoolPtr);
                  },
                  "CPU", opTypeStr};
 
       dpuTask = {taskId,
                  [this, opTag, dpuInputSize_MiB]() {
-                   om.execDPU(opTag, dpuInputSize_MiB);
+                   if(dpuInputSize_MiB)om.execDPU(opTag, dpuInputSize_MiB);
                  },
                  "DPU", opTypeStr};
 
   }else{ // MIMIC logic
     cpuTask = {taskId,
                 [this, opTag, cpuInputSize_MiB]() {
-                  const auto perf = om.deducePerfCPU(opTag, cpuInputSize_MiB);
+                  const auto perf = cpuInputSize_MiB? om.deducePerfCPU(opTag, cpuInputSize_MiB) : perfStats{};
                 // ------------- critical zone --------------
                   {
                     std::lock_guard<std::mutex> lock(this->mutex_);
@@ -126,7 +129,7 @@ std::pair<Task,Task> HeteroComputePool::genComputeTask(int taskId, OperatorTag o
 
     dpuTask = {taskId,
                 [this, opTag, dpuInputSize_MiB]() {
-                  const auto perf = om.deducePerfDPU(opTag, dpuInputSize_MiB);
+                  const auto perf = dpuInputSize_MiB? om.deducePerfDPU(opTag, dpuInputSize_MiB) : perfStats{};
                 // ------------- critical zone --------------
                   {
                     std::lock_guard<std::mutex> lock(this->mutex_);
@@ -150,10 +153,12 @@ std::pair<Task,Task> HeteroComputePool::genComputeTask(int taskId, OperatorTag o
 std::pair<Task,Task> HeteroComputePool::genXferTask(int taskId, OperatorTag opTag, size_t mapWork_MiB, size_t reduceWork_MiB, execType eT)noexcept{
   Task mapTask, reduceTask;
 
+  /*
   ////////// DEBUG /////////////
   std::cout << "MAP Task "<< taskId << ": " << mapWork_MiB << " MiB.\n";
   std::cout << "REDUCE Task "<< taskId << ": "<< reduceWork_MiB << "MiB.\n";
   ////////// DEBUG /////////////
+  */
 
   mapTask = {taskId, []() {}, "MAP", "MAP"};
   reduceTask = {taskId, []() {}, "REDUCE", "REDUCE"};
@@ -245,7 +250,7 @@ void HeteroComputePool::parseGraph(const TaskGraph& g, const Schedule& sched, ex
     size_t reduceWork_MiB, mapWork_MiB;
 
     if(sched.isAlwaysWrittingBack){
-      reduceWork_MiB = tp.inputSize_MiB;
+      reduceWork_MiB = offloadRatio == 0.0f? 0.0f : tp.inputSize_MiB;
       mapWork_MiB = omax * tp.inputSize_MiB;
     }else{
       if (offloadRatio > omax) {

@@ -174,7 +174,8 @@ int main() {
   memPoolPtr[2] = memPoolPtr[1] + 1 * size_t(1<<30);
 
   //auto g = genGEA(8, 4096);
-  auto g = genString(4096,3);
+  //auto g = genString(4096,3);
+  auto g = genFFT(8,4096);
   g.printGraph("./");
 
   regressionTask rt = g.genRegressionTask();
@@ -185,9 +186,18 @@ int main() {
   HeteroComputePool hcp(boost::num_vertices(g.g),om, memPoolPtr);
   
   Schedule scheduleResult = he.schedule();
+
+  std::cout << "HEFT Schedule result: \n";
+
+  for(int i = 0; i < scheduleResult.order.size(); i ++){
+    std::cout << "task " << scheduleResult.order[i] << " -- " << scheduleResult.offloadRatio[i] << "\n";
+  }
+
+  /*
   std::cout <<"MetaScheduler Scheduling\n";
   Schedule comparison = ms.schedule();
   hcp.parseGraph(g,comparison,execType::DO);
+  */
 
   /*
   perfStats heftStat, metaPBStat, cpuonlyStat, dpuonlyStat;

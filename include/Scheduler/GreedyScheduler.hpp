@@ -19,6 +19,9 @@ public:
               .timeCost_Second) {
         s.offloadRatio[i] = 1.0f;
       }
+      if(i = s.order.size() - 1){
+        s.offloadRatio[i] = 0.0f // LOGIC_END
+      }
     }
     s.isAlwaysWrittingBack = true;
     return s;

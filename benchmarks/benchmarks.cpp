@@ -31,18 +31,18 @@ int main() {
     }
   );
                                   */
-  /*
   bm.addBenchmark<Graph_benchmark>(
       {"All_Graphloads"},
       {
         {"loadSize_MiB", "4096"}
       });
-      */
+  /*
   bm.addBenchmark<DetailShowOff>({"string_workload"},
                                  {
                                      {"loadSize_MiB", "4096"},
                                      {"opNum", "6"},
                                  });
+                                 */
   
   bm.exec();
   return 0;
