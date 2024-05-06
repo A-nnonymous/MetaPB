@@ -43,7 +43,7 @@ typedef struct TaskTiming {
 typedef struct {
   int id;
   std::function<void()> execute;
-  std::string worker;
+  bool isDPURelated;
   std::string opType;
 } Task;
 
@@ -53,16 +53,28 @@ enum class EUType { CPU, DPU };
 
 typedef std::tuple<EUType, OperatorTag, size_t> perfTag;
 
+typedef struct {
+  bool isCompleted = false;
+  double completeTime_ms = 0.0f; // time elapsed from begin. maintained in MIMIC
+} completeSgn;
+
 class HeteroComputePool {
 public:
   // Constructor initializes the pool with the expected maximum task ID.
   HeteroComputePool(size_t maxTaskId, const OperatorManager &om,
                     void **memPoolPtr) noexcept
-      : cpuCompleted_(maxTaskId + 1, false),
-        dpuCompleted_(maxTaskId + 1, false),
-        mapCompleted_(maxTaskId + 1, false),
-        reduceCompleted_(maxTaskId + 1, false), dependencies_(maxTaskId + 1),
-        gen_(rd_()), dis_(100, 500), om(om), memPoolPtr(memPoolPtr) {}
+      /*
+        : cpuCompleted_(maxTaskId + 1, {false,0.0f}),
+          dpuCompleted_(maxTaskId + 1, {false,0.0f}),
+          mapCompleted_(maxTaskId + 1, {false,0.0f}),
+          reduceCompleted_(maxTaskId + 1, {false,0.0f}),
+          cpuLastWakerTime_ms(maxTaskId + 1 , 0.0f),
+          dpuLastWakerTime_ms(maxTaskId + 1 , 0.0f),
+          mapLastWakerTime_ms(maxTaskId + 1 , 0.0f),
+          reduceLastWakerTime_ms(maxTaskId + 1 , 0.0f),
+          dependencies_(maxTaskId + 1),
+          */
+      : om(om), memPoolPtr(memPoolPtr) {}
 
   HeteroComputePool(HeteroComputePool &&other) noexcept
       : memPoolPtr(std::exchange(other.memPoolPtr, nullptr)),
@@ -80,17 +92,8 @@ public:
         dpuTimings_(std::move(other.dpuTimings_)),
         mapTimings_(std::move(other.mapTimings_)),
         reduceTimings_(std::move(other.reduceTimings_)),
-        earliestCPUIdleTime_ms(
-            std::exchange(other.earliestCPUIdleTime_ms, 0.0)),
-        earliestDPUIdleTime_ms(
-            std::exchange(other.earliestDPUIdleTime_ms, 0.0)),
-        earliestMAPIdleTime_ms(
-            std::exchange(other.earliestMAPIdleTime_ms, 0.0)),
-        earliestREDUCEIdleTime_ms(
-            std::exchange(other.earliestREDUCEIdleTime_ms, 0.0)),
         totalEnergyCost_joule(std::exchange(other.totalEnergyCost_joule, 0.0)),
-        totalTransfer_mb(std::exchange(other.totalTransfer_mb, 0.0)), rd_(),
-        gen_(std::move(other.gen_)), dis_(std::move(other.dis_)) {}
+        totalTransfer_mb(std::exchange(other.totalTransfer_mb, 0.0)) {}
 
   void parseGraph(const TaskGraph &g, const Schedule &sched,
                   execType eT) noexcept;
@@ -111,14 +114,15 @@ private:
                       const std::unordered_map<int, std::vector<TaskTiming>>
                           &timings) const noexcept;
   // Check if all dependencies for a task are met
-  bool allDependenciesMet(const std::vector<bool> &completedVector,
-                          const std::vector<int> &deps) const noexcept;
+  bool allDependenciesMet(const std::vector<completeSgn> &completedVector,
+                          const std::vector<int> &deps,
+                          double &lastWakerTime_ms) const noexcept;
 
   // Generic worker function for processing tasks from a queue
-  void processTasks(std::queue<Task> &queue, std::vector<bool> &completedVector,
-                    std::function<bool(int)> dependencyCheck,
-                    std::unordered_map<int, std::vector<TaskTiming>> &timings,
-                    const std::string &type) noexcept;
+  void processTasks(
+      std::queue<Task> &queue, std::vector<completeSgn> &completedVector,
+      std::function<bool(int)> dependencyCheck,
+      std::unordered_map<int, std::vector<TaskTiming>> &timings) noexcept;
 
   std::pair<Task, Task> genComputeTask(int taskId, OperatorTag opTag,
                                        OperatorType opType,
@@ -140,7 +144,7 @@ private:
   std::mutex dpuMutex_;
   std::vector<std::vector<int>> dependencies_;
 
-  std::vector<bool> cpuCompleted_, dpuCompleted_, mapCompleted_,
+  std::vector<completeSgn> cpuCompleted_, dpuCompleted_, mapCompleted_,
       reduceCompleted_;
 
   std::queue<Task> cpuQueue_, dpuQueue_, mapQueue_, reduceQueue_;
@@ -148,23 +152,14 @@ private:
   std::unordered_map<int, std::vector<TaskTiming>> cpuTimings_, dpuTimings_,
       mapTimings_, reduceTimings_;
   // ---------- MIMIC mode statistics -------------
-  double earliestCPUIdleTime_ms = 0.0f;
-  double earliestDPUIdleTime_ms = 0.0f;
-  double earliestMAPIdleTime_ms = 0.0f;
-  double earliestREDUCEIdleTime_ms = 0.0f;
+  std::vector<double> cpuLastWakerTime_ms, dpuLastWakerTime_ms,
+      mapLastWakerTime_ms, reduceLastWakerTime_ms;
 
-  bool isCPUStalled = false;
-  bool isDPUStalled = false;
-  bool isMAPStalled = false;
-  bool isREDUCEStalled = false;
+  double cpuMIMICTime_ms = 0.0f;
+  double dpuMIMICTime_ms = 0.0f;
 
   double totalEnergyCost_joule = 0.0f;
   double totalTransfer_mb = 0.0f;
-  std::map<perfTag, perfStats> cachedCPUPerfDeduce;
-  std::map<perfTag, perfStats> cachedDPUPerfDeduce;
-  std::random_device rd_;
-  std::mt19937 gen_;
-  std::uniform_int_distribution<> dis_;
 };
 
 } // namespace Executor

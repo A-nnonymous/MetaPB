@@ -173,33 +173,30 @@ int main() {
   memPoolPtr[1] = memPoolPtr[0] + 1 * size_t(1<<30);
   memPoolPtr[2] = memPoolPtr[1] + 1 * size_t(1<<30);
 
-  //auto g = genGEA(8, 4096);
+  auto g = genGEA(8, 4096);
+  //auto g = genFFT(8,4096);
   //auto g = genString(4096,3);
-  auto g = genFFT(8,4096);
   g.printGraph("./");
 
   regressionTask rt = g.genRegressionTask();
   OperatorManager om;
   om.trainModel(rt);
-  MetaPB::Scheduler::HEFTScheduler he(g, om);
+  //MetaPB::Scheduler::HEFTScheduler he(g, om);
   MetaPB::Scheduler::MetaScheduler ms(0.5, 0.5, 50, g, om);
   HeteroComputePool hcp(boost::num_vertices(g.g),om, memPoolPtr);
+
+  std::cout <<"MetaScheduler Scheduling\n";
+  Schedule comparison = ms.schedule();
   
+  /*
   Schedule scheduleResult = he.schedule();
-
   std::cout << "HEFT Schedule result: \n";
-
   for(int i = 0; i < scheduleResult.order.size(); i ++){
     std::cout << "task " << scheduleResult.order[i] << " -- " << scheduleResult.offloadRatio[i] << "\n";
   }
 
-  /*
-  std::cout <<"MetaScheduler Scheduling\n";
-  Schedule comparison = ms.schedule();
-  hcp.parseGraph(g,comparison,execType::DO);
-  */
 
-  /*
+
   perfStats heftStat, metaPBStat, cpuonlyStat, dpuonlyStat;
   for(int i = 0; i < 3; i++){
     heftStat = hcp.execWorkload(g, scheduleResult, execType::DO);
@@ -210,7 +207,9 @@ int main() {
     metaPBStat = hcp.execWorkload(g, comparison, execType::DO);
     hcp.outputTimingsToCSV("./META.csv");
   }
+  auto metaPBDeduce = hcp.execWorkload(g, comparison, execType::MIMIC);
   std::cout << "MetaPB scheduler, time consume: "<<metaPBStat.timeCost_Second <<"second, energy consume: "<<   metaPBStat.energyCost_Joule    <<  " joule\n";
+  std::cout << "MetaPB scheduler, deduced time consume: "<<metaPBDeduce.timeCost_Second <<"second, deduced energy consume: "<<   metaPBDeduce.energyCost_Joule    <<  " joule\n";
   // CPU-only
   for(auto& ratio: comparison.offloadRatio){
     ratio = 0.0f;
@@ -230,8 +229,8 @@ int main() {
     hcp.outputTimingsToCSV("./DPUOnly.csv");
   }
   std::cout << "DPUOnly scheduler, time consume: "<< dpuonlyStat.timeCost_Second<<"second, energy consume: "<< dpuonlyStat.energyCost_Joule    << " joule\n";
-  */
 
+  */
   free(memPoolPtr[0]);
   free((void*)memPoolPtr);
   return 0;
