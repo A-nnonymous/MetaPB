@@ -9,7 +9,7 @@ extern "C" {
 namespace MetaPB {
 namespace Operator {
 
-class OperatorMAC: public OperatorBase {
+class OperatorMAC : public OperatorBase {
 public:
   OperatorMAC(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR)
       : OperatorBase(g_DPU_MGR) {}

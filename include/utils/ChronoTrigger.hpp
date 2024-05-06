@@ -41,7 +41,7 @@ public:
   /// @brief stop counting time for a specific work
   void tock(const std::string &taskName);
   /// @brief Clean all the register.
-  inline void clear()noexcept{
+  inline void clear() noexcept {
     task2Report.clear();
     task2LastProbe.clear();
   }
@@ -66,9 +66,9 @@ private:
   std::map<std::string, Report> task2Report;
   std::map<std::string, Probe> task2LastProbe;
 
-  inline static PCM* getPCMInstance() {
-      static PCM* instance = PCM::getInstance();
-      return instance;
+  inline static PCM *getPCMInstance() {
+    static PCM *instance = PCM::getInstance();
+    return instance;
   }
 };
 

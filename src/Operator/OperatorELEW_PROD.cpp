@@ -4,7 +4,7 @@ namespace MetaPB {
 namespace Operator {
 
 inline void OperatorELEW_PROD::execCPU(const size_t batchSize_MiB,
-                                      void **memPoolBffrPtrs) const noexcept {
+                                       void **memPoolBffrPtrs) const noexcept {
   size_t inputSize = batchSize_MiB * 1024 * 1024 / sizeof(float);
   float *src1 = static_cast<float *>(memPoolBffrPtrs[0]);
   float *src2 = static_cast<float *>(memPoolBffrPtrs[1]);

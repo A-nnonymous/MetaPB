@@ -8,10 +8,10 @@ using MetaPB::Executor::Graph;
 using MetaPB::Executor::TaskNode;
 using MetaPB::Executor::TaskProperties;
 using MetaPB::Executor::TransferProperties;
+using MetaPB::Operator::computeBoundOPSet;
+using MetaPB::Operator::memoryBoundOPSet;
 using MetaPB::Operator::OperatorTag;
 using MetaPB::Operator::OperatorType;
-using MetaPB::Operator::memoryBoundOPSet;
-using MetaPB::Operator::computeBoundOPSet;
 
 consteval auto get_MO_edges() {
   return std::array{std::pair{0, 6},   std::pair{0, 7},   std::pair{0, 16},
@@ -40,24 +40,25 @@ consteval auto get_HO_edges() {
                     std::pair{6, 8}, std::pair{7, 8}};
 }
 
-TaskProperties randomProperty(const float CBRatio,const size_t batchSize_MiB){
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.0, 1.0);
+TaskProperties randomProperty(const float CBRatio, const size_t batchSize_MiB) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dis(0.0, 1.0);
 
-    TaskProperties tp;
-    const std::set<OperatorTag>& chosen_set = 
-      dis(gen) < CBRatio
-      ? computeBoundOPSet : memoryBoundOPSet;
-    if (!chosen_set.empty()) {
-        auto it = chosen_set.begin();
-        std::advance(it, std::uniform_int_distribution<>(0, chosen_set.size() - 1)(gen));
-        tp.op = *it;
-        tp.opType = (chosen_set == computeBoundOPSet) ? OperatorType::ComputeBound : OperatorType::MemoryBound;
-        tp.color = (chosen_set == computeBoundOPSet) ? "green" : "yellow";
-        tp.inputSize_MiB = batchSize_MiB;
-    }
-    return tp;
+  TaskProperties tp;
+  const std::set<OperatorTag> &chosen_set =
+      dis(gen) < CBRatio ? computeBoundOPSet : memoryBoundOPSet;
+  if (!chosen_set.empty()) {
+    auto it = chosen_set.begin();
+    std::advance(
+        it, std::uniform_int_distribution<>(0, chosen_set.size() - 1)(gen));
+    tp.op = *it;
+    tp.opType = (chosen_set == computeBoundOPSet) ? OperatorType::ComputeBound
+                                                  : OperatorType::MemoryBound;
+    tp.color = (chosen_set == computeBoundOPSet) ? "green" : "yellow";
+    tp.inputSize_MiB = batchSize_MiB;
+  }
+  return tp;
 }
 TaskGraph randomizeHO(const float CBRatio, const size_t batchSize_MiB) {
   TransferProperties logicConnect = {1.0f, true};
@@ -67,13 +68,13 @@ TaskGraph randomizeHO(const float CBRatio, const size_t batchSize_MiB) {
     g[*vp.first] = randomProperty(CBRatio, batchSize_MiB);
   }
   TaskProperties startNode = {OperatorTag::LOGIC_START, OperatorType::Logical,
-                            0, "yellow", "START"};
+                              0, "yellow", "START"};
   TaskProperties end = {OperatorTag::LOGIC_END, OperatorType::Logical,
                         batchSize_MiB, "black", "END"};
-  auto lastNode = std::prev(vertices(g).second); 
+  auto lastNode = std::prev(vertices(g).second);
   g[*lastNode] = end;
   g[0] = startNode;
-  return {g, "H-"+ std::to_string(int(CBRatio * 100))};
+  return {g, "H-" + std::to_string(int(CBRatio * 100))};
 }
 TaskGraph randomizeMO(const float CBRatio, const size_t batchSize_MiB) {
   auto edges = get_MO_edges();
@@ -83,12 +84,12 @@ TaskGraph randomizeMO(const float CBRatio, const size_t batchSize_MiB) {
   }
   TaskProperties end = {OperatorTag::LOGIC_END, OperatorType::Logical,
                         batchSize_MiB, "black", "END"};
-  auto lastNode = std::prev(vertices(g).second); 
+  auto lastNode = std::prev(vertices(g).second);
   g[*lastNode] = end;
   TaskProperties startNode = {OperatorTag::LOGIC_START, OperatorType::Logical,
-                            0, "yellow", "START"};
+                              0, "yellow", "START"};
   g[0] = startNode;
-  return {g, "M-"+ std::to_string(int(CBRatio * 100))};
+  return {g, "M-" + std::to_string(int(CBRatio * 100))};
 }
 
 #endif

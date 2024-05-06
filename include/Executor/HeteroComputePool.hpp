@@ -18,8 +18,8 @@
 #include <string>
 #include <thread>
 #include <tuple>
-#include <utility>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace MetaPB {
@@ -92,8 +92,9 @@ public:
         totalTransfer_mb(std::exchange(other.totalTransfer_mb, 0.0)), rd_(),
         gen_(std::move(other.gen_)), dis_(std::move(other.dis_)) {}
 
-  void parseGraph(const TaskGraph &g, const Schedule &sched,execType eT)noexcept;
-  
+  void parseGraph(const TaskGraph &g, const Schedule &sched,
+                  execType eT) noexcept;
+
   perfStats execWorkload(const TaskGraph &g, const Schedule &sched,
                          execType) noexcept;
 
@@ -118,10 +119,15 @@ private:
                     std::function<bool(int)> dependencyCheck,
                     std::unordered_map<int, std::vector<TaskTiming>> &timings,
                     const std::string &type) noexcept;
-  
-  std::pair<Task,Task> genComputeTask(int taskId, OperatorTag opTag, OperatorType opType, size_t inputSize_MiB, float offloadRatio, execType eT)noexcept;
 
-  std::pair<Task,Task> genXferTask(int taskId, OperatorTag opTag, size_t mapWork_MiB, size_t reduceWork_MiB, execType eT)noexcept;
+  std::pair<Task, Task> genComputeTask(int taskId, OperatorTag opTag,
+                                       OperatorType opType,
+                                       size_t inputSize_MiB, float offloadRatio,
+                                       execType eT) noexcept;
+
+  std::pair<Task, Task> genXferTask(int taskId, OperatorTag opTag,
+                                    size_t mapWork_MiB, size_t reduceWork_MiB,
+                                    execType eT) noexcept;
 
 private:
   void **memPoolPtr;

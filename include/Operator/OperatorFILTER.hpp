@@ -11,7 +11,7 @@ using MetaPB::Operator::OperatorBase;
 namespace MetaPB {
 namespace Operator {
 
-class OperatorFILTER: public OperatorBase {
+class OperatorFILTER : public OperatorBase {
 public:
   OperatorFILTER(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR)
       : OperatorBase(g_DPU_MGR) {}

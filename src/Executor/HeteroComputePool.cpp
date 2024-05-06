@@ -28,25 +28,26 @@ void HeteroComputePool::processTasks(
     // Wait for dependencies to be met
     {
       std::unique_lock<std::mutex> lock(mutex_);
-      cv_.wait(lock, [&] { 
+      cv_.wait(lock, [&] {
         auto result = dependencyCheck(task.id);
-        if(!result){
+        if (!result) {
           // tag the worker with stall mark (used in MIMIC)
           // TODO: refractor stall logic
-          if(type=="CPU") {
+          if (type == "CPU") {
             isCPUStalled = true;
           }
-          if(type=="DPU") {
+          if (type == "DPU") {
             isDPUStalled = true;
           }
-          if(type=="MAP") {
+          if (type == "MAP") {
             isMAPStalled = true;
           }
-          if(type=="DPU") {
+          if (type == "DPU") {
             isREDUCEStalled = true;
           }
         }
-        return result;});
+        return result;
+      });
     }
 
     // exclusivity
@@ -81,76 +82,94 @@ void HeteroComputePool::processTasks(
   }
 }
 
-std::pair<Task,Task> HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag, OperatorType opType, size_t inputSize_MiB, float offloadRatio, execType eT)noexcept{
+std::pair<Task, Task>
+HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag,
+                                  OperatorType opType, size_t inputSize_MiB,
+                                  float offloadRatio, execType eT) noexcept {
   Task cpuTask, dpuTask;
   size_t cpuInputSize_MiB = size_t(inputSize_MiB * (1 - offloadRatio));
   size_t dpuInputSize_MiB = size_t(inputSize_MiB * offloadRatio);
-  std::string opTypeStr= opType2Name.at(opType);
+  std::string opTypeStr = opType2Name.at(opType);
 
-  
   /*
   ////////// DEBUG /////////////
-  std::cout << "CPU Task "<< taskId << " ("<< tag2Name.at(opTag)<< "): "<< cpuInputSize_MiB << "MiB.\n";
-  std::cout << "DPU Task "<< taskId << " ("<< tag2Name.at(opTag)<< "): "<< dpuInputSize_MiB << "MiB.\n";
+  std::cout << "CPU Task "<< taskId << " ("<< tag2Name.at(opTag)<< "): "<<
+  cpuInputSize_MiB << "MiB.\n"; std::cout << "DPU Task "<< taskId << " ("<<
+  tag2Name.at(opTag)<< "): "<< dpuInputSize_MiB << "MiB.\n";
   ////////// DEBUG /////////////
   */
 
   if (eT == execType::DO) {
-      cpuTask = {taskId,
-                 [this, opTag, cpuInputSize_MiB]() {
-                   if(cpuInputSize_MiB)om.execCPU(opTag, cpuInputSize_MiB, this->memPoolPtr);
-                 },
-                 "CPU", opTypeStr};
-
-      dpuTask = {taskId,
-                 [this, opTag, dpuInputSize_MiB]() {
-                   if(dpuInputSize_MiB)om.execDPU(opTag, dpuInputSize_MiB);
-                 },
-                 "DPU", opTypeStr};
-
-  }else{ // MIMIC logic
     cpuTask = {taskId,
-                [this, opTag, cpuInputSize_MiB]() {
-                  const auto perf = cpuInputSize_MiB? om.deducePerfCPU(opTag, cpuInputSize_MiB) : perfStats{};
-                // ------------- critical zone --------------
-                  {
-                    std::lock_guard<std::mutex> lock(this->mutex_);
-                    if(!this->isCPUStalled){ // immediate execution without stalling
-                      earliestCPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
-                    }else{
-                      earliestCPUIdleTime_ms = std::max(earliestCPUIdleTime_ms, earliestREDUCEIdleTime_ms) + (perf.timeCost_Second * 1000);
-                      this->isCPUStalled = false; // maintain stall mark
-                    }
-                    totalEnergyCost_joule += perf.energyCost_Joule;
-                  }
-                // ------------- critical zone --------------
-                },
-                "CPU", opTypeStr};
+               [this, opTag, cpuInputSize_MiB]() {
+                 if (cpuInputSize_MiB)
+                   om.execCPU(opTag, cpuInputSize_MiB, this->memPoolPtr);
+               },
+               "CPU", opTypeStr};
 
     dpuTask = {taskId,
-                [this, opTag, dpuInputSize_MiB]() {
-                  const auto perf = dpuInputSize_MiB? om.deducePerfDPU(opTag, dpuInputSize_MiB) : perfStats{};
-                // ------------- critical zone --------------
-                  {
-                    std::lock_guard<std::mutex> lock(this->mutex_);
-                    if(!this->isDPUStalled){ // immediate execution without stalling
-                      earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
-                    }else{
-                      earliestDPUIdleTime_ms = std::max(earliestMAPIdleTime_ms, earliestDPUIdleTime_ms) + (perf.timeCost_Second * 1000);
-                      this->isDPUStalled = false; // maintain stall mark
-                    }
-                    totalEnergyCost_joule += perf.energyCost_Joule;
-                  }
-                // ------------- critical zone --------------
-                },
-                "DPU", opTypeStr};
+               [this, opTag, dpuInputSize_MiB]() {
+                 if (dpuInputSize_MiB)
+                   om.execDPU(opTag, dpuInputSize_MiB);
+               },
+               "DPU", opTypeStr};
 
+  } else { // MIMIC logic
+    cpuTask = {
+        taskId,
+        [this, opTag, cpuInputSize_MiB]() {
+          const auto perf = cpuInputSize_MiB
+                                ? om.deducePerfCPU(opTag, cpuInputSize_MiB)
+                                : perfStats{};
+          // ------------- critical zone --------------
+          {
+            std::lock_guard<std::mutex> lock(this->mutex_);
+            if (!this->isCPUStalled) { // immediate execution without stalling
+              earliestCPUIdleTime_ms += (perf.timeCost_Second * 1000);
+            } else {
+              earliestCPUIdleTime_ms =
+                  std::max(earliestCPUIdleTime_ms, earliestREDUCEIdleTime_ms) +
+                  (perf.timeCost_Second * 1000);
+              this->isCPUStalled = false; // maintain stall mark
+            }
+            totalEnergyCost_joule += perf.energyCost_Joule;
+          }
+          // ------------- critical zone --------------
+        },
+        "CPU", opTypeStr};
+
+    dpuTask = {
+        taskId,
+        [this, opTag, dpuInputSize_MiB]() {
+          const auto perf = dpuInputSize_MiB
+                                ? om.deducePerfDPU(opTag, dpuInputSize_MiB)
+                                : perfStats{};
+          // ------------- critical zone --------------
+          {
+            std::lock_guard<std::mutex> lock(this->mutex_);
+            if (!this->isDPUStalled) { // immediate execution without stalling
+              earliestDPUIdleTime_ms += (perf.timeCost_Second * 1000);
+            } else {
+              earliestDPUIdleTime_ms =
+                  std::max(earliestMAPIdleTime_ms, earliestDPUIdleTime_ms) +
+                  (perf.timeCost_Second * 1000);
+              this->isDPUStalled = false; // maintain stall mark
+            }
+            totalEnergyCost_joule += perf.energyCost_Joule;
+          }
+          // ------------- critical zone --------------
+        },
+        "DPU", opTypeStr};
   }
 
   return {cpuTask, dpuTask};
 }
 
-std::pair<Task,Task> HeteroComputePool::genXferTask(int taskId, OperatorTag opTag, size_t mapWork_MiB, size_t reduceWork_MiB, execType eT)noexcept{
+std::pair<Task, Task> HeteroComputePool::genXferTask(int taskId,
+                                                     OperatorTag opTag,
+                                                     size_t mapWork_MiB,
+                                                     size_t reduceWork_MiB,
+                                                     execType eT) noexcept {
   Task mapTask, reduceTask;
 
   /*
@@ -164,7 +183,7 @@ std::pair<Task,Task> HeteroComputePool::genXferTask(int taskId, OperatorTag opTa
   reduceTask = {taskId, []() {}, "REDUCE", "REDUCE"};
 
   // If this node is LOGIC_END, no xfer to next(because no succNodes)
-  if (opTag != OperatorTag::LOGIC_END && opTag != OperatorTag::LOGIC_START) { 
+  if (opTag != OperatorTag::LOGIC_END && opTag != OperatorTag::LOGIC_START) {
     if (eT == execType::DO) {
       reduceTask.execute = [this, reduceWork_MiB]() {
         om.execCPU(OperatorTag::REDUCE, reduceWork_MiB, this->memPoolPtr);
@@ -172,17 +191,22 @@ std::pair<Task,Task> HeteroComputePool::genXferTask(int taskId, OperatorTag opTa
       mapTask.execute = [this, mapWork_MiB]() {
         om.execCPU(OperatorTag::MAP, mapWork_MiB, this->memPoolPtr);
       };
-    }else{
+    } else {
       reduceTask.execute = [this, reduceWork_MiB]() {
-        const auto perf = (reduceWork_MiB == 0)? perfStats{} : om.deducePerfCPU(OperatorTag::REDUCE, reduceWork_MiB);
+        const auto perf =
+            (reduceWork_MiB == 0)
+                ? perfStats{}
+                : om.deducePerfCPU(OperatorTag::REDUCE, reduceWork_MiB);
         {
-        // ------------- critical zone --------------
+          // ------------- critical zone --------------
           std::lock_guard<std::mutex> lock(this->mutex_);
-          if(!this->isREDUCEStalled){
-            earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+          if (!this->isREDUCEStalled) {
+            earliestDPUIdleTime_ms += (perf.timeCost_Second * 1000);
             earliestREDUCEIdleTime_ms = earliestDPUIdleTime_ms;
-          }else{
-            earliestDPUIdleTime_ms = std::max(earliestDPUIdleTime_ms, earliestCPUIdleTime_ms) +(perf.timeCost_Second * 1000);
+          } else {
+            earliestDPUIdleTime_ms =
+                std::max(earliestDPUIdleTime_ms, earliestCPUIdleTime_ms) +
+                (perf.timeCost_Second * 1000);
             earliestREDUCEIdleTime_ms = earliestDPUIdleTime_ms;
           }
           this->isREDUCEStalled = false;
@@ -192,15 +216,19 @@ std::pair<Task,Task> HeteroComputePool::genXferTask(int taskId, OperatorTag opTa
       };
 
       mapTask.execute = [this, mapWork_MiB]() {
-        const auto perf = (mapWork_MiB == 0)? perfStats{}: om.deducePerfCPU(OperatorTag::MAP, mapWork_MiB);
+        const auto perf = (mapWork_MiB == 0)
+                              ? perfStats{}
+                              : om.deducePerfCPU(OperatorTag::MAP, mapWork_MiB);
         // ------------- critical zone --------------
         {
           std::lock_guard<std::mutex> lock(this->mutex_);
-          if(!this->isMAPStalled){
-            earliestDPUIdleTime_ms +=  (perf.timeCost_Second * 1000);
+          if (!this->isMAPStalled) {
+            earliestDPUIdleTime_ms += (perf.timeCost_Second * 1000);
             earliestMAPIdleTime_ms = earliestDPUIdleTime_ms;
-          }else{
-            earliestDPUIdleTime_ms = std::max(earliestDPUIdleTime_ms, earliestCPUIdleTime_ms) +(perf.timeCost_Second * 1000);
+          } else {
+            earliestDPUIdleTime_ms =
+                std::max(earliestDPUIdleTime_ms, earliestCPUIdleTime_ms) +
+                (perf.timeCost_Second * 1000);
             earliestMAPIdleTime_ms = earliestDPUIdleTime_ms;
           }
 
@@ -215,10 +243,11 @@ std::pair<Task,Task> HeteroComputePool::genXferTask(int taskId, OperatorTag opTa
 
   return {mapTask, reduceTask};
 }
-// TODO: 
+// TODO:
 // 1. Further capsulate this function to a multi-level modulized style
 // 2. Add coarse-grained schedule specific task parsing.
-void HeteroComputePool::parseGraph(const TaskGraph& g, const Schedule& sched, execType eT)noexcept{
+void HeteroComputePool::parseGraph(const TaskGraph &g, const Schedule &sched,
+                                   execType eT) noexcept {
   for (size_t i = 0; i < sched.order.size(); ++i) {
     int taskId = sched.order[i];
     const TaskProperties &tp = g.g[taskId];
@@ -236,23 +265,24 @@ void HeteroComputePool::parseGraph(const TaskGraph& g, const Schedule& sched, ex
 
     // Looking downward: Transfer measuring.
     auto outEdges = boost::out_edges(taskId, g.g);
-    if(outEdges.first != outEdges.second){
+    if (outEdges.first != outEdges.second) {
       for (auto ei = outEdges.first; ei != outEdges.second; ++ei) {
         TaskNode succ = boost::target(*ei, g.g);
         float succOffloadRatio = sched.offloadRatio[succ];
         omax = std::max(omax, succOffloadRatio);
         omin = std::min(omin, succOffloadRatio);
       }
-    }else{
-      omax = 0.0f; omin = 0.0f;
+    } else {
+      omax = 0.0f;
+      omin = 0.0f;
     }
 
     size_t reduceWork_MiB, mapWork_MiB;
 
-    if(sched.isAlwaysWrittingBack){
-      reduceWork_MiB = offloadRatio == 0.0f? 0.0f : tp.inputSize_MiB;
+    if (sched.isAlwaysWrittingBack) {
+      reduceWork_MiB = offloadRatio == 0.0f ? 0.0f : tp.inputSize_MiB;
       mapWork_MiB = omax * tp.inputSize_MiB;
-    }else{
+    } else {
       if (offloadRatio > omax) {
         reduceWork_MiB = (offloadRatio - omin) * tp.inputSize_MiB;
         mapWork_MiB = 0;
@@ -261,19 +291,20 @@ void HeteroComputePool::parseGraph(const TaskGraph& g, const Schedule& sched, ex
         mapWork_MiB = (omax - offloadRatio) * tp.inputSize_MiB;
       } else {
         reduceWork_MiB = 0;
-        mapWork_MiB= (omax - offloadRatio) * tp.inputSize_MiB;
+        mapWork_MiB = (omax - offloadRatio) * tp.inputSize_MiB;
       } // offloadRatio < omin
     }
 
-    auto [cpuTask, dpuTask] = genComputeTask(taskId, tp.op, tp.opType,
-                              tp.inputSize_MiB, offloadRatio, eT);
-    auto [mapTask, reduceTask] = genXferTask(taskId, tp.op, mapWork_MiB, reduceWork_MiB, eT);
+    auto [cpuTask, dpuTask] = genComputeTask(
+        taskId, tp.op, tp.opType, tp.inputSize_MiB, offloadRatio, eT);
+    auto [mapTask, reduceTask] =
+        genXferTask(taskId, tp.op, mapWork_MiB, reduceWork_MiB, eT);
 
     cpuQueue_.push(cpuTask);
     dpuQueue_.push(dpuTask);
     mapQueue_.push(mapTask);
     reduceQueue_.push(reduceTask);
-  }// if tail (redundant with op:LOGIC_END handling)
+  } // if tail (redundant with op:LOGIC_END handling)
 }
 
 perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
@@ -324,38 +355,33 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
   // -------------------- Entering unsafe multithread zone ------------------
   // Thread workers definition
   {
-  std::jthread cpuThread(
-      &HeteroComputePool::processTasks, this, std::ref(cpuQueue_),
-      std::ref(cpuCompleted_),
-      [this](int taskId) noexcept {
-        return allDependenciesMet(reduceCompleted_, dependencies_[taskId]);
-      },
-      std::ref(cpuTimings_), "CPU");
+    std::jthread cpuThread(
+        &HeteroComputePool::processTasks, this, std::ref(cpuQueue_),
+        std::ref(cpuCompleted_),
+        [this](int taskId) noexcept {
+          return allDependenciesMet(reduceCompleted_, dependencies_[taskId]);
+        },
+        std::ref(cpuTimings_), "CPU");
 
-  std::jthread dpuThread(
-      &HeteroComputePool::processTasks, this, std::ref(dpuQueue_),
-      std::ref(dpuCompleted_),
-      [this](int taskId) noexcept {
-        return allDependenciesMet(mapCompleted_, dependencies_[taskId]);
-               
-      },
-      std::ref(dpuTimings_), "DPU");
+    std::jthread dpuThread(
+        &HeteroComputePool::processTasks, this, std::ref(dpuQueue_),
+        std::ref(dpuCompleted_),
+        [this](int taskId) noexcept {
+          return allDependenciesMet(mapCompleted_, dependencies_[taskId]);
+        },
+        std::ref(dpuTimings_), "DPU");
 
-  std::jthread mapThread(
-      &HeteroComputePool::processTasks, this, std::ref(mapQueue_),
-      std::ref(mapCompleted_),
-      [this](int taskId) noexcept {
-        return cpuCompleted_[taskId];
-      },
-      std::ref(mapTimings_), "MAP");
+    std::jthread mapThread(
+        &HeteroComputePool::processTasks, this, std::ref(mapQueue_),
+        std::ref(mapCompleted_),
+        [this](int taskId) noexcept { return cpuCompleted_[taskId]; },
+        std::ref(mapTimings_), "MAP");
 
-  std::jthread reduceThread(
-      &HeteroComputePool::processTasks, this, std::ref(reduceQueue_),
-      std::ref(reduceCompleted_),
-      [this](int taskId) noexcept { 
-        return dpuCompleted_[taskId]; 
-      },
-      std::ref(reduceTimings_), "REDUCE");
+    std::jthread reduceThread(
+        &HeteroComputePool::processTasks, this, std::ref(reduceQueue_),
+        std::ref(reduceCompleted_),
+        [this](int taskId) noexcept { return dpuCompleted_[taskId]; },
+        std::ref(reduceTimings_), "REDUCE");
   }
 
   if (eT == execType::DO) {
@@ -381,22 +407,29 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
     auto minStart = std::chrono::high_resolution_clock::now();
     auto maxEnd = std::chrono::high_resolution_clock::time_point::min();
 
-    for (const auto &timings : {cpuTimings_, dpuTimings_, mapTimings_, reduceTimings_}) {
-        for (const auto &pair : timings) {
-            for (const auto &timing : pair.second) {
-                if (timing.start < minStart) {
-                    minStart = timing.start;
-                }
-                if (timing.end > maxEnd) {
-                    maxEnd = timing.end;
-                }
-            }
+    for (const auto &timings :
+         {cpuTimings_, dpuTimings_, mapTimings_, reduceTimings_}) {
+      for (const auto &pair : timings) {
+        for (const auto &timing : pair.second) {
+          if (timing.start < minStart) {
+            minStart = timing.start;
+          }
+          if (timing.end > maxEnd) {
+            maxEnd = timing.end;
+          }
         }
+      }
     }
 
-    auto maxEndDuration = std::chrono::duration_cast<std::chrono::milliseconds>(maxEnd.time_since_epoch()).count();
-    auto minStartDuration = std::chrono::duration_cast<std::chrono::milliseconds>(minStart.time_since_epoch()).count();
-    double differenceInMilliseconds = static_cast<double>(maxEndDuration - minStartDuration);
+    auto maxEndDuration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                              maxEnd.time_since_epoch())
+                              .count();
+    auto minStartDuration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            minStart.time_since_epoch())
+            .count();
+    double differenceInMilliseconds =
+        static_cast<double>(maxEndDuration - minStartDuration);
 
     double timeMean = differenceInMilliseconds / 1000;
     auto energyMeans = std::get<vector<Stats>>(
@@ -407,7 +440,6 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
     return {energyMeanSum + totalDPUTime_Second * 280, timeMean,
             totalTransfer_mb};
   }
-
 }
 
 // ---------------------- Timing visualization ------------------------------

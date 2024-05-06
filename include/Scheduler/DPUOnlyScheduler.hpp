@@ -5,6 +5,7 @@
 namespace MetaPB {
 namespace Scheduler {
 using TaskGraph = Executor::TaskGraph;
+using OperatorManager = Operator::OperatorManager;
 
 class DPUOnlyScheduler {
 public:

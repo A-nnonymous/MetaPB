@@ -3,7 +3,7 @@
 namespace MetaPB {
 namespace Operator {
 inline void OperatorFILTER::execCPU(const size_t batchSize_MiB,
-                                     void **memPoolBffrPtrs) const noexcept {
+                                    void **memPoolBffrPtrs) const noexcept {
   size_t inputSize = batchSize_MiB * 1024 * 1024 / sizeof(float);
   size_t padding = (kernelSize - 1) / 2;
 
@@ -11,8 +11,8 @@ inline void OperatorFILTER::execCPU(const size_t batchSize_MiB,
   float *inputBuffer = static_cast<float *>(memPoolBffrPtrs[0]);
   float *outputBuffer = static_cast<float *>(memPoolBffrPtrs[1]);
 
-// Perform convolution
-omp_set_num_threads(64);
+  // Perform convolution
+  omp_set_num_threads(64);
 #pragma omp parallel for
   for (size_t i = 0; i < inputSize; ++i) {
     float sum = 0.0f;
@@ -24,12 +24,11 @@ omp_set_num_threads(64);
         sum += inputBuffer[inputIndex];
       }
     }
-    outputBuffer[i] = sum/kernelSize;
+    outputBuffer[i] = sum / kernelSize;
   }
 }
 
-inline void
-OperatorFILTER::execDPU(const size_t batchSize_MiB) const noexcept {
+inline void OperatorFILTER::execDPU(const size_t batchSize_MiB) const noexcept {
   auto DPU_BINARY = getDPUBinaryPath();
   DPU_ASSERT(dpu_load(allDPUs, DPU_BINARY.c_str(), NULL));
   uint32_t nr_of_dpus;

@@ -10,18 +10,18 @@ namespace MetaPB {
 namespace Operator {
 
 enum class OperatorTag {
-  AFFINE,         // Vectorized AFFINE
+  AFFINE,      // Vectorized AFFINE
   EUDIST,      // Vector Euclidean-distance(modified)
   CONV_1D,     // Convolution in 1 dimension
   LOOKUP,      // Table lookup
-  ELEW_PROD,    // Vector dot product
-  ELEW_ADD,     // Vector dot adding
+  ELEW_PROD,   // Vector dot product
+  ELEW_ADD,    // Vector dot adding
   LOGIC_START, // Logical Start Operator
   LOGIC_END,   // Logical End Operator
   MAP,         // Transfer Operator that maps data to DPU
   REDUCE,      // Transfer Operator that gather data from DPU
   MAC,         // Vector Multiply-Accumulate operator
-  FILTER,       // Windowed Average Operator
+  FILTER,      // Windowed Average Operator
   UNDEFINED    // Undefined Operator
 };
 
@@ -46,12 +46,8 @@ static const set<OperatorTag> computeBoundOPSet = {
     OperatorTag::CONV_1D,
 };
 static const set<OperatorTag> memoryBoundOPSet = {
-    OperatorTag::AFFINE,
-    OperatorTag::MAC,
-    OperatorTag::EUDIST,
-    OperatorTag::LOOKUP,
-    OperatorTag::ELEW_PROD,
-    OperatorTag::ELEW_ADD,
+    OperatorTag::AFFINE, OperatorTag::MAC,       OperatorTag::EUDIST,
+    OperatorTag::LOOKUP, OperatorTag::ELEW_PROD, OperatorTag::ELEW_ADD,
 };
 
 static const set<OperatorTag> xferOPSet = {OperatorTag::MAP,
@@ -65,10 +61,11 @@ static const set<set<OperatorTag>> allPerfRelOPSet = {
     computeBoundOPSet, memoryBoundOPSet, xferOPSet};
 
 static const set<OperatorTag> allOPSet = {
-    OperatorTag::AFFINE,         OperatorTag::EUDIST,    OperatorTag::CONV_1D,
-    OperatorTag::LOOKUP,      OperatorTag::ELEW_PROD,  OperatorTag::ELEW_ADD,
+    OperatorTag::AFFINE,      OperatorTag::EUDIST,    OperatorTag::CONV_1D,
+    OperatorTag::LOOKUP,      OperatorTag::ELEW_PROD, OperatorTag::ELEW_ADD,
     OperatorTag::LOGIC_START, OperatorTag::LOGIC_END, OperatorTag::MAP,
-    OperatorTag::REDUCE,      OperatorTag::MAC, OperatorTag::FILTER, OperatorTag::UNDEFINED};
+    OperatorTag::REDUCE,      OperatorTag::MAC,       OperatorTag::FILTER,
+    OperatorTag::UNDEFINED};
 
 enum class OperatorType {
   ComputeBound,

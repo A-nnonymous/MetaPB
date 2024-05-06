@@ -17,10 +17,11 @@ MetaScheduler::evalSchedules(const vector<vector<float>> &ratioVecs) {
     proposedSchedule[i].order = this->HEFTorder;
     proposedSchedule[i].isAlwaysWrittingBack = false;
     for (size_t j = 0; j < ratioVecs[i].size(); j++) {
-      //proposedSchedule[i].offloadRatio[j] = ratioVecs[i][j] / 200.0f + 0.5f;
+      // proposedSchedule[i].offloadRatio[j] = ratioVecs[i][j] / 200.0f + 0.5f;
       proposedSchedule[i].offloadRatio[j] = 1.0f - ratioVecs[i][j] / 200.0f;
     }
-    proposedSchedule[i].offloadRatio[ratioVecs[i].size() - 1] = 0.0f; // LOGIC_END
+    proposedSchedule[i].offloadRatio[ratioVecs[i].size() - 1] =
+        0.0f; // LOGIC_END
   }
   for (int i = 0; i < agentNum; i++) {
     pools.emplace_back(std::move(
@@ -47,11 +48,11 @@ Schedule MetaScheduler::schedule() noexcept {
   const double omega = 0.8;
   const double vMax = 2 * (200.0 / (OptIterMax * dt));
 
-  //const std::vector<float> lowerLimit(nTask, -100.0f);
+  // const std::vector<float> lowerLimit(nTask, -100.0f);
   const std::vector<float> lowerLimit(nTask, 0.0f);
   const std::vector<float> upperLimit(nTask, 200.0f);
   const size_t dimNum = nTask;
-  const int pointNum = 32;
+  const int pointNum = 64;
   const int iterNum = OptIterMax;
 
   std::vector<std::unique_ptr<OptimizerBase>> oVec;
@@ -79,16 +80,14 @@ Schedule MetaScheduler::schedule() noexcept {
   {
 #pragma omp single
     {
-      for(int i = 0; i < oVec.size(); i++){
+      for (int i = 0; i < oVec.size(); i++) {
 #pragma omp task untied
-        { 
-          oVec[i]->exec(); 
-        }
+        { oVec[i]->exec(); }
       }
     }
   }
   int bestOptimizerIdx = -1; // init illegal value
-  for(int i = 0; i < oVec.size();i++){
+  for (int i = 0; i < oVec.size(); i++) {
     std::cout << "score " << i << "=" << oVec[i]->getGlobalOptimaValue()
               << "\n";
     if (oVec[i]->getGlobalOptimaValue() < bestVal) {
@@ -129,11 +128,12 @@ Schedule MetaScheduler::schedule() noexcept {
   std::cout << "META Schedule result: \n";
   std::vector<float> actualRatio(nTask, 0.0f);
   for (int i = 0; i < nTask; i++) {
-    //actualRatio[i] = ratio[i] / 200.0f + 0.5f;
+    // actualRatio[i] = ratio[i] / 200.0f + 0.5f;
     actualRatio[i] = 1.0f - ratio[i] / 200.0f;
     actualRatio[i] = std::round(actualRatio[i] / 0.01) * 0.01;
-    if(i == nTask - 1)actualRatio[i] = 0.0f; //logic_end
-    std::cout << actualRatio[i]<< ",";
+    if (i == nTask - 1)
+      actualRatio[i] = 0.0f; // logic_end
+    std::cout << actualRatio[i] << ",";
   }
   std::cout << std::endl;
   return {false, this->HEFTorder, actualRatio};

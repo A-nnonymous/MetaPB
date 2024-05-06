@@ -13,6 +13,7 @@
 #define roundup(n, m) ((n / m) * m + m)
 
 #include "DPU_GLOBAL.hpp"
+#include "omp.h"
 #include "utils/CSVWriter.hpp"
 #include "utils/ChronoTrigger.hpp"
 #include "utils/Learner.hpp"
@@ -25,7 +26,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "omp.h"
 
 namespace MetaPB {
 namespace Operator {
@@ -51,20 +51,18 @@ public:
   perfStats deducePerf(const double offloadRatio,
                        const size_t batchSize_MiB) noexcept;
 
-  inline perfStats deducePerfCPU(const size_t batchSize_MiB) const noexcept{
-    size_t step_MiB =
-        (this->deduceSizeUpperBound_MiB- BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
+  inline perfStats deducePerfCPU(const size_t batchSize_MiB) const noexcept {
+    size_t step_MiB = (this->deduceSizeUpperBound_MiB - BATCH_LOWERBOUND_MB) /
+                      PERF_SAMPLE_POINT;
 
-    if (batchSize_MiB<= BATCH_LOWERBOUND_MB)[[unlikely]]{
-        return CPUPerfSamples[0];
+    if (batchSize_MiB <= BATCH_LOWERBOUND_MB) [[unlikely]] {
+      return CPUPerfSamples[0];
     }
-    if (batchSize_MiB>= this->deduceSizeUpperBound_MiB)[[unlikely]]{
-        return CPUPerfSamples[PERF_SAMPLE_POINT];
+    if (batchSize_MiB >= this->deduceSizeUpperBound_MiB) [[unlikely]] {
+      return CPUPerfSamples[PERF_SAMPLE_POINT];
     }
 
-    size_t index = (batchSize_MiB- BATCH_LOWERBOUND_MB) / step_MiB;
-
-              
+    size_t index = (batchSize_MiB - BATCH_LOWERBOUND_MB) / step_MiB;
 
     size_t x0 = BATCH_LOWERBOUND_MB + index * step_MiB;
     size_t x1 = x0 + step_MiB;
@@ -72,22 +70,22 @@ public:
     perfStats y0 = CPUPerfSamples[index];
     perfStats y1 = CPUPerfSamples[index + 1];
 
-    perfStats y = y0 + (y1 - y0) * (batchSize_MiB- x0)   / (x1 - x0);
+    perfStats y = y0 + (y1 - y0) * (batchSize_MiB - x0) / (x1 - x0);
 
     return y;
   }
 
-  inline perfStats deducePerfDPU(const size_t batchSize_MiB) const noexcept{
-    size_t step_MiB =
-        (this->deduceSizeUpperBound_MiB- BATCH_LOWERBOUND_MB) / PERF_SAMPLE_POINT;
-    if (batchSize_MiB<= BATCH_LOWERBOUND_MB)[[unlikely]]{
-        return DPUPerfSamples[0];
+  inline perfStats deducePerfDPU(const size_t batchSize_MiB) const noexcept {
+    size_t step_MiB = (this->deduceSizeUpperBound_MiB - BATCH_LOWERBOUND_MB) /
+                      PERF_SAMPLE_POINT;
+    if (batchSize_MiB <= BATCH_LOWERBOUND_MB) [[unlikely]] {
+      return DPUPerfSamples[0];
     }
-    if (batchSize_MiB>= this->deduceSizeUpperBound_MiB)[[unlikely]]{
-        return DPUPerfSamples[PERF_SAMPLE_POINT];
+    if (batchSize_MiB >= this->deduceSizeUpperBound_MiB) [[unlikely]] {
+      return DPUPerfSamples[PERF_SAMPLE_POINT];
     }
 
-    size_t index = (batchSize_MiB- BATCH_LOWERBOUND_MB) / step_MiB;
+    size_t index = (batchSize_MiB - BATCH_LOWERBOUND_MB) / step_MiB;
 
     size_t x0 = BATCH_LOWERBOUND_MB + index * step_MiB;
     size_t x1 = x0 + step_MiB;
@@ -95,7 +93,7 @@ public:
     perfStats y0 = DPUPerfSamples[index];
     perfStats y1 = DPUPerfSamples[index + 1];
 
-    perfStats y = y0 +(y1 - y0) *  (batchSize_MiB- x0)/ (x1 - x0);
+    perfStats y = y0 + (y1 - y0) * (batchSize_MiB - x0) / (x1 - x0);
 
     return y;
   }
@@ -114,9 +112,9 @@ public:
   perfStats execDPUwithProbe(const size_t batchSize_MiB) noexcept;
 
 private:
-
-  void savePerfSamples(const perfStats[], const std::string& path)const noexcept;
-  void loadPerfSamples(perfStats[], const std::string& path)const noexcept;
+  void savePerfSamples(const perfStats[],
+                       const std::string &path) const noexcept;
+  void loadPerfSamples(perfStats[], const std::string &path) const noexcept;
   void cacheModel(const size_t batchSize_MiB) const noexcept;
   bool loadModelCacheIfExist(const size_t batchSize_MiB) noexcept;
 

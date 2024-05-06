@@ -5,7 +5,6 @@ int main() {
   BenchmarkManager bm;
   // ------------ Hybridize OP benchmarks --------------
 
-
   /*
   bm.addBenchmark<DetailShowOff>({"string_workload"},
                                  {
@@ -31,11 +30,8 @@ int main() {
     }
   );
                                   */
-  bm.addBenchmark<Graph_benchmark>(
-      {"All_Graphloads"},
-      {
-        {"loadSize_MiB", "4096"}
-      });
+  bm.addBenchmark<Graph_benchmark>({"All_Graphloads"},
+                                   {{"loadSize_MiB", "4096"}});
   /*
   bm.addBenchmark<DetailShowOff>({"string_workload"},
                                  {
@@ -43,7 +39,7 @@ int main() {
                                      {"opNum", "6"},
                                  });
                                  */
-  
+
   bm.exec();
   return 0;
 }

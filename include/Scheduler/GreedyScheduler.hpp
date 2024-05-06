@@ -1,10 +1,12 @@
 #ifndef GREEDY_SCHED_HPP
 #define GREEDY_SCHED_HPP
 #include "Executor/TaskGraph.hpp"
+#include "Operator/OperatorRegistry.hpp"
 
 namespace MetaPB {
 namespace Scheduler {
 using TaskGraph = Executor::TaskGraph;
+using OperatorType = Operator::OperatorType;
 
 class GreedyScheduler {
 public:
@@ -13,14 +15,11 @@ public:
     s.order = gIn.topoSort();
     s.offloadRatio = std::vector<float>(s.order.size(), 0.0f);
     for (int i = 0; i < s.order.size(); i++) {
-      if (om.deducePerfCPU(gIn.g[i].op, gIn.g[i].inputSize_MiB)
-              .timeCost_Second >
-          om.deducePerfDPU(gIn.g[i].op, gIn.g[i].inputSize_MiB)
-              .timeCost_Second) {
+      if (gIn.g[i].opType == OperatorType::ComputeBound) {
         s.offloadRatio[i] = 1.0f;
       }
-      if(i = s.order.size() - 1){
-        s.offloadRatio[i] = 0.0f // LOGIC_END
+      if (i = s.order.size() - 1) {
+        s.offloadRatio[i] = 0.0f; // LOGIC_END
       }
     }
     s.isAlwaysWrittingBack = true;

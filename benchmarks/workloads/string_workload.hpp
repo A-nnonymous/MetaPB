@@ -12,11 +12,12 @@ using MetaPB::Operator::OperatorType;
 
 TaskGraph genInterleavedWorkload(const size_t batchSize_MiB, int opNum) {
   TaskProperties start = {OperatorTag::LOGIC_START, OperatorType::Logical,
-                        batchSize_MiB, "yellow", "START"};
+                          batchSize_MiB, "yellow", "START"};
   TaskProperties memBound = {OperatorTag::ELEW_PROD, OperatorType::MemoryBound,
                              batchSize_MiB, "blue", "ELEW_PROD"};
-  TaskProperties computeBound = {OperatorTag::CONV_1D, OperatorType::ComputeBound,
-                                 batchSize_MiB, "red", "CONV_1D"};
+  TaskProperties computeBound = {OperatorTag::CONV_1D,
+                                 OperatorType::ComputeBound, batchSize_MiB,
+                                 "red", "CONV_1D"};
   TaskProperties end = {OperatorTag::LOGIC_END, OperatorType::Logical,
                         batchSize_MiB, "black", "END"};
   TransferProperties logicConnect = {1.0f, true};

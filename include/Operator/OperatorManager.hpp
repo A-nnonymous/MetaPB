@@ -1,20 +1,20 @@
 #ifndef OP_MNGR
 #define OP_MNGR
 #include "Executor/TaskGraph.hpp"
+#include "Operator/OperatorAFFINE.hpp"
 #include "Operator/OperatorBase.hpp"
 #include "Operator/OperatorCONV_1D.hpp"
 #include "Operator/OperatorELEW_ADD.hpp"
 #include "Operator/OperatorELEW_PROD.hpp"
 #include "Operator/OperatorEUDIST.hpp"
+#include "Operator/OperatorFILTER.hpp"
 #include "Operator/OperatorLOGIC_END.hpp"
 #include "Operator/OperatorLOGIC_START.hpp"
 #include "Operator/OperatorLOOKUP.hpp"
-#include "Operator/OperatorAFFINE.hpp"
+#include "Operator/OperatorMAC.hpp"
 #include "Operator/OperatorMAP.hpp"
 #include "Operator/OperatorREDUCE.hpp"
 #include "Operator/OperatorRegistry.hpp"
-#include "Operator/OperatorFILTER.hpp"
-#include "Operator/OperatorMAC.hpp"
 #include "Operator/OperatorUNDEFINED.hpp"
 #include "utils/Stats.hpp"
 #include <cstdlib>
@@ -83,7 +83,6 @@ struct OperatorManager {
     free(src1);
   }
 
-
   inline void execCPU(OperatorTag opTag, const size_t batchSize_MiB,
                       void **memPoolBffrPtrs) const noexcept {
     opMap.at(opTag)->execCPU(batchSize_MiB, memPoolBffrPtrs);
@@ -93,12 +92,14 @@ struct OperatorManager {
     opMap.at(opTag)->execDPU(batchSize_MiB);
   }
 
-  inline perfStats execCPUwithProbe(OperatorTag opTag, const size_t batchSize_MiB, void **memPoolBffrPtrs) const noexcept {
-    return {opMap.at(opTag)->execCPUwithProbe(batchSize_MiB,memPoolBffrPtrs)};
+  inline perfStats execCPUwithProbe(OperatorTag opTag,
+                                    const size_t batchSize_MiB,
+                                    void **memPoolBffrPtrs) const noexcept {
+    return {opMap.at(opTag)->execCPUwithProbe(batchSize_MiB, memPoolBffrPtrs)};
   }
 
   inline perfStats execDPUwithProbe(OperatorTag opTag,
-                      const size_t batchSize_MiB) const noexcept {
+                                    const size_t batchSize_MiB) const noexcept {
     return {opMap.at(opTag)->execDPUwithProbe(batchSize_MiB)};
   }
 
@@ -113,7 +114,6 @@ struct OperatorManager {
   perfStats deducePerfDPU(OperatorTag opTag, size_t batchSize_MiB) const {
     return opMap.at(opTag)->deducePerfDPU(batchSize_MiB);
   }
-
 
   std::unique_ptr<OperatorBase> getOperator(OperatorTag tag) {
     switch (tag) {
