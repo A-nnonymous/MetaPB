@@ -41,9 +41,9 @@ typedef struct TaskTiming {
 
 // Task struct to store task ID and execution function
 typedef struct {
+  bool isDPURelated = false;
   int id;
   std::function<void()> execute;
-  bool isDPURelated;
   std::string opType;
 } Task;
 
@@ -61,19 +61,8 @@ typedef struct {
 class HeteroComputePool {
 public:
   // Constructor initializes the pool with the expected maximum task ID.
-  HeteroComputePool(size_t maxTaskId, const OperatorManager &om,
+  HeteroComputePool(const OperatorManager &om,
                     void **memPoolPtr) noexcept
-      /*
-        : cpuCompleted_(maxTaskId + 1, {false,0.0f}),
-          dpuCompleted_(maxTaskId + 1, {false,0.0f}),
-          mapCompleted_(maxTaskId + 1, {false,0.0f}),
-          reduceCompleted_(maxTaskId + 1, {false,0.0f}),
-          cpuLastWakerTime_ms(maxTaskId + 1 , 0.0f),
-          dpuLastWakerTime_ms(maxTaskId + 1 , 0.0f),
-          mapLastWakerTime_ms(maxTaskId + 1 , 0.0f),
-          reduceLastWakerTime_ms(maxTaskId + 1 , 0.0f),
-          dependencies_(maxTaskId + 1),
-          */
       : om(om), memPoolPtr(memPoolPtr) {}
 
   HeteroComputePool(HeteroComputePool &&other) noexcept
@@ -94,6 +83,7 @@ public:
         reduceTimings_(std::move(other.reduceTimings_)),
         totalEnergyCost_joule(std::exchange(other.totalEnergyCost_joule, 0.0)),
         totalTransfer_mb(std::exchange(other.totalTransfer_mb, 0.0)) {}
+
 
   void parseGraph(const TaskGraph &g, const Schedule &sched,
                   execType eT) noexcept;
@@ -116,7 +106,8 @@ private:
   // Check if all dependencies for a task are met
   bool allDependenciesMet(const std::vector<completeSgn> &completedVector,
                           const std::vector<int> &deps,
-                          double &lastWakerTime_ms) const noexcept;
+                          double &lastWakerTime_ms,
+                          std::string my,std::string other) const noexcept;
 
   // Generic worker function for processing tasks from a queue
   void processTasks(
@@ -138,28 +129,30 @@ private:
   int memPoolNum = 3;
   double totalDPUTime_Second = 0.0f;
   const OperatorManager &om;
-  ChronoTrigger ct;
   std::mutex mutex_;
-  std::condition_variable cv_;
   std::mutex dpuMutex_;
+  std::condition_variable cv_;
   std::vector<std::vector<int>> dependencies_;
 
   std::vector<completeSgn> cpuCompleted_, dpuCompleted_, mapCompleted_,
       reduceCompleted_;
+      
+  std::vector<double> cpuLastWakerTime_ms, dpuLastWakerTime_ms,
+      mapLastWakerTime_ms, reduceLastWakerTime_ms;
+
 
   std::queue<Task> cpuQueue_, dpuQueue_, mapQueue_, reduceQueue_;
 
   std::unordered_map<int, std::vector<TaskTiming>> cpuTimings_, dpuTimings_,
       mapTimings_, reduceTimings_;
   // ---------- MIMIC mode statistics -------------
-  std::vector<double> cpuLastWakerTime_ms, dpuLastWakerTime_ms,
-      mapLastWakerTime_ms, reduceLastWakerTime_ms;
 
   double cpuMIMICTime_ms = 0.0f;
   double dpuMIMICTime_ms = 0.0f;
 
   double totalEnergyCost_joule = 0.0f;
   double totalTransfer_mb = 0.0f;
+  ChronoTrigger ct;
 };
 
 } // namespace Executor

@@ -5,10 +5,11 @@ namespace Executor {
 
 bool HeteroComputePool::allDependenciesMet(
     const std::vector<completeSgn> &completedVector,
-    const std::vector<int> &deps, double &lastWakerTime_ms) const noexcept {
+    const std::vector<int> &deps, double &lastWakerTime_ms,
+    std::string my ,std::string other) const noexcept {
 
-  for (int dep : deps) {
-    if (!completedVector[dep].isCompleted) {
+  for (const int dep : deps) {
+    if (completedVector[dep].isCompleted==false) {
       return false;
     } else {
       lastWakerTime_ms =
@@ -30,19 +31,24 @@ void HeteroComputePool::processTasks(
     // Wait for dependencies to be met
     {
       std::unique_lock<std::mutex> lock(mutex_);
-      cv_.wait(lock, [&] { return dependencyCheck(task.id); });
+      cv_.wait(lock, [&] {
+        return dependencyCheck(task.id);
+      });
     }
 
     // exclusivity
-    std::unique_lock<std::mutex> dpuLock(dpuMutex_, std::defer_lock);
-    if (task.isDPURelated) {
-      dpuLock.lock();
+    std::unique_lock<std::mutex> dpuLock(
+        task.isDPURelated ? dpuMutex_ : mutex_,
+        std::defer_lock);
+    if (task.isDPURelated){
+      dpuMutex_.lock();
     }
 
     // Record the start time
     auto start = std::chrono::high_resolution_clock::now();
 
     task.execute();
+    //std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     // Record the end time
     auto end = std::chrono::high_resolution_clock::now();
@@ -53,12 +59,11 @@ void HeteroComputePool::processTasks(
       completedVector[task.id].isCompleted = true;
       timings[task.id].push_back({start, end, task.opType});
     }
-
     cv_.notify_all();
 
     // Release the mapReduceMutex for map and reduce tasks
-    if (task.isDPURelated) {
-      dpuLock.unlock();
+    if (task.isDPURelated){
+      dpuMutex_.unlock();
     }
   }
 }
@@ -72,7 +77,7 @@ HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag,
   size_t dpuInputSize_MiB = size_t(inputSize_MiB * offloadRatio);
   std::string opTypeStr = opType2Name.at(opType);
 
-  /*
+/*
   ////////// DEBUG /////////////
   std::cout << "CPU Task "<< taskId << " ("<< tag2Name.at(opTag)<< "): "<<
   cpuInputSize_MiB << "MiB.\n"; std::cout << "DPU Task "<< taskId << " ("<<
@@ -81,22 +86,24 @@ HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag,
   */
 
   if (eT == execType::DO) {
-    cpuTask = {taskId,
+    cpuTask = {false,
+               taskId,
                [this, opTag, cpuInputSize_MiB]() {
                  if (cpuInputSize_MiB)
                    om.execCPU(opTag, cpuInputSize_MiB, this->memPoolPtr);
                },
-               "CPU", opTypeStr};
+               opTypeStr};
 
-    dpuTask = {taskId,
+    dpuTask = {true, taskId,
                [this, opTag, dpuInputSize_MiB]() {
                  if (dpuInputSize_MiB)
                    om.execDPU(opTag, dpuInputSize_MiB);
                },
-               "DPU", opTypeStr};
+               opTypeStr};
 
   } else { // MIMIC logic
-    cpuTask = {taskId,
+    cpuTask = {false,
+               taskId,
                [this, taskId, opTag, cpuInputSize_MiB]() {
                  const auto perf =
                      cpuInputSize_MiB
@@ -113,11 +120,12 @@ HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag,
                  }
                  // ------------- critical zone --------------
                },
-               "CPU", opTypeStr};
+               opTypeStr};
 
-    dpuTask = {taskId,
+    dpuTask = {true,
+               taskId,
                [this, taskId, opTag, dpuInputSize_MiB]() {
-                 const auto perf =
+                 const auto perf = 
                      dpuInputSize_MiB
                          ? om.deducePerfDPU(opTag, dpuInputSize_MiB)
                          : perfStats{};
@@ -132,7 +140,7 @@ HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag,
                  }
                  // ------------- critical zone --------------
                },
-               "DPU", opTypeStr};
+               opTypeStr};
   }
 
   return {cpuTask, dpuTask};
@@ -145,15 +153,15 @@ std::pair<Task, Task> HeteroComputePool::genXferTask(int taskId,
                                                      execType eT) noexcept {
   Task mapTask, reduceTask;
 
-  /*
+/*
   ////////// DEBUG /////////////
   std::cout << "MAP Task "<< taskId << ": " << mapWork_MiB << " MiB.\n";
   std::cout << "REDUCE Task "<< taskId << ": "<< reduceWork_MiB << "MiB.\n";
   ////////// DEBUG /////////////
   */
 
-  mapTask = {taskId, []() {}, "MAP", "MAP"};
-  reduceTask = {taskId, []() {}, "REDUCE", "REDUCE"};
+  mapTask = {true,taskId, []() {}, "MAP"};
+  reduceTask = {true,taskId, []() {},  "REDUCE"};
 
   // If this node is LOGIC_END, no xfer to next(because no succNodes)
   if (opTag != OperatorTag::LOGIC_END && opTag != OperatorTag::LOGIC_START) {
@@ -183,7 +191,8 @@ std::pair<Task, Task> HeteroComputePool::genXferTask(int taskId,
       };
 
       mapTask.execute = [this, taskId, mapWork_MiB]() {
-        const auto perf = (mapWork_MiB == 0)
+        const auto perf = 
+          (mapWork_MiB == 0)
                               ? perfStats{}
                               : om.deducePerfCPU(OperatorTag::MAP, mapWork_MiB);
         // ------------- critical zone --------------
@@ -209,28 +218,35 @@ std::pair<Task, Task> HeteroComputePool::genXferTask(int taskId,
 void HeteroComputePool::parseGraph(const TaskGraph &g, const Schedule &sched,
                                    execType eT) noexcept {
   int taskNum = sched.order.size();
-  cpuCompleted_.resize(taskNum);
-  dpuCompleted_.resize(taskNum);
-  mapCompleted_.resize(taskNum);
-  reduceCompleted_.resize(taskNum);
-  cpuLastWakerTime_ms.resize(taskNum);
-  dpuLastWakerTime_ms.resize(taskNum);
-  mapLastWakerTime_ms.resize(taskNum);
-  reduceLastWakerTime_ms.resize(taskNum);
-  dependencies_.resize(taskNum, {});
-  totalEnergyCost_joule = 0.0f;
-  totalTransfer_mb = 0.0f;
-  ct.clear();
+  dependencies_ = std::vector<std::vector<int>>(taskNum, std::vector<int>());
+  cpuCompleted_ = std::vector<completeSgn>(taskNum, {false,0.0f});
+  dpuCompleted_= std::vector<completeSgn>(taskNum, {false,0.0f});
+  mapCompleted_= std::vector<completeSgn>(taskNum, {false,0.0f});
+  reduceCompleted_= std::vector<completeSgn>(taskNum, {false,0.0f});
+  cpuQueue_ = std::queue<Task>();
+  dpuQueue_ = std::queue<Task>();
+  mapQueue_= std::queue<Task>();
+  reduceQueue_= std::queue<Task>();
   cpuTimings_.clear();
   dpuTimings_.clear();
   mapTimings_.clear();
   reduceTimings_.clear();
+  cpuLastWakerTime_ms = std::vector<double>(taskNum, 0.0f);
+  dpuLastWakerTime_ms= std::vector<double>(taskNum, 0.0f);
+  mapLastWakerTime_ms= std::vector<double>(taskNum, 0.0f);
+  reduceLastWakerTime_ms= std::vector<double>(taskNum, 0.0f);
+  cpuMIMICTime_ms = 0.0f;
+  dpuMIMICTime_ms = 0.0f;
+  totalEnergyCost_joule = 0.0f;
+  totalTransfer_mb = 0.0f;
+  ct.clear();
+
   // Order Must Ensure first node is LOGIC_START
   // This node is completed without prerequisities.
-  cpuCompleted_[0] = {true, 0};
-  dpuCompleted_[0] = {true, 0};
-  mapCompleted_[0] = {true, 0};
-  reduceCompleted_[0] = {true, 0};
+  //cpuCompleted_[0] = {true, 0.0f};
+  //dpuCompleted_[0] = {true, 0.0f};
+  //mapCompleted_[0] = {true, 0.0f};
+  //reduceCompleted_[0] = {true, 0.0f};
 
   for (size_t i = 0; i < taskNum; ++i) {
     int taskId = sched.order[i];
@@ -301,43 +317,50 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
   }
   // -------------------- Entering unsafe multithread zone ------------------
   // Thread workers definition
-  {
-    std::jthread cpuThread(
-        &HeteroComputePool::processTasks, this, std::ref(cpuQueue_),
-        std::ref(cpuCompleted_),
-        [this](int taskId) noexcept {
-          return allDependenciesMet(reduceCompleted_, dependencies_[taskId],
-                                    cpuLastWakerTime_ms[taskId]);
-        },
-        std::ref(cpuTimings_));
+  std::thread dpuThread(
+      &HeteroComputePool::processTasks, this, std::ref(dpuQueue_),
+      std::ref(dpuCompleted_),
+      [this](int taskId) noexcept {
+        return allDependenciesMet(mapCompleted_, dependencies_[taskId],
+                                  dpuLastWakerTime_ms[taskId],
+                                  "DPU","MAP");
+      },
+      std::ref(dpuTimings_));
+  std::thread reduceThread(
+      &HeteroComputePool::processTasks, this, std::ref(reduceQueue_),
+      std::ref(reduceCompleted_),
+      [this](int taskId) noexcept {
+        return allDependenciesMet(dpuCompleted_, {taskId},
+                                  reduceLastWakerTime_ms[taskId],
+                                  "REDUCE","DPU");
+      },
+      std::ref(reduceTimings_));
+  std::thread cpuThread(
+      &HeteroComputePool::processTasks, this, std::ref(cpuQueue_),
+      std::ref(cpuCompleted_),
+      [this](int taskId) noexcept {
+        return allDependenciesMet(reduceCompleted_, dependencies_[taskId],
+                                  cpuLastWakerTime_ms[taskId],
+                                  "CPU", "Reduce");
+      },
+      std::ref(cpuTimings_));
 
-    std::jthread dpuThread(
-        &HeteroComputePool::processTasks, this, std::ref(dpuQueue_),
-        std::ref(dpuCompleted_),
-        [this](int taskId) noexcept {
-          return allDependenciesMet(mapCompleted_, dependencies_[taskId],
-                                    dpuLastWakerTime_ms[taskId]);
-        },
-        std::ref(dpuTimings_));
 
-    std::jthread mapThread(
-        &HeteroComputePool::processTasks, this, std::ref(mapQueue_),
-        std::ref(mapCompleted_),
-        [this](int taskId) noexcept {
-          return allDependenciesMet(cpuCompleted_, {taskId},
-                                    mapLastWakerTime_ms[taskId]);
-        },
-        std::ref(mapTimings_));
+  std::thread mapThread(
+      &HeteroComputePool::processTasks, this, std::ref(mapQueue_),
+      std::ref(mapCompleted_),
+      [this](int taskId) noexcept {
+        return allDependenciesMet(cpuCompleted_, {taskId},
+                                  mapLastWakerTime_ms[taskId],
+                                  "MAP","CPU");
+      },
+      std::ref(mapTimings_));
 
-    std::jthread reduceThread(
-        &HeteroComputePool::processTasks, this, std::ref(reduceQueue_),
-        std::ref(reduceCompleted_),
-        [this](int taskId) noexcept {
-          return allDependenciesMet(dpuCompleted_, {taskId},
-                                    reduceLastWakerTime_ms[taskId]);
-        },
-        std::ref(reduceTimings_));
-  }
+
+  cpuThread.join();
+  dpuThread.join();
+  mapThread.join();
+  reduceThread.join();
 
   //---------------  result gathering ----------------
   if (eT == execType::DO) {

@@ -7,6 +7,8 @@ namespace MetaPB {
 namespace Scheduler {
 using TaskGraph = Executor::TaskGraph;
 using OperatorType = Operator::OperatorType;
+using Operator::tag2Name;
+using Operator::opType2Name;
 
 class GreedyScheduler {
 public:
@@ -14,14 +16,14 @@ public:
     Schedule s;
     s.order = gIn.topoSort();
     s.offloadRatio = std::vector<float>(s.order.size(), 0.0f);
-    for (int i = 0; i < s.order.size(); i++) {
-      if (gIn.g[i].opType == OperatorType::ComputeBound) {
+    for (int i = 0; i < s.offloadRatio.size(); i++) {
+      if (gIn.g[i].opType != OperatorType::ComputeBound) {
         s.offloadRatio[i] = 1.0f;
       }
-      if (i = s.order.size() - 1) {
-        s.offloadRatio[i] = 0.0f; // LOGIC_END
-      }
+
     }
+    s.offloadRatio[s.offloadRatio.size()-1] = 0.0f; // LOGIC_END
+
     s.isAlwaysWrittingBack = true;
     return s;
   }

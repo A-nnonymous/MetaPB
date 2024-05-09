@@ -19,6 +19,7 @@ def plot_performance_energy(data_file_w, data_file_wo, output_path):
     #fig, axs = plt.subplots(2, 3, figsize=(3  , 2))
     fig, axs = plt.subplots(2, 4, figsize=(20  , 10))
     axs = axs.flatten()
+    #fig, axs = plt.subplots(1,1, figsize=(10  , 10))
     # 如果只有一个运算符，将axs转换为列表
     if len(operators) == 1:
         axs = [axs]

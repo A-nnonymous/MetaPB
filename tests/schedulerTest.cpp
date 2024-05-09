@@ -173,36 +173,43 @@ int main() {
   memPoolPtr[1] = memPoolPtr[0] + 1 * size_t(1<<30);
   memPoolPtr[2] = memPoolPtr[1] + 1 * size_t(1<<30);
 
-  auto g = genGEA(8, 4096);
+  //auto g = genGEA(8, 4096);
   //auto g = genFFT(8,4096);
-  //auto g = genString(4096,3);
+  auto g = genString(4096,2);
   g.printGraph("./");
 
   regressionTask rt = g.genRegressionTask();
   OperatorManager om;
   om.trainModel(rt);
-  //MetaPB::Scheduler::HEFTScheduler he(g, om);
+  MetaPB::Scheduler::HEFTScheduler he(g, om);
   MetaPB::Scheduler::MetaScheduler ms(0.5, 0.5, 50, g, om);
-  HeteroComputePool hcp(boost::num_vertices(g.g),om, memPoolPtr);
+  HeteroComputePool hcp(om, memPoolPtr);
 
-  std::cout <<"MetaScheduler Scheduling\n";
-  Schedule comparison = ms.schedule();
   
-  /*
   Schedule scheduleResult = he.schedule();
+  scheduleResult.offloadRatio[2] = 0.0f;
   std::cout << "HEFT Schedule result: \n";
   for(int i = 0; i < scheduleResult.order.size(); i ++){
     std::cout << "task " << scheduleResult.order[i] << " -- " << scheduleResult.offloadRatio[i] << "\n";
   }
+  perfStats heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
+  heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
+  heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
+  heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
+  heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
+  heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
+  std::cout << "HEFT scheduler, deduced time consume: "<<heftDeduce.timeCost_Second <<"second, deduced energy consume: "<<   heftDeduce.energyCost_Joule    <<  " joule\n";
 
 
-
+  /*
   perfStats heftStat, metaPBStat, cpuonlyStat, dpuonlyStat;
   for(int i = 0; i < 3; i++){
     heftStat = hcp.execWorkload(g, scheduleResult, execType::DO);
     hcp.outputTimingsToCSV("./HEFT.csv");
   }
   std::cout << "HEFT scheduler, time consume: "<< heftStat.timeCost_Second<<"second, energy consume: "<<       heftStat.energyCost_Joule<< " joule\n";
+  std::cout <<"MetaScheduler Scheduling\n";
+  Schedule comparison = ms.schedule();
   for(int i = 0; i < 3; i++){
     metaPBStat = hcp.execWorkload(g, comparison, execType::DO);
     hcp.outputTimingsToCSV("./META.csv");

@@ -11,21 +11,48 @@ using MetaPB::Operator::OperatorType;
 
 TaskGraph genSingleOp_w_reduce(const OperatorTag &opTag,
                                const size_t batchSize_MiB) {
+  TaskProperties start = {OperatorTag::LOGIC_START, OperatorType::Logical,
+                          batchSize_MiB, "yellow", "START"};
   TaskProperties op = {opTag, OperatorType::Undefined, batchSize_MiB, "", "OP"};
   TaskProperties end = {OperatorTag::LOGIC_END, OperatorType::Logical,
                         batchSize_MiB, "black", "END"};
+
   TransferProperties logicConnect = {1.0f, true};
+
   Graph g;
+  auto startNode = boost::add_vertex(start,g);
   auto opNode = boost::add_vertex(op, g);
   auto endNode = boost::add_vertex(end, g);
+
+  boost::add_edge(startNode, opNode, logicConnect, g);
   boost::add_edge(opNode, endNode, logicConnect, g);
+
   return {g, "SINGLE_w_reduce"};
 }
 TaskGraph genSingleOp_wo_reduce(const OperatorTag &opTag,
                                 const size_t batchSize_MiB) {
+  /*
   TaskProperties op = {opTag, OperatorType::Undefined, batchSize_MiB, "", ""};
   Graph g;
   auto opNode = boost::add_vertex(op, g);
+  return {g, "SINGLE_wo_reduce"};
+  */
+  TaskProperties start = {OperatorTag::LOGIC_START, OperatorType::Logical,
+                          batchSize_MiB, "yellow", "START"};
+  TaskProperties op = {opTag, OperatorType::Undefined, batchSize_MiB, "", "OP"};
+  TaskProperties end = {OperatorTag::LOGIC_END, OperatorType::Logical,
+                        batchSize_MiB, "black", "END"};
+
+  TransferProperties logicConnect = {1.0f, true};
+
+  Graph g;
+  auto startNode = boost::add_vertex(start,g);
+  auto opNode = boost::add_vertex(op, g);
+  auto endNode = boost::add_vertex(end, g);
+
+  boost::add_edge(startNode, opNode, logicConnect, g);
+  boost::add_edge(opNode, endNode, logicConnect, g);
+
   return {g, "SINGLE_wo_reduce"};
 }
 

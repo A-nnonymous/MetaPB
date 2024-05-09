@@ -41,6 +41,15 @@ OptimizerBase<aType, vType>::OptimizerBase(
     }
     firstFrm.emplace_back(std::move(point));
   }
+  for (size_t agtIdx = 0; agtIdx <= 10; ++agtIdx) {
+    pt_t point(dimNum, (aType)0);
+    for (size_t dimIdx = 0; dimIdx < dimNum; ++dimIdx) {
+      // Compile time type inference and random data initialize.
+        point[dimIdx] = lowerLimits[dimIdx] + (upperLimits[dimIdx] - lowerLimits[dimIdx]) * agtIdx/10.0f;
+    }
+    firstFrm[agtIdx] = point;
+  }
+  
   ptHistory.emplace_back(std::move(firstFrm));
 }
 

@@ -45,18 +45,25 @@ public:
     }
     OperatorManager om;
     om.instantiateAll();
-    HeteroComputePool hcp(2, om, memPool);
+    HeteroComputePool hcp(om, memPool);
     bool isConsideringReduce =
         myArgs["isConsideringReduce"] == "true" ? true : false;
 
     for (const auto &opSet : hybridOPSet) {
       for (const auto &opTag : opSet) {
+        /*
+        auto opTag = OperatorTag::MAC;
+        Schedule sched{false, {0,1,2}, {0.5,0.5, 0.0f}};
+        TaskGraph tg = genSingleOp_w_reduce(opTag, loadSize_MiB);
+        hcp.execWorkload(tg,sched,execType::DO);
+        */
         std::cout << "Hybridizing Operator " << tag2Name.at(opTag) << std::endl;
         for (int i = 0; i <= 10; i++) {
           float offloadRatio = i / 10.0f;
           if (isConsideringReduce) {
-            Schedule sched{false, {0, 1}, {offloadRatio, 0.0f}};
+            Schedule sched{false, {0,1,2}, {offloadRatio,offloadRatio,0.0f}};
             TaskGraph tg = genSingleOp_w_reduce(opTag, loadSize_MiB);
+            tg.printGraph("./");
             perfStats stat{0, 0, 0};
             for (int i = 0; i < WARMUP_REP + REP; i++) {
               perfStats thisStat = hcp.execWorkload(tg, sched, execType::DO);
@@ -68,8 +75,9 @@ public:
             }
             result[{opTag, offloadRatio}] = stat;
           } else {
-            Schedule sched{false, {0}, {offloadRatio}};
+            Schedule sched{false, {0,1,2}, {offloadRatio,offloadRatio, offloadRatio}};
             TaskGraph tg = genSingleOp_wo_reduce(opTag, loadSize_MiB);
+            tg.printGraph("./");
             perfStats stat{0, 0, 0};
             for (int i = 0; i < WARMUP_REP + REP; i++) {
               perfStats thisStat = hcp.execWorkload(tg, sched, execType::DO);
