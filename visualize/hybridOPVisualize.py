@@ -17,9 +17,9 @@ def plot_performance_energy(data_file_w, data_file_wo, output_path):
     # 创建子图
     #fig, axs = plt.subplots(1, len(operators), figsize=(5 * len(operators), 5))
     #fig, axs = plt.subplots(2, 3, figsize=(3  , 2))
-    fig, axs = plt.subplots(2, 4, figsize=(20  , 10))
-    axs = axs.flatten()
-    #fig, axs = plt.subplots(1,1, figsize=(10  , 10))
+    #fig, axs = plt.subplots(2, 4, figsize=(20  , 10))
+    #axs = axs.flatten()
+    fig, axs = plt.subplots(1,1, figsize=(10  , 10))
     # 如果只有一个运算符，将axs转换为列表
     if len(operators) == 1:
         axs = [axs]
@@ -34,7 +34,7 @@ def plot_performance_energy(data_file_w, data_file_wo, output_path):
         op_wo_reduce = wo_reduce_data[wo_reduce_data['OperatorName'] == operator]
         
         # 为了确保柱状图不会重叠，需要为它们设置不同的x位置
-        bar_width = 0.04  # 柱子的宽度
+        bar_width = 0.02  # 柱子的宽度
         # 绘制性能柱状图，w和wo的柱子分开显示
         bars_w = ax.bar(op_w_reduce['offloadRatio'] - bar_width / 2, op_w_reduce['performance'], width=bar_width, label='Overall Performance With Reduce', align='center')
         bars_wo = ax.bar(op_wo_reduce['offloadRatio'] + bar_width / 2, op_wo_reduce['performance'], width=bar_width, label='Overall Performance Without Reduce', align='center')

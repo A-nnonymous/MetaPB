@@ -53,18 +53,19 @@ void HeteroComputePool::processTasks(
     // Record the end time
     auto end = std::chrono::high_resolution_clock::now();
 
+    // Release the mapReduceMutex for map and reduce tasks
+    if (task.isDPURelated){
+      dpuMutex_.unlock();
+    }
+    
     // Update task completion status and record timings
     {
       std::lock_guard<std::mutex> lock(mutex_);
       completedVector[task.id].isCompleted = true;
       timings[task.id].push_back({start, end, task.opType});
+      cv_.notify_all();
     }
-    cv_.notify_all();
 
-    // Release the mapReduceMutex for map and reduce tasks
-    if (task.isDPURelated){
-      dpuMutex_.unlock();
-    }
   }
 }
 

@@ -192,12 +192,7 @@ int main() {
   for(int i = 0; i < scheduleResult.order.size(); i ++){
     std::cout << "task " << scheduleResult.order[i] << " -- " << scheduleResult.offloadRatio[i] << "\n";
   }
-  perfStats heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
-  heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
-  heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
-  heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
-  heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
-  heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
+perfStats heftDeduce = hcp.execWorkload(g, scheduleResult, execType::MIMIC);
   std::cout << "HEFT scheduler, deduced time consume: "<<heftDeduce.timeCost_Second <<"second, deduced energy consume: "<<   heftDeduce.energyCost_Joule    <<  " joule\n";
 
 

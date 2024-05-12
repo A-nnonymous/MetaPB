@@ -49,17 +49,18 @@ public:
     bool isConsideringReduce =
         myArgs["isConsideringReduce"] == "true" ? true : false;
 
-    for (const auto &opSet : hybridOPSet) {
-      for (const auto &opTag : opSet) {
+    //for (const auto &opSet : hybridOPSet) {
+     // for (const auto &opTag : opSet) {
         /*
         auto opTag = OperatorTag::MAC;
         Schedule sched{false, {0,1,2}, {0.5,0.5, 0.0f}};
         TaskGraph tg = genSingleOp_w_reduce(opTag, loadSize_MiB);
         hcp.execWorkload(tg,sched,execType::DO);
         */
+        auto opTag = OperatorTag::ELEW_ADD;
         std::cout << "Hybridizing Operator " << tag2Name.at(opTag) << std::endl;
-        for (int i = 0; i <= 10; i++) {
-          float offloadRatio = i / 10.0f;
+        for (int i = 0; i <= 20; i++) {
+          float offloadRatio = i / 20.0f;
           if (isConsideringReduce) {
             Schedule sched{false, {0,1,2}, {offloadRatio,offloadRatio,0.0f}};
             TaskGraph tg = genSingleOp_w_reduce(opTag, loadSize_MiB);
@@ -89,9 +90,10 @@ public:
             }
             result[{opTag, offloadRatio}] = stat;
           }
+          //hcp.outputTimingsToCSV("./Timing_" + std::to_string(offloadRatio) + ".csv");
         }
-      }
-    }
+      //}
+    //}
     for (int i = 0; i < 3; i++) {
       free(memPool[i]);
     }

@@ -41,7 +41,6 @@ static const map<OperatorTag, std::string> tag2Name = {
     {OperatorTag::UNDEFINED, "UNDEFINED"},
 };
 
-/*
 static const set<OperatorTag> computeBoundOPSet = {
     OperatorTag::FILTER,
     OperatorTag::CONV_1D,
@@ -49,13 +48,6 @@ static const set<OperatorTag> computeBoundOPSet = {
 static const set<OperatorTag> memoryBoundOPSet = {
     OperatorTag::AFFINE, OperatorTag::MAC,       OperatorTag::EUDIST,
     OperatorTag::LOOKUP, OperatorTag::ELEW_PROD, OperatorTag::ELEW_ADD,
-};
-*/
-static const set<OperatorTag> computeBoundOPSet = {
-    OperatorTag::FILTER
-};
-static const set<OperatorTag> memoryBoundOPSet = {
-    OperatorTag::AFFINE, OperatorTag::MAC
 };
 
 static const set<OperatorTag> xferOPSet = {OperatorTag::MAP,

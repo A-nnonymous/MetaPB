@@ -42,7 +42,6 @@ public:
   }
   void exec() override {
     size_t loadSize_MiB = std::stoul(myArgs["loadSize_MiB"]);
-    /*
     for (int i = 20; i <= 80; i += 30) {
       graphLoads[("H-" + std::to_string(i))] =
           randomizeHO(i / 100.0f, loadSize_MiB);
@@ -53,10 +52,9 @@ public:
       graphLoads["FFT-" + std::to_string(i)] = genFFT(i, loadSize_MiB);
       graphLoads["GEA-" + std::to_string(i)] = genGEA(i, loadSize_MiB);
     }
+    /*
     graphLoads["stringLoad"] = genInterleavedWorkload(loadSize_MiB, 6);
     */
-      graphLoads[("M-" + std::to_string(80))] =
-          randomizeMO(80.0f, loadSize_MiB);
 
     void **memPool = (void **)malloc(3);
     memPool[0] = malloc(72 * size_t(1 << 30));
@@ -69,9 +67,9 @@ public:
     HeteroComputePool hcp(om, memPool);
     for (const auto &[loadName, loadGraph] : graphLoads) {
       HEFTScheduler heft(loadGraph, om);
-      MetaScheduler metaPF(0.6f, 0.4f, 200, loadGraph, om);
+      MetaScheduler metaPF(0.8f, 0.2f, 200, loadGraph, om);
       MetaScheduler metaHY(0.5f, 0.5f, 200, loadGraph, om);
-      MetaScheduler metaEF(0.4f, 0.6f, 200, loadGraph, om);
+      MetaScheduler metaEF(0.2f, 0.8f, 200, loadGraph, om);
       GreedyScheduler greedy;
       CPUOnlyScheduler cpuOnly;
       DPUOnlyScheduler dpuOnly;
