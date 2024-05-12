@@ -62,11 +62,11 @@ typedef struct perfStats {
   double timeCost_Second = 0.0f;
   double dataMovement_MiB = 0;
 
-  perfStats& operator=(const perfStats& other) {
-    if (this != &other) { 
-        energyCost_Joule = other.energyCost_Joule;
-        timeCost_Second = other.timeCost_Second;
-        dataMovement_MiB = other.dataMovement_MiB;
+  perfStats &operator=(const perfStats &other) {
+    if (this != &other) {
+      energyCost_Joule = other.energyCost_Joule;
+      timeCost_Second = other.timeCost_Second;
+      dataMovement_MiB = other.dataMovement_MiB;
     }
     return *this;
   }

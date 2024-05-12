@@ -38,30 +38,30 @@ using perfStats = utils::perfStats;
 using Learner = utils::Learner;
 using ChronoTrigger = utils::ChronoTrigger;
 
-typedef struct sg_xfer_context{
-  void* cpuPageBlkBaseAddr; // target cpu page block base address
-  uint32_t dpuPageBaseIdx=0;
-  uint32_t pageBlkCnt=0;
-}sg_xfer_context;
+typedef struct sg_xfer_context {
+  void *cpuPageBlkBaseAddr; // target cpu page block base address
+  uint32_t dpuPageBaseIdx = 0;
+  uint32_t pageBlkCnt = 0;
+} sg_xfer_context;
 
-typedef struct CPU_TCB{
+typedef struct CPU_TCB {
   // Compute related metadata.
-  void* src1PageBase;
-  void* src2PageBase;
-  void* dstPageBase;
-  uint32_t pageBlkCnt=0;
+  void *src1PageBase;
+  void *src2PageBase;
+  void *dstPageBase;
+  uint32_t pageBlkCnt = 0;
   // Scatter-Gather Xfer related metadata
   // For MAP and REDUCE only
   sg_xfer_context sgInfo;
-}CPU_TCB;
+} CPU_TCB;
 
-typedef struct DPU_TCB{
-  unsigned int src1PageIdx; 
-  unsigned int src2PageIdx; 
+typedef struct DPU_TCB {
+  unsigned int src1PageIdx;
+  unsigned int src2PageIdx;
   unsigned int dstPageIdx;
   unsigned int pageCnt;
-  DPU_TCB& operator=(const DPU_TCB& other) {
-    if (this != &other) { 
+  DPU_TCB &operator=(const DPU_TCB &other) {
+    if (this != &other) {
       this->src1PageIdx = other.src1PageIdx;
       this->src2PageIdx = other.src2PageIdx;
       this->dstPageIdx = other.dstPageIdx;
@@ -69,26 +69,28 @@ typedef struct DPU_TCB{
     }
     return *this;
   }
-}DPU_TCB;
+} DPU_TCB;
 
 /// @brief This class is the uniformed interface of all operator.
 class OperatorBase {
 public:
   OperatorBase(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR)
-      : allDPUs(g_DPU_MGR->dpu_set), dpuNum(g_DPU_MGR->getDPUNum()), pageBlkSize(dpuNum * PAGE_SIZE_BYTE){}
+      : allDPUs(g_DPU_MGR->dpu_set), dpuNum(g_DPU_MGR->getDPUNum()),
+        pageBlkSize(dpuNum * PAGE_SIZE_BYTE) {}
 
-  inline virtual void execCPU(const CPU_TCB& cpuTCB) const noexcept = 0;
-  inline virtual void execDPU(const DPU_TCB& dpuTCB) const noexcept = 0;
+  inline virtual void execCPU(const CPU_TCB &cpuTCB) const noexcept = 0;
+  inline virtual void execDPU(const DPU_TCB &dpuTCB) const noexcept = 0;
 
   // -------------- Optimization phase utilities ----------------
-  perfStats execCPUwithProbe(const CPU_TCB& cpuTCB) noexcept;
-  perfStats execDPUwithProbe(const DPU_TCB& dpuTCB) noexcept;
+  perfStats execCPUwithProbe(const CPU_TCB &cpuTCB) noexcept;
+  perfStats execDPUwithProbe(const DPU_TCB &dpuTCB) noexcept;
 
   void trainModel(const uint32_t pageUpperBound) noexcept;
 
-  /// @brief All our deducing has a finest granular -- page block, which consists of dpuNum x 4K Pages
-  /// @param pageBlkCnt 
-  /// @return 
+  /// @brief All our deducing has a finest granular -- page block, which
+  /// consists of dpuNum x 4K Pages
+  /// @param pageBlkCnt
+  /// @return
   inline perfStats deducePerfCPU(const uint32_t pageBlkCnt) const noexcept {
     size_t pageBlkStep = this->deducePageBlkUpperBound / PERF_SAMPLE_POINT;
 
@@ -144,10 +146,8 @@ public:
     return isTrained;
   }
 
+  inline uint32_t getPageBlkSize() { return pageBlkSize; }
 
-  inline uint32_t getPageBlkSize(){
-    return pageBlkSize;
-  }
 private:
   void savePerfSamples(const perfStats[],
                        const std::string &path) const noexcept;
@@ -173,18 +173,18 @@ protected:
   uint32_t dpuNum;
   uint32_t pageBlkSize;
   inline static bool get_block(struct sg_block_info *out, uint32_t dpu_index,
-               uint32_t block_index, void *args) {
+                               uint32_t block_index, void *args) {
 
-    sg_xfer_context *sgArgs = (sg_xfer_context*) args;
+    sg_xfer_context *sgArgs = (sg_xfer_context *)args;
 
-    if (block_index >= sgArgs->pageBlkCnt){
+    if (block_index >= sgArgs->pageBlkCnt) {
       return false;
     }
 
     out->length = PAGE_SIZE_BYTE;
 
-    out->addr =  (uint8_t*)sgArgs->cpuPageBlkBaseAddr + 
-                  PAGE_SIZE_BYTE * (block_index * 2530 + dpu_index);
+    out->addr = (uint8_t *)sgArgs->cpuPageBlkBaseAddr +
+                PAGE_SIZE_BYTE * (block_index * 2530 + dpu_index);
     return true;
   }
 };

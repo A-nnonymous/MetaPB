@@ -18,14 +18,13 @@ MetaScheduler::evalSchedules(const vector<vector<float>> &ratioVecs) {
     proposedSchedule[i].isAlwaysWrittingBack = false;
     for (size_t j = 0; j < ratioVecs[i].size(); j++) {
       proposedSchedule[i].offloadRatio[j] = ratioVecs[i][j] / 200.0f + 0.5f;
-      //proposedSchedule[i].offloadRatio[j] = 1.0f - ratioVecs[i][j] / 200.0f;
+      // proposedSchedule[i].offloadRatio[j] = 1.0f - ratioVecs[i][j] / 200.0f;
     }
     proposedSchedule[i].offloadRatio[ratioVecs[i].size() - 1] =
         0.0f; // LOGIC_END
   }
   for (int i = 0; i < agentNum; i++) {
-    pools.emplace_back(std::move(
-        HeteroComputePool{this->om, this->dummyPool}));
+    pools.emplace_back(std::move(HeteroComputePool{this->om, this->dummyPool}));
   }
   omp_set_num_threads(agentNum);
 #pragma omp parallel for schedule(static)
@@ -50,8 +49,8 @@ Schedule MetaScheduler::schedule() noexcept {
 
   const std::vector<float> lowerLimit(nTask, -100.0f);
   const std::vector<float> upperLimit(nTask, 100.0f);
-  //const std::vector<float> lowerLimit(nTask, 0.0f);
-  //const std::vector<float> upperLimit(nTask, 200.0f);
+  // const std::vector<float> lowerLimit(nTask, 0.0f);
+  // const std::vector<float> upperLimit(nTask, 200.0f);
   const size_t dimNum = nTask;
   const int pointNum = 32;
   const int iterNum = OptIterMax;
@@ -130,7 +129,7 @@ Schedule MetaScheduler::schedule() noexcept {
   std::vector<float> actualRatio(nTask, 0.0f);
   for (int i = 0; i < nTask; i++) {
     actualRatio[i] = ratio[i] / 200.0f + 0.5f;
-    //actualRatio[i] = 1.0f - ratio[i] / 200.0f;
+    // actualRatio[i] = 1.0f - ratio[i] / 200.0f;
     actualRatio[i] = std::round(actualRatio[i] / 0.01) * 0.01;
     if (i == nTask - 1)
       actualRatio[i] = 0.0f; // logic_end

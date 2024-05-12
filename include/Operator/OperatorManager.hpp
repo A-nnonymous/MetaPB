@@ -66,21 +66,22 @@ struct OperatorManager {
     }
   }
 
-  inline void execCPU(OperatorTag opTag, const CPU_TCB& cpuTCB) const noexcept {
+  inline void execCPU(OperatorTag opTag, const CPU_TCB &cpuTCB) const noexcept {
     opMap.at(opTag)->execCPU(cpuTCB);
   }
-  inline void execDPU(OperatorTag opTag, const DPU_TCB& dpuTCB) const noexcept {
+  inline void execDPU(OperatorTag opTag, const DPU_TCB &dpuTCB) const noexcept {
     opMap.at(opTag)->execDPU(dpuTCB);
   }
 
-  inline perfStats execCPUwithProbe(OperatorTag opTag, const CPU_TCB& cpuTCB) const noexcept {
+  inline perfStats execCPUwithProbe(OperatorTag opTag,
+                                    const CPU_TCB &cpuTCB) const noexcept {
     return {opMap.at(opTag)->execCPUwithProbe(cpuTCB)};
   }
 
-  inline perfStats execDPUwithProbe(OperatorTag opTag, const DPU_TCB& dpuTCB) const noexcept {
+  inline perfStats execDPUwithProbe(OperatorTag opTag,
+                                    const DPU_TCB &dpuTCB) const noexcept {
     return {opMap.at(opTag)->execDPUwithProbe(dpuTCB)};
   }
-
 
   perfStats deducePerfCPU(OperatorTag opTag, const uint32_t pageBlkCnt) const {
     return opMap.at(opTag)->deducePerfCPU(pageBlkCnt);
@@ -124,9 +125,7 @@ struct OperatorManager {
     instantiateAll();
     pageBlkSize = opMap.at(OperatorTag::MAP)->getPageBlkSize();
   }
-  inline uint32_t getPageBlkSize(){
-    return pageBlkSize;
-  }
+  inline uint32_t getPageBlkSize() { return pageBlkSize; }
   std::map<OperatorTag, std::unique_ptr<OperatorBase>> opMap;
   /*
   inline static std::unique_ptr<GLOBAL_DPU_MGR> g_DPU_MGR =

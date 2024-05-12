@@ -24,8 +24,10 @@
 
 namespace MetaPB {
 namespace Executor {
+using Operator::CPU_TCB;
 using Operator::OperatorManager;
 using Operator::OperatorTag;
+using DPU_TCB = Operator::DPU_TCB;
 using Operator::opType2Name;
 using Operator::tag2Name;
 using utils::ChronoTrigger;
@@ -61,8 +63,7 @@ typedef struct {
 class HeteroComputePool {
 public:
   // Constructor initializes the pool with the expected maximum task ID.
-  HeteroComputePool(const OperatorManager &om,
-                    void **memPoolPtr) noexcept
+  HeteroComputePool(const OperatorManager &om, void **memPoolPtr) noexcept
       : om(om), memPoolPtr(memPoolPtr) {}
 
   HeteroComputePool(HeteroComputePool &&other) noexcept
@@ -83,7 +84,6 @@ public:
         reduceTimings_(std::move(other.reduceTimings_)),
         totalEnergyCost_joule(std::exchange(other.totalEnergyCost_joule, 0.0)),
         totalTransfer_mb(std::exchange(other.totalTransfer_mb, 0.0)) {}
-
 
   void parseGraph(const TaskGraph &g, const Schedule &sched,
                   execType eT) noexcept;
@@ -106,8 +106,10 @@ private:
   // Check if all dependencies for a task are met
   bool allDependenciesMet(const std::vector<completeSgn> &completedVector,
                           const std::vector<int> &deps,
-                          double &lastWakerTime_ms,
-                          std::string my,std::string other) const noexcept;
+                          double &lastWakerTime_ms, std::string my,
+                          std::string other) const noexcept;
+
+  void cleanStatus(int taskNum) noexcept;
 
   // Generic worker function for processing tasks from a queue
   void processTasks(
@@ -117,15 +119,17 @@ private:
 
   std::pair<Task, Task> genComputeTask(int taskId, OperatorTag opTag,
                                        OperatorType opType,
-                                       size_t inputSize_MiB, float offloadRatio,
+                                       const CPU_TCB &cpuTCB,
+                                       const DPU_TCB &dpuTCB,
                                        execType eT) noexcept;
 
   std::pair<Task, Task> genXferTask(int taskId, OperatorTag opTag,
-                                    size_t mapWork_MiB, size_t reduceWork_MiB,
+                                    const CPU_TCB &mapTCB,
+                                    const CPU_TCB &reduceTCB,
                                     execType eT) noexcept;
 
 private:
-  void **memPoolPtr;
+  MemoryPlanner mp;
   int memPoolNum = 3;
   double totalDPUTime_Second = 0.0f;
   const OperatorManager &om;
@@ -136,10 +140,9 @@ private:
 
   std::vector<completeSgn> cpuCompleted_, dpuCompleted_, mapCompleted_,
       reduceCompleted_;
-      
+
   std::vector<double> cpuLastWakerTime_ms, dpuLastWakerTime_ms,
       mapLastWakerTime_ms, reduceLastWakerTime_ms;
-
 
   std::queue<Task> cpuQueue_, dpuQueue_, mapQueue_, reduceQueue_;
 

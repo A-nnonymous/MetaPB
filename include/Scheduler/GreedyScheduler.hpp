@@ -7,8 +7,8 @@ namespace MetaPB {
 namespace Scheduler {
 using TaskGraph = Executor::TaskGraph;
 using OperatorType = Operator::OperatorType;
-using Operator::tag2Name;
 using Operator::opType2Name;
+using Operator::tag2Name;
 
 class GreedyScheduler {
 public:
@@ -20,9 +20,8 @@ public:
       if (gIn.g[i].opType != OperatorType::ComputeBound) {
         s.offloadRatio[i] = 1.0f;
       }
-
     }
-    s.offloadRatio[s.offloadRatio.size()-1] = 0.0f; // LOGIC_END
+    s.offloadRatio[s.offloadRatio.size() - 1] = 0.0f; // LOGIC_END
 
     s.isAlwaysWrittingBack = true;
     return s;

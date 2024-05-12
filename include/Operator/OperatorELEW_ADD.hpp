@@ -21,9 +21,9 @@ public:
   inline virtual constexpr int getInputTensorNum() const noexcept override {
     return 2;
   }
-  virtual void execCPU(const CPU_TCB& cpuTCB) const noexcept override;
+  virtual void execCPU(const CPU_TCB &cpuTCB) const noexcept override;
 
-  virtual void execDPU(const DPU_TCB& dpuTCB) const noexcept override;
+  virtual void execDPU(const DPU_TCB &dpuTCB) const noexcept override;
 
   virtual inline constexpr bool checkIfIsTrainable() const noexcept override {
     return true;

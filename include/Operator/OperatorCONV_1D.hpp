@@ -21,9 +21,9 @@ public:
   inline virtual constexpr int getInputTensorNum() const noexcept override {
     return 1;
   }
-  virtual void execCPU(const CPU_TCB& cpuTCB) const noexcept override;
+  virtual void execCPU(const CPU_TCB &cpuTCB) const noexcept override;
 
-  virtual void execDPU(const DPU_TCB& dpuTCB) const noexcept override;
+  virtual void execDPU(const DPU_TCB &dpuTCB) const noexcept override;
 
   virtual inline constexpr bool checkIfIsTrainable() const noexcept override {
     return true;
@@ -43,9 +43,8 @@ private:
   };
   */
   const float gaussianKernel[8] = {
-      8.72710786525902, 1.75288647260302,   1.29521764811203,
-      3.52076659676240,  3.52076659676240,    1.29521764811203,
-      1.75288647260302,   8.72710786525902,
+      8.72710786525902, 1.75288647260302, 1.29521764811203, 3.52076659676240,
+      3.52076659676240, 1.29521764811203, 1.75288647260302, 8.72710786525902,
   };
 
   inline static const std::string OpName = "CONV_1D";
