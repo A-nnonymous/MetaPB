@@ -7,24 +7,24 @@ inline void OperatorCONV_1D::execCPU(const CPU_TCB& cpuTCB) const noexcept {
   char* dst = (char*)cpuTCB.dstPageBase;
   size_t maxOffset = cpuTCB.pageBlkCnt * pageBlkSize;
   uint32_t itemNum = cpuTCB.pageBlkCnt * pageBlkSize / sizeof(float);
-  uint32_t pageItemNum = pageBlkSize / sizeof(float);
+  uint32_t pageItemNum = DPU_DMA_BFFR_BYTE / sizeof(float);
 
   size_t padding = (kernelSize - 1) / 2;
 
   omp_set_num_threads(64);
   // Page-wised equal padded conv
 #pragma omp parallel for
-  for(size_t offset = 0; offset < maxOffset; offset += PAGE_SIZE_BYTE){
-    float* mySrc = (float*)(src + offset);
-    float* myDst = (float*)(dst + offset);
+  for(size_t offset = 0; offset < maxOffset; offset += DPU_DMA_BFFR_BYTE){
+    int* mySrc = (int*)(src + offset);
+    int* myDst = (int*)(dst + offset);
     for (size_t i = 0; i < pageItemNum; ++i) {
-      float sum = 0.0f;
+      int sum = 0;
       for (size_t j = 0; j < kernelSize; ++j) {
         // Compute the input index, considering padding
         int inputIndex = i - padding + j;
         // Check if the input index is within bounds
-        if (inputIndex >= 0 && inputIndex < itemNum) {
-          sum += mySrc[inputIndex] * gaussianKernel[j];
+        if (inputIndex >= 0 && inputIndex < pageItemNum) {
+          sum += mySrc[inputIndex] * (int)gaussianKernel[j];
         }
       }
       myDst[i] = sum;

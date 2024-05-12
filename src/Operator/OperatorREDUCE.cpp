@@ -4,9 +4,14 @@ namespace MetaPB {
 namespace Operator {
 
 inline void OperatorREDUCE::execCPU(const CPU_TCB& cpuTCB) const noexcept {
-  sg_xfer_context sgInfo = cpuTCB.sgInfo;
+  sg_xfer_context sgInfo;
+  sgInfo.cpuPageBlkBaseAddr = cpuTCB.sgInfo.cpuPageBlkBaseAddr;
+  sgInfo.dpuPageBaseIdx= cpuTCB.sgInfo.dpuPageBaseIdx;
+  sgInfo.pageBlkCnt= cpuTCB.sgInfo.pageBlkCnt;
+
   uint32_t dpuPageBaseIdx = sgInfo.dpuPageBaseIdx;
   uint32_t pageBlkCnt = sgInfo.pageBlkCnt;
+
   get_block_t get_block_info = {.f = &get_block, .args = &sgInfo, .args_size = sizeof(sgInfo)};
   DPU_ASSERT(dpu_push_sg_xfer(allDPUs, DPU_XFER_FROM_DPU, "buffer", 
                               dpuPageBaseIdx * PAGE_SIZE_BYTE,

@@ -13,6 +13,7 @@ __host DPU_TCB dpuTCB;
 
 static void EUDIST(T *src1, T *src2, T* dst) {
   unsigned int itemNum = DPU_DMA_BFFR_BYTE / sizeof(T);
+  dst[0] = 0;
   for (unsigned int i = 0; i < itemNum; i++) {
     dst[0] += (src2[i] - src1[i]) * (src2[i] - src1[i]);
   }

@@ -14,6 +14,7 @@ __host affine_args DPU_INPUT_ARGUMENTS;
 
 static void MAC(T *src1, T *src2, T* dst) {
   unsigned int itemNum = DPU_DMA_BFFR_BYTE / sizeof(T);
+  dst[0] = 0;
   for (unsigned int i = 0; i < itemNum; i++) {
     dst[0] += src1[i] * src2[i];
   }

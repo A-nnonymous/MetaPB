@@ -3,9 +3,9 @@ namespace MetaPB {
 namespace Operator {
 
 inline void OperatorELEW_ADD::execCPU(const CPU_TCB& cpuTCB) const noexcept {
-  float* src1 = (float*)cpuTCB.src1PageBase;
-  float* src2 = (float*)cpuTCB.src2PageBase;
-  float* dst = (float*)cpuTCB.dstPageBase;
+  int* src1 = (int*)cpuTCB.src1PageBase;
+  int* src2 = (int*)cpuTCB.src2PageBase;
+  int* dst =  (int*)cpuTCB.dstPageBase;
   uint32_t itemNum = cpuTCB.pageBlkCnt * pageBlkSize / sizeof(float);
 
   omp_set_num_threads(64);
@@ -21,12 +21,6 @@ OperatorELEW_ADD::execDPU(const DPU_TCB& dpuTCB) const noexcept {
   DPU_ASSERT(dpu_load(allDPUs, DPU_BINARY.c_str(), NULL));
 
   DPU_TCB args = dpuTCB;
-  /*
-  args.src1PageIdx = dpuTCB.src1PageIdx;
-  args.src2PageIdx = dpuTCB.src2PageIdx;
-  args.dstPageIdx =  dpuTCB.dstPageIdx;
-  args.pageCnt =     dpuTCB.pageCnt;
-  */
   DPU_ASSERT(dpu_broadcast_to(allDPUs, "dpuTCB", 0, &args,
                               sizeof(args), DPU_XFER_DEFAULT));
   DPU_ASSERT(dpu_launch(allDPUs, DPU_SYNCHRONOUS));

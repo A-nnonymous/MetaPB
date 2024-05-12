@@ -1,4 +1,9 @@
 #include "Operator/OperatorMAC.hpp"
+#include <stdio.h>
+extern "C"{
+#include <dpu_log_internals.h>
+#include <stdio.h>
+}
 
 namespace MetaPB {
 namespace Operator {
@@ -9,16 +14,17 @@ inline void OperatorMAC::execCPU(const CPU_TCB& cpuTCB) const noexcept {
   char* dst = (char*)cpuTCB.dstPageBase;
   size_t maxOffset = cpuTCB.pageBlkCnt * pageBlkSize;
   uint32_t itemNum = cpuTCB.pageBlkCnt * pageBlkSize / sizeof(float);
-  uint32_t pageItemNum = pageBlkSize / sizeof(float);
+  uint32_t pageItemNum = DPU_DMA_BFFR_BYTE / sizeof(float);
 
   omp_set_num_threads(64);
 #pragma omp parallel for
-  for(size_t offset = 0; offset < maxOffset; offset += PAGE_SIZE_BYTE){
-    float* mySrc1 = (float*)(src1 + offset);
-    float* mySrc2 = (float*)(src2 + offset);
-    float* myDst = (float*)(dst + offset);
+  for(size_t offset = 0; offset < maxOffset; offset += DPU_DMA_BFFR_BYTE){
+    int* mySrc1 = (int*)(src1 + offset);
+    int* mySrc2 = (int*)(src2 + offset);
+    int* myDst =  (int*)(dst + offset);
+    myDst[0] = 0;
     for (int i = 0; i < pageItemNum; i++) {
-      myDst[0] += src1[i] * src2[i];
+      myDst[0] += mySrc1[i] * mySrc2[i];
     }
   }
 }

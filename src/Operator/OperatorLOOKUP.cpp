@@ -8,15 +8,15 @@ inline void OperatorLOOKUP::execCPU(const CPU_TCB& cpuTCB) const noexcept {
   char* dst = (char*)cpuTCB.dstPageBase;
   size_t maxOffset = cpuTCB.pageBlkCnt * pageBlkSize;
   uint32_t itemNum = cpuTCB.pageBlkCnt * pageBlkSize / sizeof(float);
-  uint32_t pageItemNum = pageBlkSize / sizeof(float);
+  uint32_t pageItemNum = DPU_DMA_BFFR_BYTE/ sizeof(float);
 
 #pragma omp parallel for
-  for(size_t offset = 0; offset < maxOffset; offset += PAGE_SIZE_BYTE){
-    float* mySrc = (float*)(src + offset);
-    float* myDst = (float*)(dst + offset);
+  for(size_t offset = 0; offset < maxOffset; offset += DPU_DMA_BFFR_BYTE){
+    int* mySrc = (int*)(src + offset);
+    int* myDst = (int*)(dst + offset);
     myDst[0] = 0;
     for (int i = 0; i < pageItemNum; i++) {
-      if (mySrc[i] == this->target)
+      if (mySrc[i] == (int)this->target)
         myDst[0]++;
     }
   }

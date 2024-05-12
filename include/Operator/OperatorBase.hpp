@@ -145,6 +145,9 @@ public:
   }
 
 
+  inline uint32_t getPageBlkSize(){
+    return pageBlkSize;
+  }
 private:
   void savePerfSamples(const perfStats[],
                        const std::string &path) const noexcept;

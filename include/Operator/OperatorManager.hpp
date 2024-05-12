@@ -121,6 +121,11 @@ struct OperatorManager {
   }
   OperatorManager(std::uint32_t dpuNum = DPU_ALLOCATE_ALL) : dpuNum(dpuNum) {
     g_DPU_MGR = std::make_unique<GLOBAL_DPU_MGR>(dpuNum);
+    instantiateAll();
+    pageBlkSize = opMap.at(OperatorTag::MAP)->getPageBlkSize();
+  }
+  inline uint32_t getPageBlkSize(){
+    return pageBlkSize;
   }
   std::map<OperatorTag, std::unique_ptr<OperatorBase>> opMap;
   /*
@@ -130,6 +135,7 @@ struct OperatorManager {
   std::unique_ptr<GLOBAL_DPU_MGR> g_DPU_MGR;
 
   const std::uint32_t dpuNum;
+  uint32_t pageBlkSize;
 };
 
 } // namespace Operator
