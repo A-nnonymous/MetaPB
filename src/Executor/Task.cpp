@@ -8,7 +8,7 @@ Task::Task(const string &) {}
 
 // --------------- MetaScheduler interaction -------------
 void Task::modelize(const string &modelCachePath) noexcept {}
-ScheduleVec Task::randSchedule(const size_t batchSize_MiB) const noexcept {}
+ScheduleVec Task::randSchedule(const DPU_TCB& dpuTCB) const noexcept {}
 double Task::deduceTime_ns(const Schedule &) const noexcept {}
 double Task::deduceEnergy_joule(const Schedule &) const noexcept {}
 

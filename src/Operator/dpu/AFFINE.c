@@ -9,67 +9,47 @@
 
 #include "Operator/dpu/AFFINE.h"
 
+__mram_noinit page_t buffer[NR_SINGLE_DPU_PAGE]; 
 __host affine_args DPU_INPUT_ARGUMENTS;
 
-static void AFFINE(T *bufferB, T *bufferA, T weight, unsigned int l_size) {
-  for (unsigned int i = 0; i < l_size; i++) {
-    bufferB[i] = weight * bufferA[i] + bufferB[i];
+static void AFFINE(T *src1, T *src2, T *dst, T weight) {
+  unsigned int itemNum = DPU_DMA_BFFR_BYTE / sizeof(T);
+  for (unsigned int i = 0; i < itemNum; i++) {
+    dst[i] = weight * src1[i] + src2[i];
   }
 }
 
-// Barrier
-BARRIER_INIT(my_barrier, NR_TASKLETS);
-
 int main(void) {
   unsigned int tasklet_id = me();
-#if PRINT
-  printf("tasklet_id = %u\n", tasklet_id);
-#endif
-  if (tasklet_id == 0) { // Initialize once the cycle counter
-    mem_reset();         // Reset the heap
-  }
-  // Barrier
-  barrier_wait(&my_barrier);
 
-  uint32_t input_size_dpu_bytes =
-      DPU_INPUT_ARGUMENTS.co.inputSize; // Input size per DPU in bytes
-  uint32_t input_size_dpu_bytes_transfer =
-      DPU_INPUT_ARGUMENTS.co.inputSize /
-      2; // Transfer input size per DPU in bytes
-  if (input_size_dpu_bytes == 0)
-    return 0;
+  uint32_t src1PageIdx = DPU_INPUT_ARGUMENTS.dpuTCB.src1PageIdx;
+  uint32_t src2PageIdx = DPU_INPUT_ARGUMENTS.dpuTCB.src2PageIdx;
+  uint32_t dstPageIdx =  DPU_INPUT_ARGUMENTS.dpuTCB.dstPageIdx;
+  uint32_t pageCnt =     DPU_INPUT_ARGUMENTS.dpuTCB.pageCnt;
+  uint32_t maxOffset =   pageCnt * PAGE_SIZE_BYTE;
+
   float weight = DPU_INPUT_ARGUMENTS.weight;
 
-  // Address of the current processing block in MRAM
-  uint32_t base_tasklet = tasklet_id << BLOCK_SIZE_LOG2;
-  uint32_t mram_base_addr_A = (uint32_t)DPU_MRAM_HEAP_POINTER;
-  uint32_t mram_base_addr_B =
-      (uint32_t)(DPU_MRAM_HEAP_POINTER + input_size_dpu_bytes_transfer);
+  T *cache_A = (T *)mem_alloc(DPU_DMA_BFFR_BYTE);
+  T *cache_B = (T *)mem_alloc(DPU_DMA_BFFR_BYTE);
+  T *cache_C = (T *)mem_alloc(DPU_DMA_BFFR_BYTE);
 
-  // Initialize a local cache to store the MRAM block
-  T *cache_A = (T *)mem_alloc(BLOCK_SIZE);
-  T *cache_B = (T *)mem_alloc(BLOCK_SIZE);
+  __mram_ptr void const * src1PageBaseAddr = (__mram_ptr void const *)(&buffer[src1PageIdx]);
+  __mram_ptr void const * src2PageBaseAddr = (__mram_ptr void const *)(&buffer[src2PageIdx]);
+  __mram_ptr void const * dstPageBaseAddr = (__mram_ptr void const *)(&buffer[dstPageIdx]);
 
-  for (unsigned int byte_index = base_tasklet;
-       byte_index < input_size_dpu_bytes;
-       byte_index += BLOCK_SIZE * NR_TASKLETS) {
+  for (unsigned int byte_index = DPU_DMA_BFFR_BYTE * tasklet_id;
+       byte_index < maxOffset;
+       byte_index += DPU_DMA_BFFR_BYTE * NR_TASKLETS) {
 
-    // Bound checking
-    uint32_t l_size_bytes = (byte_index + BLOCK_SIZE >= input_size_dpu_bytes)
-                                ? (input_size_dpu_bytes - byte_index)
-                                : BLOCK_SIZE;
-
-    // Load cache with current MRAM block
-    mram_read((__mram_ptr void const *)(mram_base_addr_A + byte_index), cache_A,
-              l_size_bytes);
-    mram_read((__mram_ptr void const *)(mram_base_addr_B + byte_index), cache_B,
-              l_size_bytes);
-
-    AFFINE(cache_B, cache_A, weight, l_size_bytes >> DIV);
-
-    // Write cache to current MRAM block
-    mram_write(cache_B, (__mram_ptr void *)(mram_base_addr_B + byte_index),
-               l_size_bytes);
+    __mram_ptr void const * mySrc1= src1PageBaseAddr + byte_index;
+    __mram_ptr void const * mySrc2 = src2PageBaseAddr + byte_index;
+    __mram_ptr void const * myDst = dstPageBaseAddr + byte_index;
+    
+    mram_read(mySrc1, cache_A, DPU_DMA_BFFR_BYTE);
+    mram_read(mySrc2, cache_B, DPU_DMA_BFFR_BYTE);
+    AFFINE(cache_A, cache_B, cache_C, weight);
+    mram_write(cache_C, myDst, DPU_DMA_BFFR_BYTE);
   }
 
   return 0;

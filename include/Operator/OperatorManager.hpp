@@ -34,85 +34,59 @@ struct OperatorManager {
     }
   }
   void trainModel(const regressionTask &task) {
-    size_t maxMiB = 0;
-    for (const auto &[opTag, batchUpBound_MiB] : task) {
-      if (batchUpBound_MiB > maxMiB)
-        maxMiB = batchUpBound_MiB;
+    size_t maxBlk = 0;
+    for (const auto &[opTag, pageBlkUpperBound] : task) {
+      if (pageBlkUpperBound > maxBlk)
+        maxBlk = pageBlkUpperBound;
     }
-    size_t bytes = maxMiB * size_t(1 << 20);
-    void *src1 = (void *)malloc(bytes);
-    void *src2 = (void *)malloc(bytes);
-    void *dst1 = (void *)malloc(bytes);
-    void *allBffrPtrs[3] = {src1, src2, dst1};
-
-    for (auto &[opTag, batchUpBound_MiB] : task) {
+    for (auto &[opTag, pageBlkUpperBound] : task) {
       if (!opMap.contains(opTag)) {
         opMap[opTag] = std::move(this->getOperator(opTag));
       }
       std::cout << "Training model of " << tag2Name.at(opTag) << std::endl;
-      opMap[opTag]->trainModel(batchUpBound_MiB, allBffrPtrs);
+      opMap[opTag]->trainModel(maxBlk);
     }
     // Always train xfer operator, bloody experience.
     opMap[OperatorTag::MAP] = std::move(this->getOperator(OperatorTag::MAP));
     opMap[OperatorTag::REDUCE] =
         std::move(this->getOperator(OperatorTag::REDUCE));
-    opMap[OperatorTag::MAP]->trainModel(maxMiB, allBffrPtrs);
-    opMap[OperatorTag::REDUCE]->trainModel(maxMiB, allBffrPtrs);
-    free(dst1);
-    free(src2);
-    free(src1);
+    opMap[OperatorTag::MAP]->trainModel(maxBlk);
+    opMap[OperatorTag::REDUCE]->trainModel(maxBlk);
   }
 
-  void trainAll(size_t batchSize_MiB, int iter) {
-    size_t bytes = batchSize_MiB * size_t(1 << 20);
-    void *src1 = (void *)malloc(bytes);
-    void *src2 = (void *)malloc(bytes);
-    void *dst1 = (void *)malloc(bytes);
-    void *allBffrPtrs[3] = {src1, src2, dst1};
+  void trainAll(uint32_t pageBlkUpperBound) {
     for (const auto &opSet : allPerfRelOPSet) {
       for (const auto &opTag : opSet) {
         if (!opMap.contains(opTag)) {
           opMap[opTag] = std::move(this->getOperator(opTag));
         }
         std::cout << "Training model of " << tag2Name.at(opTag) << std::endl;
-        opMap[opTag]->trainModel(batchSize_MiB, allBffrPtrs, iter);
+        opMap[opTag]->trainModel(pageBlkUpperBound);
       }
     }
-    free(dst1);
-    free(src2);
-    free(src1);
   }
 
-  inline void execCPU(OperatorTag opTag, const size_t batchSize_MiB,
-                      void **memPoolBffrPtrs) const noexcept {
-    opMap.at(opTag)->execCPU(batchSize_MiB, memPoolBffrPtrs);
+  inline void execCPU(OperatorTag opTag, const CPU_TCB& cpuTCB) const noexcept {
+    opMap.at(opTag)->execCPU(cpuTCB);
   }
-  inline void execDPU(OperatorTag opTag,
-                      const size_t batchSize_MiB) const noexcept {
-    opMap.at(opTag)->execDPU(batchSize_MiB);
+  inline void execDPU(OperatorTag opTag, const DPU_TCB& dpuTCB) const noexcept {
+    opMap.at(opTag)->execDPU(dpuTCB);
   }
 
-  inline perfStats execCPUwithProbe(OperatorTag opTag,
-                                    const size_t batchSize_MiB,
-                                    void **memPoolBffrPtrs) const noexcept {
-    return {opMap.at(opTag)->execCPUwithProbe(batchSize_MiB, memPoolBffrPtrs)};
+  inline perfStats execCPUwithProbe(OperatorTag opTag, const CPU_TCB& cpuTCB) const noexcept {
+    return {opMap.at(opTag)->execCPUwithProbe(cpuTCB)};
   }
 
-  inline perfStats execDPUwithProbe(OperatorTag opTag,
-                                    const size_t batchSize_MiB) const noexcept {
-    return {opMap.at(opTag)->execDPUwithProbe(batchSize_MiB)};
+  inline perfStats execDPUwithProbe(OperatorTag opTag, const DPU_TCB& dpuTCB) const noexcept {
+    return {opMap.at(opTag)->execDPUwithProbe(dpuTCB)};
   }
 
-  perfStats deducePerf(OperatorTag opTag, double offloadRatio,
-                       size_t batchSize_MiB) {
-    return opMap.at(opTag)->deducePerf(offloadRatio, batchSize_MiB);
-  }
 
-  perfStats deducePerfCPU(OperatorTag opTag, size_t batchSize_MiB) const {
-    return opMap.at(opTag)->deducePerfCPU(batchSize_MiB);
+  perfStats deducePerfCPU(OperatorTag opTag, const uint32_t pageBlkCnt) const {
+    return opMap.at(opTag)->deducePerfCPU(pageBlkCnt);
   }
-  perfStats deducePerfDPU(OperatorTag opTag, size_t batchSize_MiB) const {
-    return opMap.at(opTag)->deducePerfDPU(batchSize_MiB);
+  perfStats deducePerfDPU(OperatorTag opTag, const uint32_t pageBlkCnt) const {
+    return opMap.at(opTag)->deducePerfDPU(pageBlkCnt);
   }
 
   std::unique_ptr<OperatorBase> getOperator(OperatorTag tag) {

@@ -8,65 +8,45 @@
 
 #include "Operator/dpu/common.h"
 
-__host common_args DPU_INPUT_ARGUMENTS;
+__mram_noinit page_t buffer[NR_SINGLE_DPU_PAGE]; 
+__host DPU_TCB dpuTCB;
 
-static void EUDIST(T *bufferB, T *bufferA, unsigned int l_size) {
-  int temp;
-  for (unsigned int i = 0; i < l_size; i++) {
-    temp += (bufferB[i] - bufferA[i]) * (bufferB[i] - bufferA[i]);
+static void EUDIST(T *src1, T *src2, T* dst) {
+  unsigned int itemNum = DPU_DMA_BFFR_BYTE / sizeof(T);
+  for (unsigned int i = 0; i < itemNum; i++) {
+    dst[0] += (src2[i] - src1[i]) * (src2[i] - src1[i]);
   }
 }
 
-// Barrier
-BARRIER_INIT(my_barrier, NR_TASKLETS);
-
 int main(void) {
+
   unsigned int tasklet_id = me();
-#if PRINT
-  printf("tasklet_id = %u\n", tasklet_id);
-#endif
-  if (tasklet_id == 0) { // Initialize once the cycle counter
-    mem_reset();         // Reset the heap
+  uint32_t src1PageIdx = dpuTCB.src1PageIdx;
+  uint32_t src2PageIdx = dpuTCB.src2PageIdx;
+  uint32_t dstPageIdx =  dpuTCB.dstPageIdx;
+  uint32_t pageCnt =     dpuTCB.pageCnt;
+  uint32_t maxOffset =   pageCnt * PAGE_SIZE_BYTE;
+
+  T *cache_A = (T *)mem_alloc(DPU_DMA_BFFR_BYTE);
+  T *cache_B = (T *)mem_alloc(DPU_DMA_BFFR_BYTE);
+  T *cache_C = (T *)mem_alloc(DPU_DMA_BFFR_BYTE);
+
+  __mram_ptr void const * src1PageBaseAddr = (__mram_ptr void const *)(&buffer[src1PageIdx]);
+  __mram_ptr void const * src2PageBaseAddr = (__mram_ptr void const *)(&buffer[src2PageIdx]);
+  __mram_ptr void const * dstPageBaseAddr = (__mram_ptr void const *)(&buffer[dstPageIdx]);
+  __mram_ptr void const * myDst = dstPageBaseAddr;
+
+  for (unsigned int byte_index = DPU_DMA_BFFR_BYTE * tasklet_id;
+       byte_index < maxOffset;
+       byte_index += DPU_DMA_BFFR_BYTE * NR_TASKLETS) {
+    __mram_ptr void const * mySrc1= src1PageBaseAddr + byte_index;
+    __mram_ptr void const * mySrc2 = src2PageBaseAddr + byte_index;
+    
+    mram_read(mySrc1, cache_A, DPU_DMA_BFFR_BYTE);
+    mram_read(mySrc2, cache_B, DPU_DMA_BFFR_BYTE);
+    EUDIST(cache_A, cache_B, cache_C);
   }
-  // Barrier
-  barrier_wait(&my_barrier);
-
-  uint32_t input_size_dpu_bytes =
-      DPU_INPUT_ARGUMENTS.inputSize; // Input size per DPU in bytes
-  uint32_t input_size_dpu_bytes_transfer =
-      DPU_INPUT_ARGUMENTS.inputSize / 2; // Transfer input size per DPU in bytes
-
-  // Address of the current processing block in MRAM
-  uint32_t base_tasklet = tasklet_id << BLOCK_SIZE_LOG2;
-  uint32_t mram_base_addr_A = (uint32_t)DPU_MRAM_HEAP_POINTER;
-  uint32_t mram_base_addr_B =
-      (uint32_t)(DPU_MRAM_HEAP_POINTER + input_size_dpu_bytes_transfer);
-
-  // Initialize a local cache to store the MRAM block
-  T *cache_A = (T *)mem_alloc(BLOCK_SIZE);
-  T *cache_B = (T *)mem_alloc(BLOCK_SIZE);
-
-  for (unsigned int byte_index = base_tasklet;
-       byte_index < input_size_dpu_bytes;
-       byte_index += BLOCK_SIZE * NR_TASKLETS) {
-
-    // Bound checking
-    uint32_t l_size_bytes = (byte_index + BLOCK_SIZE >= input_size_dpu_bytes)
-                                ? (input_size_dpu_bytes - byte_index)
-                                : BLOCK_SIZE;
-
-    // Load cache with current MRAM block
-    mram_read((__mram_ptr void const *)(mram_base_addr_A + byte_index), cache_A,
-              l_size_bytes);
-    mram_read((__mram_ptr void const *)(mram_base_addr_B + byte_index), cache_B,
-              l_size_bytes);
-
-    EUDIST(cache_B, cache_A, l_size_bytes >> DIV);
-
-    // Write cache to current MRAM block
-    mram_write(cache_B, (__mram_ptr void *)(mram_base_addr_B + byte_index),
-               l_size_bytes);
-  }
+  mram_write(cache_C, myDst, DPU_DMA_BFFR_BYTE);
 
   return 0;
 }

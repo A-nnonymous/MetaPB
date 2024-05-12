@@ -32,7 +32,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(/usr/include/dpu)
 
 add_subdirectory(src)
-add_subdirectory(benchmarks)
+#add_subdirectory(benchmarks)
 add_subdirectory(tests)
 
 

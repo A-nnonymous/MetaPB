@@ -5,7 +5,7 @@ add_subdirectory(utils)
 add_subdirectory(Operator)
 
 # Implementation of multistage weighted task executor
-add_subdirectory(Executor)
+#add_subdirectory(Executor)
 
 # Implementation of main co-processing scheduler's tuning framwork
 add_subdirectory(Scheduler)

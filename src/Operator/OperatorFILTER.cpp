@@ -2,58 +2,44 @@
 
 namespace MetaPB {
 namespace Operator {
-inline void OperatorFILTER::execCPU(const size_t batchSize_MiB,
-                                    void **memPoolBffrPtrs) const noexcept {
-  size_t inputSize = batchSize_MiB * 1024 * 1024 / sizeof(float);
+inline void OperatorFILTER::execCPU(const CPU_TCB& cpuTCB) const noexcept {
+  char* src = (char*)cpuTCB.src1PageBase;
+  char* dst = (char*)cpuTCB.dstPageBase;
+  size_t maxOffset = cpuTCB.pageBlkCnt * pageBlkSize;
+  uint32_t itemNum = cpuTCB.pageBlkCnt * pageBlkSize / sizeof(float);
+  uint32_t pageItemNum = pageBlkSize / sizeof(float);
   size_t padding = (kernelSize - 1) / 2;
-
-  // Assuming memPoolBffrPtrs is an array of pointers to float
-  float *inputBuffer = static_cast<float *>(memPoolBffrPtrs[0]);
-  float *outputBuffer = static_cast<float *>(memPoolBffrPtrs[1]);
 
   // Perform convolution
   omp_set_num_threads(64);
 #pragma omp parallel for
-  for (size_t i = 0; i < inputSize; ++i) {
-    float sum = 0.0f;
-    for (size_t j = 0; j < kernelSize; ++j) {
-      // Compute the input index, considering padding
-      int inputIndex = i - padding + j;
-      // Check if the input index is within bounds
-      if (inputIndex >= 0 && inputIndex < inputSize) {
-        sum += inputBuffer[inputIndex];
+  for(size_t offset = 0; offset < maxOffset; offset += PAGE_SIZE_BYTE){
+    float* mySrc = (float*)(src + offset);
+    float* myDst = (float*)(dst + offset);
+
+    for (size_t i = 0; i < pageItemNum; ++i) {
+      float sum = 0.0f;
+      for (size_t j = 0; j < kernelSize; ++j) {
+        if(i + j < itemNum) sum += mySrc[i + j] / kernelSize;
       }
+      myDst[i] = sum / kernelSize;
     }
-    outputBuffer[i] = sum / kernelSize;
   }
 }
 
-inline void OperatorFILTER::execDPU(const size_t batchSize_MiB) const noexcept {
+inline void OperatorFILTER::execDPU(const DPU_TCB& dpuTCB) const noexcept {
   auto DPU_BINARY = getDPUBinaryPath();
   DPU_ASSERT(dpu_load(allDPUs, DPU_BINARY.c_str(), NULL));
-  uint32_t nr_of_dpus;
-  DPU_ASSERT(dpu_get_nr_dpus(allDPUs, &nr_of_dpus));
-  size_t bytes = batchSize_MiB * (1 << 20);
-  if (bytes == 0)
-    return; // essential for not being overflowed
-  const size_t input_size_dpu =
-      divceil(bytes, nr_of_dpus); // Input size per DPU (max.)
-  const size_t input_size_dpu_8bytes =
-      (input_size_dpu % 8) != 0
-          ? roundup(input_size_dpu, 8)
-          : input_size_dpu; // Input size per DPU (max.), 8-byte aligned
-  if (input_size_dpu_8bytes > 67108864)
-    return;
-
-  // Copy input arrays
   filter_args args;
   for (int i = 0; i < 8; i++) {
     args.gaussianKernel[i] = this->gaussianKernel[i];
   }
   args.stride = this->stride;
-  args.co.inputSize = input_size_dpu * getInputTensorNum();
-  args.co.operandNum = 1;
   args.kernelSize = this->kernelSize;
+  args.dpuTCB.src1PageIdx = dpuTCB.src1PageIdx;
+  args.dpuTCB.src2PageIdx = dpuTCB.src2PageIdx;
+  args.dpuTCB.dstPageIdx =  dpuTCB.dstPageIdx;
+  args.dpuTCB.pageCnt =     dpuTCB.pageCnt;
 
   DPU_ASSERT(dpu_broadcast_to(allDPUs, "DPU_INPUT_ARGUMENTS", 0, &args,
                               sizeof(args), DPU_XFER_DEFAULT));

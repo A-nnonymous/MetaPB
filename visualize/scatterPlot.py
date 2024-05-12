@@ -14,7 +14,7 @@ args = parser.parse_args()
 
 # Read the total and converge csv files into DataFrames
 df_total = pd.read_csv(args.total_file)
-df_converge = pd.read_csv(args.converge_file)
+df_converge = pd.read_csv(args.dpuTCBnverge_file)
 
 dim1 = 0
 dim2 = 1

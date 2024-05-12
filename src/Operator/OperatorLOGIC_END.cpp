@@ -16,10 +16,9 @@ public:
   inline virtual constexpr int getInputTensorNum() const noexcept override {
     return 0;
   }
-  inline virtual void execCPU(const size_t batchSize_MiB,
-                              void **memPoolBffrPtrs) const noexcept override {}
+  inline virtual void execCPU(const CPU_TCB& cpuTCB) const noexcept override {}
   inline virtual void
-  execDPU(const size_t batchSize_MiB) const noexcept override {}
+  execDPU(const DPU_TCB& dpuTCB) const noexcept override {}
 
   virtual inline constexpr bool checkIfIsTrainable() const noexcept override {
     return false;
