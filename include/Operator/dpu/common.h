@@ -16,11 +16,11 @@
 typedef char page_t[PAGE_SIZE_BYTE];
 
 // Task Control Block
-typedef struct DPU_TCB {
+typedef struct DPU_TCB_c {
   unsigned int src1PageIdx;
   unsigned int src2PageIdx;
   unsigned int dstPageIdx;
   unsigned int pageCnt;
-} DPU_TCB;
+} DPU_TCB_c;
 
 #endif

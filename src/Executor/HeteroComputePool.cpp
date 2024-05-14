@@ -5,11 +5,11 @@ namespace Executor {
 
 bool HeteroComputePool::allDependenciesMet(
     const std::vector<completeSgn> &completedVector,
-    const std::vector<int> &deps, double &lastWakerTime_ms, std::string my,
-    std::string other) const noexcept {
+    const std::vector<int> &deps, double &lastWakerTime_ms,
+    std::string my ,std::string other) const noexcept {
 
   for (const int dep : deps) {
-    if (completedVector[dep].isCompleted == false) {
+    if (completedVector[dep].isCompleted==false) {
       return false;
     } else {
       lastWakerTime_ms =
@@ -31,13 +31,16 @@ void HeteroComputePool::processTasks(
     // Wait for dependencies to be met
     {
       std::unique_lock<std::mutex> lock(mutex_);
-      cv_.wait(lock, [&] { return dependencyCheck(task.id); });
+      cv_.wait(lock, [&] {
+        return dependencyCheck(task.id);
+      });
     }
 
     // exclusivity
-    std::unique_lock<std::mutex> dpuLock(task.isDPURelated ? dpuMutex_ : mutex_,
-                                         std::defer_lock);
-    if (task.isDPURelated) {
+    std::unique_lock<std::mutex> dpuLock(
+        task.isDPURelated ? dpuMutex_ : mutex_,
+        std::defer_lock);
+    if (task.isDPURelated){
       dpuMutex_.lock();
     }
 
@@ -45,16 +48,16 @@ void HeteroComputePool::processTasks(
     auto start = std::chrono::high_resolution_clock::now();
 
     task.execute();
-    // std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     // Record the end time
     auto end = std::chrono::high_resolution_clock::now();
 
     // Release the mapReduceMutex for map and reduce tasks
-    if (task.isDPURelated) {
+    if (task.isDPURelated){
       dpuMutex_.unlock();
     }
-
+    
     // Update task completion status and record timings
     {
       std::lock_guard<std::mutex> lock(mutex_);
@@ -62,26 +65,28 @@ void HeteroComputePool::processTasks(
       timings[task.id].push_back({start, end, task.opType});
       cv_.notify_all();
     }
+
   }
 }
 
 std::pair<Task, Task>
-HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag,
-                                  OperatorType opType, const CPU_TCB &cpuTCB,
-                                  const DPU_TCB &dpuTCB, execType eT) noexcept {
+HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag, OperatorType opType,
+                                       const CPU_TCB& cpuTCB, const DPU_TCB& dpuTCB,
+                                       execType eT) noexcept{
   Task cpuTask, dpuTask;
   std::string opTypeStr = opType2Name.at(opType);
 
-  /*
-    ////////// DEBUG /////////////
-    std::cout << "CPU Task "<< taskId << " ("<< tag2Name.at(opTag)<< "): "<<
-    cpuInputSize_MiB << "MiB.\n"; std::cout << "DPU Task "<< taskId << " ("<<
-    tag2Name.at(opTag)<< "): "<< dpuInputSize_MiB << "MiB.\n";
-    ////////// DEBUG /////////////
-    */
+/*
+  ////////// DEBUG /////////////
+  std::cout << "CPU Task "<< taskId << " ("<< tag2Name.at(opTag)<< "): "<<
+  cpuInputSize_MiB << "MiB.\n"; std::cout << "DPU Task "<< taskId << " ("<<
+  tag2Name.at(opTag)<< "): "<< dpuInputSize_MiB << "MiB.\n";
+  ////////// DEBUG /////////////
+  */
 
   if (eT == execType::DO) {
-    cpuTask = {false, taskId,
+    cpuTask = {false,
+               taskId,
                [this, opTag, cpuTCB]() {
                  if (cpuTCB.pageBlkCnt)
                    om.execCPU(opTag, cpuTCB);
@@ -96,11 +101,13 @@ HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag,
                opTypeStr};
 
   } else { // MIMIC logic
-    cpuTask = {false, taskId,
-               [this, taskId, opTag, pageBlkCnt = cpuTCB.pageBlkCnt]() {
-                 const auto perf = pageBlkCnt
-                                       ? om.deducePerfCPU(opTag, pageBlkCnt)
-                                       : perfStats{};
+    cpuTask = {false,
+               taskId,
+               [this, taskId, opTag, pageBlkCnt=cpuTCB.pageBlkCnt]() {
+                 const auto perf =
+                    pageBlkCnt 
+                         ? om.deducePerfCPU(opTag, pageBlkCnt)
+                         : perfStats{};
                  // ------------- critical zone --------------
                  {
                    std::lock_guard<std::mutex> lock(this->mutex_);
@@ -114,11 +121,13 @@ HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag,
                },
                opTypeStr};
 
-    dpuTask = {true, taskId,
-               [this, taskId, opTag, pageBlkCnt = dpuTCB.pageCnt]() {
-                 const auto perf = pageBlkCnt
-                                       ? om.deducePerfDPU(opTag, pageBlkCnt)
-                                       : perfStats{};
+    dpuTask = {true,
+               taskId,
+               [this, taskId, opTag, pageBlkCnt=dpuTCB.pageCnt]() {
+                 const auto perf = 
+                    pageBlkCnt 
+                         ? om.deducePerfDPU(opTag, pageBlkCnt)
+                         : perfStats{};
                  // ------------- critical zone --------------
                  {
                    std::lock_guard<std::mutex> lock(this->mutex_);
@@ -136,34 +145,32 @@ HeteroComputePool::genComputeTask(int taskId, OperatorTag opTag,
   return {cpuTask, dpuTask};
 }
 
-std::pair<Task, Task> HeteroComputePool::genXferTask(int taskId,
-                                                     OperatorTag opTag,
-                                                     const CPU_TCB &mapTCB,
-                                                     const CPU_TCB &reduceTCB,
-                                                     execType eT) noexcept {
+std::pair<Task, Task> HeteroComputePool::genXferTask(int taskId, OperatorTag opTag, 
+                                    const CPU_TCB& mapTCB, const CPU_TCB& reduceTCB,
+                                    execType eT) noexcept {
   Task mapTask, reduceTask;
 
-  /*
-    ////////// DEBUG /////////////
-    std::cout << "MAP Task "<< taskId << ": " << mapWork_MiB << " MiB.\n";
-    std::cout << "REDUCE Task "<< taskId << ": "<< reduceWork_MiB << "MiB.\n";
-    ////////// DEBUG /////////////
-    */
+/*
+  ////////// DEBUG /////////////
+  std::cout << "MAP Task "<< taskId << ": " << mapWork_MiB << " MiB.\n";
+  std::cout << "REDUCE Task "<< taskId << ": "<< reduceWork_MiB << "MiB.\n";
+  ////////// DEBUG /////////////
+  */
 
-  mapTask = {true, taskId, []() {}, "MAP"};
-  reduceTask = {true, taskId, []() {}, "REDUCE"};
+  mapTask = {true,taskId, []() {}, "MAP"};
+  reduceTask = {true,taskId, []() {},  "REDUCE"};
 
   // If this node is LOGIC_END, no xfer to next(because no succNodes)
   if (opTag != OperatorTag::LOGIC_END && opTag != OperatorTag::LOGIC_START) {
     if (eT == execType::DO) {
-      reduceTask.execute = [this, reduceTCB]() {
+      reduceTask.execute = [this,reduceTCB]() {
         om.execCPU(OperatorTag::REDUCE, reduceTCB);
       };
-      mapTask.execute = [this, mapTCB]() {
+      mapTask.execute = [this,mapTCB]() {
         om.execCPU(OperatorTag::MAP, mapTCB);
       };
     } else {
-      reduceTask.execute = [this, taskId, pageBlkCnt = reduceTCB.pageBlkCnt]() {
+      reduceTask.execute = [this, taskId, pageBlkCnt = reduceTCB.sgInfo.pageBlkCnt]() {
         const auto perf =
             (pageBlkCnt == 0)
                 ? perfStats{}
@@ -180,8 +187,9 @@ std::pair<Task, Task> HeteroComputePool::genXferTask(int taskId,
         // ------------- critical zone --------------
       };
 
-      mapTask.execute = [this, taskId, pageBlkCnt = mapTCB.pageBlkCnt]() {
-        const auto perf = (pageBlkCnt == 0)
+      mapTask.execute = [this, taskId, pageBlkCnt = mapTCB.sgInfo.pageBlkCnt]() {
+        const auto perf = 
+          (pageBlkCnt == 0)
                               ? perfStats{}
                               : om.deducePerfCPU(OperatorTag::MAP, pageBlkCnt);
         // ------------- critical zone --------------
@@ -196,30 +204,31 @@ std::pair<Task, Task> HeteroComputePool::genXferTask(int taskId,
         // ------------- critical zone --------------
       };
     }
-    totalTransfer_mb += reduceTCB.pageBlkCnt + mapTCB.pageBlkCnt;
+    totalTransfer_mb += (reduceTCB.sgInfo.pageBlkCnt * om.pageBlkSize + mapTCB.sgInfo.pageBlkCnt * om.pageBlkSize)
+    /(1<<20);
   }
 
   return {mapTask, reduceTask};
 }
 
-void HeteroComputePool::cleanStatus(int taskNum) noexcept {
+void HeteroComputePool::cleanStatus(int taskNum)noexcept{
   dependencies_ = std::vector<std::vector<int>>(taskNum, std::vector<int>());
-  cpuCompleted_ = std::vector<completeSgn>(taskNum, {false, 0.0f});
-  dpuCompleted_ = std::vector<completeSgn>(taskNum, {false, 0.0f});
-  mapCompleted_ = std::vector<completeSgn>(taskNum, {false, 0.0f});
-  reduceCompleted_ = std::vector<completeSgn>(taskNum, {false, 0.0f});
+  cpuCompleted_ = std::vector<completeSgn>(taskNum, {false,0.0f});
+  dpuCompleted_= std::vector<completeSgn>(taskNum, {false,0.0f});
+  mapCompleted_= std::vector<completeSgn>(taskNum, {false,0.0f});
+  reduceCompleted_= std::vector<completeSgn>(taskNum, {false,0.0f});
   cpuQueue_ = std::queue<Task>();
   dpuQueue_ = std::queue<Task>();
-  mapQueue_ = std::queue<Task>();
-  reduceQueue_ = std::queue<Task>();
+  mapQueue_= std::queue<Task>();
+  reduceQueue_= std::queue<Task>();
   cpuTimings_.clear();
   dpuTimings_.clear();
   mapTimings_.clear();
   reduceTimings_.clear();
   cpuLastWakerTime_ms = std::vector<double>(taskNum, 0.0f);
-  dpuLastWakerTime_ms = std::vector<double>(taskNum, 0.0f);
-  mapLastWakerTime_ms = std::vector<double>(taskNum, 0.0f);
-  reduceLastWakerTime_ms = std::vector<double>(taskNum, 0.0f);
+  dpuLastWakerTime_ms= std::vector<double>(taskNum, 0.0f);
+  mapLastWakerTime_ms= std::vector<double>(taskNum, 0.0f);
+  reduceLastWakerTime_ms= std::vector<double>(taskNum, 0.0f);
   cpuMIMICTime_ms = 0.0f;
   dpuMIMICTime_ms = 0.0f;
   totalEnergyCost_joule = 0.0f;
@@ -232,14 +241,13 @@ void HeteroComputePool::cleanStatus(int taskNum) noexcept {
 void HeteroComputePool::parseGraph(const TaskGraph &g, const Schedule &sched,
                                    execType eT) noexcept {
   int taskNum = sched.order.size();
+  cleanStatus(taskNum); 
   uint32_t pageBlkSize = om.getPageBlkSize();
-
   for (size_t i = 0; i < taskNum; ++i) {
 
     int taskId = sched.order[i];
     const TaskProperties &tp = g.g[taskId];
-    uint32_t totalPageBlkCnt =
-        (tp.inputSize_MiB * (1 << 20) + pageBlkSize - 1) / pageBlkSize;
+    uint32_t totalPageBlkCnt = (tp.inputSize_MiB * (1<<20) + pageBlkSize - 1) /pageBlkSize;
 
     // Looking upward: Dependencies maintain.
     auto inEdges = boost::in_edges(taskId, g.g);
@@ -249,7 +257,7 @@ void HeteroComputePool::parseGraph(const TaskGraph &g, const Schedule &sched,
     }
 
     float offloadRatio = sched.offloadRatio[i];
-    uint32_t cpuPageBlkCnt = (1 - offloadRatio) * totalPageBlkCnt;
+    uint32_t cpuPageBlkCnt = (1-offloadRatio) * totalPageBlkCnt;
     uint32_t dpuPageBlkCnt = totalPageBlkCnt - cpuPageBlkCnt;
     float omax = 0.0f;
     float omin = 1.0f;
@@ -285,12 +293,15 @@ void HeteroComputePool::parseGraph(const TaskGraph &g, const Schedule &sched,
         mapWork_MiB = (omax - offloadRatio) * tp.inputSize_MiB;
       } // offloadRatio < omin
     }
-    uint32_t mapPageBlkCnt = (1 - offloadRatio) * totalPageBlkCnt;
-    uint32_t reducePageBlkCnt = totalPageBlkCnt - cpuPageBlkCnt;
-    CPU_TCB cpuTCB, mapTCB, reduceTCB;
-    DPU_TCB dpuTCB;
-    auto [cpuTask, dpuTask] =
-        genComputeTask(taskId, tp.op, tp.opType, cpuTCB, dpuTCB, eT);
+    
+    uint32_t mapPageBlkCnt = om.getNearestPageBlkCnt(mapWork_MiB);
+    uint32_t reducePageBlkCnt = om.getNearestPageBlkCnt(reduceWork_MiB);
+
+
+    auto [cpuTCB, dpuTCB, mapTCB, reduceTCB] = memPlan(g,i,cpuPageBlkCnt, dpuPageBlkCnt, mapPageBlkCnt, reducePageBlkCnt);
+
+    auto [cpuTask, dpuTask] = genComputeTask(
+        taskId, tp.op, tp.opType, cpuTCB, dpuTCB, eT);
     auto [mapTask, reduceTask] =
         genXferTask(taskId, tp.op, mapTCB, reduceTCB, eT);
 
@@ -316,7 +327,8 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
       std::ref(dpuCompleted_),
       [this](int taskId) noexcept {
         return allDependenciesMet(mapCompleted_, dependencies_[taskId],
-                                  dpuLastWakerTime_ms[taskId], "DPU", "MAP");
+                                  dpuLastWakerTime_ms[taskId],
+                                  "DPU","MAP");
       },
       std::ref(dpuTimings_));
   std::thread reduceThread(
@@ -324,8 +336,8 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
       std::ref(reduceCompleted_),
       [this](int taskId) noexcept {
         return allDependenciesMet(dpuCompleted_, {taskId},
-                                  reduceLastWakerTime_ms[taskId], "REDUCE",
-                                  "DPU");
+                                  reduceLastWakerTime_ms[taskId],
+                                  "REDUCE","DPU");
       },
       std::ref(reduceTimings_));
   std::thread cpuThread(
@@ -333,18 +345,22 @@ perfStats HeteroComputePool::execWorkload(const TaskGraph &g,
       std::ref(cpuCompleted_),
       [this](int taskId) noexcept {
         return allDependenciesMet(reduceCompleted_, dependencies_[taskId],
-                                  cpuLastWakerTime_ms[taskId], "CPU", "Reduce");
+                                  cpuLastWakerTime_ms[taskId],
+                                  "CPU", "Reduce");
       },
       std::ref(cpuTimings_));
+
 
   std::thread mapThread(
       &HeteroComputePool::processTasks, this, std::ref(mapQueue_),
       std::ref(mapCompleted_),
       [this](int taskId) noexcept {
         return allDependenciesMet(cpuCompleted_, {taskId},
-                                  mapLastWakerTime_ms[taskId], "MAP", "CPU");
+                                  mapLastWakerTime_ms[taskId],
+                                  "MAP","CPU");
       },
       std::ref(mapTimings_));
+
 
   cpuThread.join();
   dpuThread.join();

@@ -56,26 +56,23 @@ Schedule MetaScheduler::schedule() noexcept {
   const int iterNum = OptIterMax;
 
   std::vector<std::unique_ptr<OptimizerBase>> oVec;
-  oVec.push_back(std::make_unique<Optimizer::OptimizerPSO<float, float>>(
-      vMax, omega, dt, ego, lowerLimit, upperLimit, dimNum, pointNum, iterNum,
-      [this](const std::vector<std::vector<float>> &ratioVecs) {
+  std::function<std::vector<float>(const std::vector<std::vector<float>>&)> func = 
+    [this](const std::vector<std::vector<float>> &ratioVecs) {
         return this->evalSchedules(ratioVecs);
-      }));
+    };
 
-  oVec.push_back(std::make_unique<Optimizer::OptimizerAOA<float, float>>(
-      lowerLimit, upperLimit, dimNum, pointNum, iterNum,
-      [this](const std::vector<std::vector<float>> &ratioVecs) {
-        return this->evalSchedules(ratioVecs);
-      }));
+oVec.push_back(std::make_unique<Optimizer::OptimizerPSO<float, float>>(
+    vMax, omega, dt, ego, lowerLimit, upperLimit, dimNum, pointNum, iterNum, func));
 
-  oVec.push_back(std::make_unique<Optimizer::OptimizerRSA<float, float>>(
-      lowerLimit, upperLimit, dimNum, pointNum, iterNum,
-      [this](const std::vector<std::vector<float>> &ratioVecs) {
-        return this->evalSchedules(ratioVecs);
-      }));
+oVec.push_back(std::make_unique<Optimizer::OptimizerAOA<float, float>>(
+    lowerLimit, upperLimit, dimNum, pointNum, iterNum, func));
+
+oVec.push_back(std::make_unique<Optimizer::OptimizerRSA<float, float>>(
+    lowerLimit, upperLimit, dimNum, pointNum, iterNum, func));
 
   float bestVal = 666666666.6f;
   std::vector<float> ratio(nTask, 0.0f);
+
 #pragma omp parallel
   {
 #pragma omp single
@@ -86,6 +83,7 @@ Schedule MetaScheduler::schedule() noexcept {
       }
     }
   }
+
   int bestOptimizerIdx = -1; // init illegal value
   for (int i = 0; i < oVec.size(); i++) {
     std::cout << "score " << i << "=" << oVec[i]->getGlobalOptimaValue()
@@ -98,12 +96,6 @@ Schedule MetaScheduler::schedule() noexcept {
   ratio = oVec[bestOptimizerIdx]->getGlobalOptimaPoint();
   bestVal = oVec[bestOptimizerIdx]->getGlobalOptimaValue();
 
-  /*
-  int bestOptimizerIdx = 0;
-  oVec[bestOptimizerIdx]->exec();
-  ratio = oVec[bestOptimizerIdx]->getGlobalOptimaPoint();
-  bestVal = oVec[bestOptimizerIdx]->getGlobalOptimaValue();
-  */
 
   // ---------- showoff use --------------
   switch (bestOptimizerIdx) {
@@ -126,6 +118,7 @@ Schedule MetaScheduler::schedule() noexcept {
   // ---------- showoff use --------------
 
   std::cout << "META Schedule result: \n";
+
   std::vector<float> actualRatio(nTask, 0.0f);
   for (int i = 0; i < nTask; i++) {
     actualRatio[i] = ratio[i] / 200.0f + 0.5f;

@@ -22,5 +22,5 @@ target_link_libraries(regression xgboost::xgboost)
 #add_executable(hcpTest ./HCPTest.cpp)
 #target_link_libraries(hcpTest executorLib)
 
-#add_executable(schedTest ./schedulerTest.cpp)
-#target_link_libraries(schedTest executorLib schedulerLib utilsLib OpenMP::OpenMP_CXX)
+add_executable(schedTest ./schedulerTest.cpp)
+target_link_libraries(schedTest executorLib schedulerLib utilsLib OpenMP::OpenMP_CXX)

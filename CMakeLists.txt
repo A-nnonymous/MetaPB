@@ -8,10 +8,10 @@ find_package(xgboost REQUIRED)
 find_package(OpenMP REQUIRED)
 #------------------- CPU Compiler settings-------------------
 set(CMAKE_CXX_COMPILER /usr/bin/g++-12 )
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -mavx512f -march=native -g -I/usr/include/dpu -ldpu -Wno-pointer-arith -Wno-narrowing -Wno-unused-result ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g -mavx512f -march=native  -I/usr/include/dpu -ldpu -Wno-pointer-arith -Wno-narrowing -Wno-unused-result ")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g -I/usr/include/dpu -ldpu -Wno-pointer-arith -Wno-narrowing -Wno-unused-result ")
 
 execute_process(
@@ -32,7 +32,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(/usr/include/dpu)
 
 add_subdirectory(src)
-#add_subdirectory(benchmarks)
+add_subdirectory(benchmarks)
 add_subdirectory(tests)
 
 

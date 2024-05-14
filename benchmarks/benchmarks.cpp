@@ -19,10 +19,6 @@ int main() {
                                  */
   /*
 
-  bm.addBenchmark<singleOPDeduce>({"regression"},
-                                  {
-                                    {"upperBound_MiB", "1028"}
-                                  });
   bm.addBenchmark<Graph_benchmark>({"All_Graphloads"},
                                    {{"loadSize_MiB", "8192"}});
   bm.addBenchmark<HybridOP_Benchmark>(
@@ -39,13 +35,19 @@ int main() {
       {"isConsideringReduce", "true"},
     }
   );
-  */
   bm.addBenchmark<Graph_benchmark>({"All_Graphloads"},
                                    {{"loadSize_MiB", "1024"}});
   bm.addBenchmark<Graph_benchmark>({"All_Graphloads"},
                                    {{"loadSize_MiB", "2048"}});
   bm.addBenchmark<Graph_benchmark>({"All_Graphloads"},
                                    {{"loadSize_MiB", "4096"}});
+  bm.addBenchmark<singleOPDeduce>({"regression"},
+                                  {
+                                    {"upperBound_MiB", "1024"}
+                                  });
+  */
+  bm.addBenchmark<Graph_benchmark>({"All_Graphloads"},
+                                   {{"loadSize_MiB", "1024"}});
   bm.exec();
   return 0;
 }

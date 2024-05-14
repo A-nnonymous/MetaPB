@@ -4,6 +4,9 @@ namespace MetaPB {
 namespace Operator {
 
 inline void OperatorREDUCE::execCPU(const CPU_TCB &cpuTCB) const noexcept {
+  auto DPU_BINARY = getDPUBinaryPath();
+  DPU_ASSERT(dpu_load(allDPUs, DPU_BINARY.c_str(), NULL));
+  
   sg_xfer_context sgInfo;
   sgInfo.cpuPageBlkBaseAddr = cpuTCB.sgInfo.cpuPageBlkBaseAddr;
   sgInfo.dpuPageBaseIdx = cpuTCB.sgInfo.dpuPageBaseIdx;

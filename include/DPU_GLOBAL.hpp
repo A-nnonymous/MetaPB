@@ -11,6 +11,7 @@ extern "C" {
 
 struct GLOBAL_DPU_MGR {
   dpu_set_t dpu_set;
+  std::uint32_t dpuNum;
   inline static bool isAllocated = false;
   inline static bool isFreed = false;
   GLOBAL_DPU_MGR(const GLOBAL_DPU_MGR &) = delete;
@@ -24,14 +25,14 @@ struct GLOBAL_DPU_MGR {
       std::uint32_t result;
       DPU_ASSERT(dpu_get_nr_dpus(dpu_set, &result));
       std::cout << "Allocated " << result << " DPU(s)\n";
+      this->dpuNum = result;
       isAllocated = true;
       isFreed = false;
     }
   }
-  inline const std::uint32_t getDPUNum() const noexcept {
-    std::uint32_t result;
-    DPU_ASSERT(dpu_get_nr_dpus(dpu_set, &result));
-    return result;
+  const std::uint32_t getDPUNum() const noexcept {
+    std::cout << "returned from MGR dpuNum: "<< dpuNum <<std::endl;
+    return dpuNum;
   }
   ~GLOBAL_DPU_MGR() noexcept {
     if (!isFreed) {

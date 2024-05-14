@@ -9,7 +9,7 @@
 #include "Operator/dpu/common.h"
 
 __mram_noinit page_t buffer[NR_SINGLE_DPU_PAGE];
-__host DPU_TCB dpuTCB;
+__host DPU_TCB_c dpuTCB;
 
 static void ELEW_ADD(T *src1, T *src2, T *dst) {
   unsigned int itemNum = DPU_DMA_BFFR_BYTE / sizeof(T);

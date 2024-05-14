@@ -41,7 +41,7 @@ public:
   /// @brief stop counting time for a specific work
   void tock(const std::string &taskName);
   /// @brief Clean all the register.
-  inline void clear() noexcept {
+  void clear() noexcept {
     task2Report.clear();
     task2LastProbe.clear();
   }

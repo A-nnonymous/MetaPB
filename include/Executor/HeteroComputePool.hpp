@@ -128,8 +128,28 @@ private:
                                     const CPU_TCB &reduceTCB,
                                     execType eT) noexcept;
 
+  std::tuple<CPU_TCB,DPU_TCB,CPU_TCB,CPU_TCB> memPlan(const TaskGraph& g, int i,
+                                                            uint32_t cpuPageBlkCnt,
+                                                            uint32_t dpuPageBlkCnt,
+                                                            uint32_t mapPageBlkCnt,
+                                                            uint32_t reducePageBlkCnt){
+   char* heapBasePtr = (char*)memPoolPtr[0];
+   uint32_t dpuPageBaseIdx = 0;
+   CPU_TCB cpuTCB{heapBasePtr, 
+                  heapBasePtr + cpuPageBlkCnt * om.getPageBlkSize(),
+                  heapBasePtr + 2 * cpuPageBlkCnt * om.getPageBlkSize(),
+                  cpuPageBlkCnt};
+   DPU_TCB dpuTCB{dpuPageBaseIdx,
+                  dpuPageBaseIdx + dpuPageBlkCnt,
+                  dpuPageBaseIdx + 2 * dpuPageBlkCnt,
+                  dpuPageBlkCnt};
+   CPU_TCB mapTCB;    mapTCB.sgInfo =   {heapBasePtr, dpuPageBaseIdx, mapPageBlkCnt}; 
+   CPU_TCB reduceTCB; reduceTCB.sgInfo ={heapBasePtr, dpuPageBaseIdx, reducePageBlkCnt};
+   return {cpuTCB, dpuTCB, mapTCB, reduceTCB};
+   }
+
 private:
-  MemoryPlanner mp;
+  void** memPoolPtr;
   int memPoolNum = 3;
   double totalDPUTime_Second = 0.0f;
   const OperatorManager &om;

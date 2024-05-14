@@ -11,8 +11,8 @@ using MetaPB::Operator::OperatorTag;
 
 int main() {
   OperatorManager om;
-  auto testOP = OperatorTag::LOOKUP;
-  bool isO1 = true;
+  auto testOP = OperatorTag::CONV_1D;
+  bool isO1 = false;
   const size_t pageBlkSize = om.getPageBlkSize();
   void* src1 = malloc(pageBlkSize);
   void* src2 = malloc(pageBlkSize);

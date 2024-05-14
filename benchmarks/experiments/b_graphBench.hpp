@@ -53,26 +53,28 @@ public:
       graphLoads["GEA-" + std::to_string(i)] = genGEA(i, loadSize_MiB);
     }
     /*
-    graphLoads["stringLoad"] = genInterleavedWorkload(loadSize_MiB, 6);
+    graphLoads["stringLoad"] = genInterleavedWorkload(loadSize_MiB, 3);
     */
 
     void **memPool = (void **)malloc(3);
     memPool[0] = malloc(72 * size_t(1 << 30));
     memPool[1] = memPool[0] + 1 * size_t(1 << 30);
     memPool[2] = memPool[1] + 1 * size_t(1 << 30);
+
     OperatorManager om;
     for (auto &[_, tg] : graphLoads) {
       om.trainModel(tg.genRegressionTask());
     }
     HeteroComputePool hcp(om, memPool);
+
     for (const auto &[loadName, loadGraph] : graphLoads) {
       HEFTScheduler heft(loadGraph, om);
-      MetaScheduler metaPF(0.8f, 0.2f, 200, loadGraph, om);
-      MetaScheduler metaHY(0.5f, 0.5f, 200, loadGraph, om);
-      MetaScheduler metaEF(0.2f, 0.8f, 200, loadGraph, om);
       GreedyScheduler greedy;
       CPUOnlyScheduler cpuOnly;
       DPUOnlyScheduler dpuOnly;
+      MetaScheduler metaPF(0.2f, 0.8f, 200, loadGraph, om);
+      MetaScheduler metaHY(0.5f, 0.5f, 200, loadGraph, om);
+      MetaScheduler metaEF(0.2f, 0.8f, 200, loadGraph, om);
 
       std::map<std::string, Schedule> scheduleResult = {
           {"HEFT", heft.schedule()},
@@ -84,6 +86,7 @@ public:
           {"DPUOnly", dpuOnly.schedule(loadGraph, om)}};
 
       for (const auto &[schedName, sched] : scheduleResult) {
+        HeteroComputePool hcp(om, memPool);
         std::cout << "executing " << schedName << "'s schedule on " << loadName
                   << "\n";
         perfStats stat;

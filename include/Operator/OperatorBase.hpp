@@ -1,10 +1,16 @@
 #ifndef OP_BASE_HPP
 #define OP_BASE_HPP
 
+/*
 #define PREPROBE_WARMUP_REP 3
 #define PROBE_REP 10
+*/
+#define PREPROBE_WARMUP_REP 0
+#define PROBE_REP 1
+
 #define BATCH_LOWERBOUND_MB 128
-#define PERF_SAMPLE_POINT 24
+//#define PERF_SAMPLE_POINT 16
+#define PERF_SAMPLE_POINT 16
 #define REGRESSION_TRAINING_ITER 200
 #define REGRESSION_MODEL_CACHE_PATH "/tmp/MetaPB/perfModel/"
 #define DPU_ENERGY_CONSTANT_PER_SEC 280.0
@@ -75,8 +81,9 @@ typedef struct DPU_TCB {
 class OperatorBase {
 public:
   OperatorBase(std::unique_ptr<GLOBAL_DPU_MGR> &g_DPU_MGR)
-      : allDPUs(g_DPU_MGR->dpu_set), dpuNum(g_DPU_MGR->getDPUNum()),
-        pageBlkSize(dpuNum * PAGE_SIZE_BYTE) {}
+      : allDPUs(g_DPU_MGR->dpu_set), dpuNum(2530),
+        pageBlkSize(dpuNum * PAGE_SIZE_BYTE) {
+        }
 
   inline virtual void execCPU(const CPU_TCB &cpuTCB) const noexcept = 0;
   inline virtual void execDPU(const DPU_TCB &dpuTCB) const noexcept = 0;
@@ -92,16 +99,16 @@ public:
   /// @param pageBlkCnt
   /// @return
   inline perfStats deducePerfCPU(const uint32_t pageBlkCnt) const noexcept {
-    size_t pageBlkStep = this->deducePageBlkUpperBound / PERF_SAMPLE_POINT;
+    size_t pageBlkStep = this->deducePageBlkUpperBound / (PERF_SAMPLE_POINT -1);
 
     if (pageBlkCnt == 0) [[unlikely]] {
       return CPUPerfSamples[0]; // function calling overhead.
     }
     if (pageBlkCnt >= this->deducePageBlkUpperBound) [[unlikely]] {
-      return CPUPerfSamples[PERF_SAMPLE_POINT - 1];
+      return CPUPerfSamples[PERF_SAMPLE_POINT];
     }
 
-    size_t index = pageBlkCnt / pageBlkStep;
+    size_t index = pageBlkCnt / pageBlkStep ;
 
     size_t x0 = index * pageBlkStep;
     size_t x1 = x0 + pageBlkStep;
@@ -109,22 +116,22 @@ public:
     perfStats y0 = CPUPerfSamples[index];
     perfStats y1 = CPUPerfSamples[index + 1];
 
-    perfStats y = y0 + (y1 - y0) * (pageBlkStep - x0) / (x1 - x0);
+    perfStats y = y0 + (y1 - y0) * (pageBlkCnt - x0) / (x1 - x0);
 
     return y;
   }
 
   inline perfStats deducePerfDPU(const uint32_t pageBlkCnt) const noexcept {
-    size_t pageBlkStep = this->deducePageBlkUpperBound / PERF_SAMPLE_POINT;
+    size_t pageBlkStep = this->deducePageBlkUpperBound / (PERF_SAMPLE_POINT - 1);
 
     if (pageBlkCnt == 0) [[unlikely]] {
       return DPUPerfSamples[0]; // function calling overhead.
     }
     if (pageBlkCnt >= this->deducePageBlkUpperBound) [[unlikely]] {
-      return DPUPerfSamples[PERF_SAMPLE_POINT - 1];
+      return DPUPerfSamples[PERF_SAMPLE_POINT];
     }
 
-    size_t index = pageBlkCnt / pageBlkStep;
+    size_t index = pageBlkCnt / pageBlkStep ;
 
     size_t x0 = index * pageBlkStep;
     size_t x1 = x0 + pageBlkStep;
@@ -132,8 +139,7 @@ public:
     perfStats y0 = DPUPerfSamples[index];
     perfStats y1 = DPUPerfSamples[index + 1];
 
-    perfStats y = y0 + (y1 - y0) * (pageBlkStep - x0) / (x1 - x0);
-
+    perfStats y = y0 + (y1 - y0) * (pageBlkCnt - x0) / (x1 - x0);
     return y;
   }
 
@@ -146,32 +152,14 @@ public:
     return isTrained;
   }
 
-  inline uint32_t getPageBlkSize() { return pageBlkSize; }
-
-private:
-  void savePerfSamples(const perfStats[],
-                       const std::string &path) const noexcept;
-  void loadPerfSamples(perfStats[], const std::string &path) const noexcept;
-  bool loadModelCacheIfExist(const uint32_t pageUpperBound) noexcept;
-
-  // storing all datasize to taskname
-  std::map<float, std::string> cpuExecJob2Name;
-  std::map<float, std::string> dpuExecJob2Name;
-
-  size_t deducePageBlkUpperBound = 0;
-
-  ChronoTrigger ct;
-
-  // Caches that used to store deduce results and do interpolation
-  perfStats CPUPerfSamples[PERF_SAMPLE_POINT + 1]; // +1 for lowerbound
-  perfStats DPUPerfSamples[PERF_SAMPLE_POINT + 1];
-
-  inline static bool isTrained = false;
+  inline const uint32_t getPageBlkSize() const { 
+    std::cout << "Returned pageBlkSize = " << dpuNum << " x " << PAGE_SIZE_BYTE << " = "<< dpuNum * PAGE_SIZE_BYTE << std::endl;
+    return 2530*4096; }
 
 protected:
   dpu_set_t &allDPUs;
-  uint32_t dpuNum;
-  uint32_t pageBlkSize;
+  const uint32_t dpuNum;
+  const uint32_t pageBlkSize;
   inline static bool get_block(struct sg_block_info *out, uint32_t dpu_index,
                                uint32_t block_index, void *args) {
 
@@ -187,6 +175,27 @@ protected:
                 PAGE_SIZE_BYTE * (block_index * 2530 + dpu_index);
     return true;
   }
+
+private:
+  void savePerfSamples(const perfStats[],
+                       const std::string &path) const noexcept;
+  void loadPerfSamples(perfStats[], const std::string &path) const noexcept;
+  bool loadModelCacheIfExist(const uint32_t pageUpperBound) noexcept;
+
+  // storing all datasize to taskname
+  std::map<float, std::string> cpuExecJob2Name;
+  std::map<float, std::string> dpuExecJob2Name;
+
+  size_t deducePageBlkUpperBound = 0;
+
+  // Caches that used to store deduce results and do interpolation
+  perfStats CPUPerfSamples[PERF_SAMPLE_POINT + 1]; // +1 for lowerbound
+  perfStats DPUPerfSamples[PERF_SAMPLE_POINT + 1];
+
+  inline static bool isTrained = false;
+
+  ChronoTrigger ct;
+
 };
 
 } // namespace Operator

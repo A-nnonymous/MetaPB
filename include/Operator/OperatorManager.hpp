@@ -35,9 +35,10 @@ struct OperatorManager {
   }
   void trainModel(const regressionTask &task) {
     size_t maxBlk = 0;
-    for (const auto &[opTag, pageBlkUpperBound] : task) {
-      if (pageBlkUpperBound > maxBlk)
-        maxBlk = pageBlkUpperBound;
+    for (const auto &[opTag, dataSizeUpperBound_MiB] : task) {
+      size_t blkNum = getNearestPageBlkCnt(dataSizeUpperBound_MiB);
+      if (blkNum > maxBlk)
+        maxBlk = blkNum;
     }
     for (auto &[opTag, pageBlkUpperBound] : task) {
       if (!opMap.contains(opTag)) {
@@ -125,12 +126,15 @@ struct OperatorManager {
     instantiateAll();
     pageBlkSize = opMap.at(OperatorTag::MAP)->getPageBlkSize();
   }
-  inline uint32_t getPageBlkSize() { return pageBlkSize; }
+  inline uint32_t getPageBlkSize() const noexcept { return pageBlkSize; }
   std::map<OperatorTag, std::unique_ptr<OperatorBase>> opMap;
   /*
   inline static std::unique_ptr<GLOBAL_DPU_MGR> g_DPU_MGR =
       std::make_unique<GLOBAL_DPU_MGR>();
       */
+  inline uint32_t getNearestPageBlkCnt(size_t inputSize_MiB) const noexcept{
+    return ((size_t)inputSize_MiB * (size_t)(1<<20) + pageBlkSize - 1) / pageBlkSize;
+  }
   std::unique_ptr<GLOBAL_DPU_MGR> g_DPU_MGR;
 
   const std::uint32_t dpuNum;
